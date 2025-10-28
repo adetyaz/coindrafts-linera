@@ -478,7 +478,7 @@ impl GlobalChampionship {
 
 | Feature                     | Traditional Blockchain | Linera Microchains          |
 | --------------------------- | ---------------------- | --------------------------- |
-| **Transaction Finality**    | 10+ seconds            | <0.5 seconds                |
+| **Transaction Finality**    | 10+ seconds            | Less than 0.5 seconds       |
 | **Concurrent Users**        | Limited by gas limit   | Unlimited (parallel chains) |
 | **Data Reads**              | Gas fees required      | Free for chain owners       |
 | **Real-time Updates**       | Not possible           | Native support              |

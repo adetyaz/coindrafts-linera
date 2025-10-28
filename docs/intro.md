@@ -64,7 +64,7 @@ Ready to experience the future of crypto gaming? Check out our guides:
 1. **[Installation Guide](/docs/getting-started/installation)** - Set up your Linera development environment
 2. **[Architecture Overview](/docs/linera-architecture/overview)** - Understand the microchain ecosystem
 3. **[Game Modes](/docs/game-modes/overview)** - Explore all available gameplay options
-4. **[Smart Contracts](/docs/smart-contracts/overview)** - Deep dive into Linera application development
+4. **[Protocol Integration](/docs/linera-architecture/protocol-integration)** - Deep dive into Linera application development
 
 ---
 

@@ -317,8 +317,8 @@ Now that you have the basic setup, explore these guides:
 
 - **[Linera Architecture](/docs/linera-architecture/overview)** - Deep dive into microchains and cross-chain messaging
 - **[Game Modes Implementation](/docs/game-modes/traditional-leagues)** - Build the core gaming features
-- **[AI Oracle Integration](/docs/features/ai-oracles)** - Implement advanced market analysis
-- **[Testing & Deployment](/docs/development/testing)** - Best practices for production deployment
+- **[Price Range Prediction](/docs/game-modes/price-range-prediction)** - Implement advanced market analysis with AI oracles
+- **[Architecture Diagrams](/docs/architecture/complete-overview)** - Complete system overview and deployment architecture
 
 ## Getting Help
 

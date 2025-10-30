@@ -22,21 +22,21 @@ CoinDrafts leverages Linera's breakthrough microchain architecture to deliver ca
 
 - **Duration**: 7 days (Monday to Monday)
 - **Portfolio**: Draft 5 cryptocurrencies
-- **Entry**: $1 POL with AI-powered suggestions
+- **Entry**: $1 USDC with AI-powered suggestions
 - **Innovation**: Personal microchains for each player
 
 ### Quick Match ⚡
 
 - **Duration**: 24 hours for rapid gameplay
 - **Portfolio**: Draft 3 cryptocurrencies
-- **Entry**: $0.50 POL for casual participation
+- **Entry**: $0.50 USDC for casual participation
 - **Innovation**: Temporary league microchains with automatic cleanup
 
 ### Price Range Prediction 🎯
 
 - **Duration**: 7-day prediction windows
 - **Challenge**: Predict exact price ranges for cryptocurrencies
-- **Entry**: $1 POL with dynamic difficulty multipliers
+- **Entry**: $1 USDC with dynamic difficulty multipliers
 - **Innovation**: Multi-source oracle aggregation for precise validation
 
 ## Linera Protocol Advantages

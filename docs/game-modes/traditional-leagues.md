@@ -12,7 +12,7 @@ Traditional Leagues represent the core CoinDrafts experience, enhanced with Line
 
 - **Duration**: 7 days (Monday 00:00 UTC to Monday 00:00 UTC)
 - **Portfolio Size**: 5 cryptocurrency selections
-- **Entry Fee**: $1 POL
+- **Entry Fee**: $1 USDC
 - **Maximum Participants**: Unlimited (parallel league instances)
 - **Updates**: Real-time price updates every 30 seconds
 - **Scoring**: Percentage-based portfolio performance
@@ -32,7 +32,7 @@ graph TB
 
         subgraph "League Management Infrastructure"
             LRC[League Registration Chain<br/>🎮 Match Orchestration<br/>⏰ 7-Day Lifecycle<br/>🎫 Entry Management<br/>👥 Player Coordination]
-            AL1[Active League Chain #1<br/>🏆 5-Crypto Competition<br/>💰 $1 POL Entry Fee<br/>📈 Real-Time Rankings<br/>⚡ 30-Second Updates]
+            AL1[Active League Chain #1<br/>🏆 5-Crypto Competition<br/>💰 $1 USDC Entry Fee<br/>📈 Real-Time Rankings<br/>⚡ 30-Second Updates]
             AL2[Active League Chain #2<br/>🎪 Merchant-Branded<br/>🎁 Custom Rewards<br/>🏪 Store Integration<br/>📊 Sales Analytics]
             ALN[Active League Chain #N<br/>♾️ Unlimited Parallel<br/>🔄 Auto-Scaling<br/>⚖️ Prize Distribution<br/>🎉 Victory Celebrations]
         end

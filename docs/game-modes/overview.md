@@ -15,9 +15,9 @@ graph TB
     end
 
     subgraph "Game Mode Microchains"
-        TL[Traditional Leagues<br/>⏰ 7-Day Competition<br/>🏆 5 Cryptocurrency Portfolio<br/>💰 $1 POL Entry<br/>👥 Unlimited Participants]
-        QM[Quick Match ⚡<br/>⚡ 24-Hour Lightning<br/>🎯 3 Cryptocurrency Portfolio<br/>💸 $0.50 POL Entry<br/>🏃 Speed Bonuses]
-        PR[Price Range Prediction 🎯<br/>🎲 7-Day Prediction Window<br/>🔮 Exact Range Forecasting<br/>💎 $1 POL Entry<br/>📈 20x Max Multiplier]
+        TL[Traditional Leagues<br/>⏰ 7-Day Competition<br/>🏆 5 Cryptocurrency Portfolio<br/>💰 $1 USDC Entry<br/>👥 Unlimited Participants]
+        QM[Quick Match ⚡<br/>⚡ 24-Hour Lightning<br/>🎯 3 Cryptocurrency Portfolio<br/>💸 $0.50 USDC Entry<br/>🏃 Speed Bonuses]
+        PR[Price Range Prediction 🎯<br/>🎲 7-Day Prediction Window<br/>🔮 Exact Range Forecasting<br/>💎 $1 USDC Entry<br/>📈 20x Max Multiplier]
     end
 
     subgraph "Linera Oracle Network"
@@ -82,6 +82,39 @@ graph TB
     style CCM fill:#00cec9,stroke:#00b894,stroke-width:4px,color:#fff
 ```
 
+## 🎯 Strategy Systems Integration
+
+CoinDrafts incorporates sophisticated strategy layers that reward skill, research, and tactical decision-making across all game modes. These systems leverage Linera's microchain architecture for real-time strategy execution.
+
+### Core Strategy Features
+
+**MVP Strategy Features (Available at Launch):**
+
+- 🎲 **Risk Multipliers** - Volatility-based scoring with up to 5% performance boosts
+- 🤖 **AI Confidence Score** - TensorFlow.js predictions with bonus point system
+- 🔗 **Team Synergy** - Sector-based bonuses (DeFi, Gaming, Infrastructure, Meme coins)
+- ⚖️ **Diversification Rules** - Portfolio balance requirements with reward multipliers
+
+**Advanced Features (Post-MVP):**
+
+- 🔒 **Conviction Picks** - Lock cryptocurrencies across 3 leagues for 3x multipliers
+- 💰 **Double-Down Feature** - Stake extra USDC for 2x weight on confident picks
+- 🎴 **Trade-Off Cards** - Mid-game tactical decisions (Pivot, Shield, Boost cards)
+
+### Game Mode Strategy Integration
+
+Each game mode leverages different aspects of the strategy system:
+
+- **Traditional Leagues**: All strategy features available for maximum depth
+- **Quick Match**: Simplified strategy (Risk Multipliers + AI Confidence) for fast decisions
+- **Price Range Prediction**: AI-heavy with confidence scores and sector analysis
+
+### 📖 Complete Strategy Guide
+
+For detailed information about all strategy features, implementation details, and advanced tactics, see our comprehensive **[Strategy Systems Overview](/docs/strategy-systems/overview)**.
+
+---
+
 ## Traditional Leagues
 
 ### Overview
@@ -90,7 +123,7 @@ The classic CoinDrafts experience enhanced with Linera's real-time capabilities.
 
 **Duration**: 7 days (Monday to Monday)  
 **Portfolio Size**: 5 cryptocurrencies  
-**Entry Fee**: $1 POL  
+**Entry Fee**: $1 USDC  
 **Participants**: Unlimited (parallel league chains)
 
 ### Linera Protocol Features Used
@@ -221,7 +254,7 @@ Fast-paced 24-hour leagues for casual gaming and rapid engagement.
 
 **Duration**: 24 hours  
 **Portfolio Size**: 3 cryptocurrencies (simplified)  
-**Entry Fee**: $0.50 POL (lower barrier to entry)  
+**Entry Fee**: $0.50 USDC (lower barrier to entry)  
 **Update Frequency**: Every 30 seconds (ultra-responsive)
 
 ### Linera Protocol Features Used
@@ -370,7 +403,7 @@ Skill-based prediction markets where players forecast exact price ranges for cry
 
 **Duration**: 7 days (prediction window)  
 **Challenge**: Predict price range (e.g., BTC $65,000-$67,000)  
-**Entry Fee**: $1 POL (with dynamic multipliers)  
+**Entry Fee**: $1 USDC (with dynamic multipliers)  
 **Validation**: Multi-source oracle consensus
 
 ### Linera Protocol Features Used

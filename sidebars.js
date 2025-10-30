@@ -20,11 +20,21 @@ const sidebars = {
     "intro",
     {
       type: "category",
-      label: "Linera Architecture",
+      label: "Getting Started",
+      items: ["getting-started/installation"],
+    },
+    {
+      type: "category",
+      label: "Understanding Linera",
       items: [
         "linera-architecture/overview",
         "linera-architecture/protocol-integration",
       ],
+    },
+    {
+      type: "category",
+      label: "Technical Implementation",
+      items: ["architecture/complete-overview"],
     },
     {
       type: "category",
@@ -38,8 +48,8 @@ const sidebars = {
     },
     {
       type: "category",
-      label: "Architecture Diagrams",
-      items: ["architecture/complete-overview"],
+      label: "Strategy Systems",
+      items: ["strategy-systems/overview"],
     },
   ],
 };

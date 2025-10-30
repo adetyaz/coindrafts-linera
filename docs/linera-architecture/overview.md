@@ -2,117 +2,126 @@
 sidebar_position: 1
 ---
 
-# Linera Architecture Overview
+# Why Linera Protocol for CoinDrafts?
 
-Understanding Linera's revolutionary microchain architecture is essential for building CoinDrafts applications. This section explains how Linera's unique features enable unprecedented capabilities in crypto gaming.
+Understanding why we chose Linera's revolutionary microchain architecture is essential for appreciating CoinDrafts' unique capabilities. This section explains the fundamental problems Linera solves and how it enables unprecedented gaming experiences.
 
-## Complete CoinDrafts-Linera Ecosystem
+## The Traditional Blockchain Problem
+
+Traditional blockchains face critical limitations for real-time gaming:
+
+```mermaid
+graph TD
+    subgraph "Traditional Blockchain Limitations"
+        A[Single Shared Chain] --> B[Network Congestion]
+        A --> C[High Gas Fees]
+        A --> D[Slow Confirmation Times]
+        A --> E[Limited Throughput]
+
+        B --> F[Poor User Experience]
+        C --> F
+        D --> F
+        E --> F
+
+        F --> G[Gaming Impossible]
+    end
+
+    style A fill:#ff6b6b
+    style F fill:#ff6b6b
+    style G fill:#ff6b6b
+```
+
+## Linera's Revolutionary Solution
+
+Linera introduces **microchains** - individual blockchains that can communicate seamlessly:
 
 ```mermaid
 graph TB
-    subgraph "Linera Protocol Foundation"
-        subgraph "Personal Sovereignty Layer"
-            PC1[Player Chain #1<br/>💎 Personal Portfolio<br/>📊 Performance History<br/>🤖 AI Preferences]
-            PC2[Player Chain #2<br/>💎 Social Connections<br/>🏅 Achievement Collection<br/>🌐 Cross-Chain Reputation]
-            PCN[Player Chain #N<br/>💎 Complete Data Ownership<br/>⚡ Zero-Cost Reads<br/>🔄 Real-Time Updates]
-        end
+    subgraph "Linera Microchain Architecture"
+        A[Player Chain 1] --> D[Cross-Chain Messages]
+        B[Player Chain 2] --> D
+        C[Player Chain N] --> D
 
-        subgraph "Game Mode Microchains"
-            TL[Traditional League Chain<br/>⏰ 7-Day Competition<br/>🏆 5 Cryptocurrency Portfolio<br/>💰 $1 POL Entry Fee<br/>📈 Real-Time Rankings]
-            QM[Quick Match Chain<br/>⚡ 24-Hour Lightning Round<br/>🎯 3 Cryptocurrency Portfolio<br/>💸 $0.50 POL Entry Fee<br/>🏃 Speed Bonuses]
-            PM[Prediction Market Chain<br/>🎲 Price Range Betting<br/>🔮 Multi-Oracle Validation<br/>📊 Exponential Rewards<br/>🎯 Skill-Based Gaming]
-        end
+        D --> E[Game Mode Chains]
+        D --> F[Oracle Chains]
+        D --> G[Social Chains]
 
-        subgraph "Oracle Infrastructure"
-            PO[Price Oracle Chain<br/>📈 Multi-Source Price Feeds<br/>🔄 30-Second Updates<br/>📊 CoinGecko + Binance + Coinbase<br/>⚖️ Consensus Algorithm]
-            AI[AI Analysis Chain<br/>🧠 Professional ML Models<br/>🔮 Strategy Recommendations<br/>📈 Technical Analysis<br/>💡 Market Insights]
-            SE[Sentiment Engine Chain<br/>📰 News Analysis<br/>💬 Social Media Sentiment<br/>😱 Fear & Greed Index<br/>🎭 Market Psychology]
-        end
-
-        subgraph "Commerce & Social Infrastructure"
-            MC[Merchant Chain<br/>🛒 Shopify Integration<br/>🎁 Customer Reward Programs<br/>🏪 Branded League Hosting<br/>📊 Sales Analytics]
-            ES[Event Stream Network<br/>📡 Global Social Feed<br/>🎉 Achievement Broadcasts<br/>🏆 Victory Announcements<br/>💬 Community Interactions]
-            AC[Achievement System Chain<br/>🏅 Dynamic NFT Badges<br/>⭐ Cross-Application Reputation<br/>🎖️ Social Verification<br/>🔓 Feature Unlocks]
-        end
+        E --> H[Real-Time Gaming]
+        F --> H
+        G --> H
     end
 
-    subgraph "Cross-Chain Communication Hub"
-        CCM[Asynchronous Message Passing<br/>⚡ Sub-500ms Latency<br/>🔄 Real-Time Synchronization<br/>📨 Event Broadcasting<br/>🌐 Global State Consistency]
+    style A fill:#4ecdc4
+    style B fill:#4ecdc4
+    style C fill:#4ecdc4
+    style H fill:#96ceb4
+```
+
+## CoinDrafts-Linera Ecosystem Overview
+
+Our ecosystem consists of specialized microchains working together seamlessly:
+
+### Personal Player Sovereignty
+
+```mermaid
+graph TB
+    subgraph "Every player gets their own blockchain"
+        PC1[Player Chain #1<br/>💎 Portfolio History<br/>🤖 AI Preferences<br/>📊 Performance Data]
+        PC2[Player Chain #2<br/>🏅 Achievement Collection<br/>🌐 Social Connections<br/>⚡ Zero-Cost Reads]
+        PCN[Player Chain #N<br/>🔒 Complete Privacy<br/>🎯 Personalized Experience<br/>📈 Real-Time Updates]
     end
 
-    subgraph "External Data Sources"
-        API1[CoinGecko API<br/>💰 Cryptocurrency Prices<br/>📊 Market Cap Data<br/>📈 Historical Charts]
-        API2[News Data APIs<br/>📰 Market News Analysis<br/>🔥 Breaking News Alerts<br/>📝 Sentiment Classification]
-        API3[Social Media APIs<br/>💬 Twitter Sentiment<br/>📱 Reddit Discussions<br/>🌐 Community Signals]
-        SHOP[Shopify Platform<br/>🛍️ E-commerce Integration<br/>💳 Payment Processing<br/>📦 Order Management]
-        DEFI[DeFi Protocols<br/>💱 DEX Price Feeds<br/>📊 Liquidity Data<br/>⚡ Flash Loan Integration]
+    PC1 --> Benefits[✅ Data Ownership<br/>✅ No Gas Fees<br/>✅ Instant Updates<br/>✅ Perfect Privacy]
+    PC2 --> Benefits
+    PCN --> Benefits
+
+    style PC1 fill:#ff6b6b
+    style PC2 fill:#ff6b6b
+    style PCN fill:#ff6b6b
+    style Benefits fill:#96ceb4
+```
+
+### Specialized Game Mode Chains
+
+```mermaid
+graph TB
+    subgraph "Dedicated chains for each game type"
+        TL[Traditional Leagues<br/>⏰ 7-Day Competitions<br/>🏆 5 Crypto Portfolios<br/>💰 $1 USDC Entry]
+        QM[Quick Match<br/>⚡ 24-Hour Lightning<br/>🎯 3 Crypto Portfolios<br/>💸 $0.50 USDC Entry]
+        PM[Prediction Markets<br/>🎲 Price Range Betting<br/>🔮 Multi-Oracle Validation<br/>📊 Skill-Based Rewards]
     end
 
-    %% Personal Chain to Game Mode Connections
-    PC1 -.->|Portfolio Submission<br/>💼 Strategy Selection| TL
-    PC2 -.->|Quick Participation<br/>⚡ Rapid Decisions| QM
-    PCN -.->|Price Predictions<br/>🎯 Market Analysis| PM
+    TL --> Advantages[✅ Perfect Isolation<br/>✅ Unlimited Scaling<br/>✅ Custom Rules<br/>✅ Auto-Cleanup]
+    QM --> Advantages
+    PM --> Advantages
 
-    %% Oracle Data Distribution
-    PO -->|Real-Time Price Updates<br/>📈 Market Movements| TL
-    PO -->|Lightning Price Feeds<br/>⚡ 30-Second Updates| QM
-    PO -->|Multi-Source Validation<br/>⚖️ Consensus Pricing| PM
+    style TL fill:#4ecdc4
+    style QM fill:#45b7d1
+    style PM fill:#96ceb4
+    style Advantages fill:#ffeaa7
+```
 
-    AI -->|Personalized Suggestions<br/>🎯 Custom Strategies| PC1
-    AI -->|Quick Match Insights<br/>⚡ Rapid Analysis| PC2
-    AI -->|Prediction Models<br/>🔮 ML Forecasting| PCN
+### Professional Oracle Network
 
-    SE -->|Market Sentiment<br/>📊 Emotional Analysis| AI
-    SE -->|Prediction Context<br/>🎭 Market Psychology| PM
-    SE -->|Social Signals<br/>💬 Community Mood| ES
+```mermaid
+graph TB
+    subgraph "External Data"
+        API1[CoinGecko API]
+        API2[Binance WebSocket]
+        API3[Social Sentiment]
+    end
 
-    %% Cross-Chain Message Flow
-    TL -.->|Performance Updates<br/>📊 Portfolio Changes| CCM
-    QM -.->|Ranking Changes<br/>🏆 Leaderboard Shifts| CCM
-    PM -.->|Settlement Results<br/>💰 Prize Distribution| CCM
+    API1 --> PO[Price Oracle Chain<br/>📈 Multi-Source Feeds<br/>⚖️ Consensus Algorithm<br/>🔄 30-Second Updates]
+    API2 --> PO
 
-    CCM -.->|Personal Analytics<br/>📈 Individual Metrics| PC1
-    CCM -.->|Achievement Triggers<br/>🏅 Badge Unlocks| AC
-    CCM -.->|Social Events<br/>🎉 Community Updates| ES
+    API3 --> SE[Sentiment Engine<br/>💬 Social Analysis<br/>📰 News Processing<br/>😱 Fear & Greed Index]
 
-    %% External API Integration (Linera Native HTTP)
-    API1 -->|HTTP Oracle Queries<br/>🌐 Direct API Access| PO
-    API2 -->|Sentiment Data Feeds<br/>📰 Real-Time News| SE
-    API3 -->|Social Media Streams<br/>💬 Community Data| SE
-    SHOP <-->|Commerce Integration<br/>🛒 Bidirectional Sync| MC
-    DEFI -->|DeFi Price Feeds<br/>💱 Decentralized Data| PO
+    PO --> AI[AI Analysis Chain<br/>🧠 ML Models<br/>🔮 Predictions<br/>💡 Strategy Insights]
+    SE --> AI
 
-    %% Social & Achievement Ecosystem
-    AC -->|Badge Distribution<br/>🏅 Achievement Rewards| PC1
-    AC -->|Reputation Updates<br/>⭐ Cross-Chain Score| PC2
-    AC -->|Feature Unlocks<br/>🔓 Premium Access| PCN
-
-    ES -->|Community Feed<br/>📡 Social Streams| PC1
-    ES -->|Victory Celebrations<br/>🎉 Win Announcements| PC2
-    ES -->|Achievement Shares<br/>🏆 Success Stories| PCN
-
-    MC -->|Customer Rewards<br/>🎁 Purchase Incentives| AC
-    MC -->|Branded Leagues<br/>🏪 Merchant Competitions| TL
-    MC -->|Commerce Analytics<br/>📊 Sales Intelligence| ES
-
-    %% Styling for Visual Hierarchy
-    style PC1 fill:#ff6b6b,stroke:#c0392b,stroke-width:3px,color:#fff
-    style PC2 fill:#ff6b6b,stroke:#c0392b,stroke-width:3px,color:#fff
-    style PCN fill:#ff6b6b,stroke:#c0392b,stroke-width:3px,color:#fff
-
-    style TL fill:#4ecdc4,stroke:#16a085,stroke-width:2px,color:#fff
-    style QM fill:#45b7d1,stroke:#2980b9,stroke-width:2px,color:#fff
-    style PM fill:#96ceb4,stroke:#27ae60,stroke-width:2px,color:#fff
-
-    style PO fill:#ffeaa7,stroke:#f39c12,stroke-width:2px,color:#000
-    style AI fill:#dda0dd,stroke:#8e44ad,stroke-width:2px,color:#fff
-    style SE fill:#fab1a0,stroke:#e17055,stroke-width:2px,color:#fff
-
-    style MC fill:#fdcb6e,stroke:#e17055,stroke-width:2px,color:#000
-    style ES fill:#a8e6cf,stroke:#00b894,stroke-width:2px,color:#000
-    style AC fill:#fd79a8,stroke:#e84393,stroke-width:2px,color:#fff
-
-    style CCM fill:#00cec9,stroke:#00b894,stroke-width:4px,color:#fff
+    style PO fill:#ffeaa7
+    style SE fill:#ffb74d
+    style AI fill:#81c784
 ```
 
 ## Core Concepts

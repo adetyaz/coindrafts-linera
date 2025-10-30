@@ -2,80 +2,149 @@
 sidebar_position: 1
 ---
 
-# Complete Architecture Overview
+# Technical Implementation Guide
 
-CoinDrafts on Linera implements a sophisticated multi-chain ecosystem that leverages every aspect of Linera's revolutionary protocol capabilities. This comprehensive architecture overview shows how all components work together to create the world's most advanced cryptocurrency fantasy gaming platform.
+This guide provides the technical implementation details for building CoinDrafts on Linera. It includes code examples, data structures, and specific implementation patterns for each component.
 
-## Complete Microchain Ecosystem
+## Implementation Architecture
+
+Building on the [Linera Protocol concepts](/docs/linera-architecture/overview), here's how we implement each component with actual Rust code and Linera-specific features.
+
+### Layer 1: Personal Player Chains
 
 ```mermaid
 graph TB
-    subgraph "Personal Layer"
-        PC1[Player Chain #1]
-        PC2[Player Chain #2]
-        PCN[Player Chain #N]
+    subgraph "Personal Sovereignty Layer"
+        PC1[Player Chain #1<br/>Portfolio History<br/>AI Preferences<br/>Social Connections]
+        PC2[Player Chain #2<br/>Achievement Collection<br/>Performance Metrics<br/>Cross-Chain Reputation]
+        PC3[Player Chain #3<br/>Customized Settings<br/>Learning Algorithm<br/>Privacy Controls]
+        PCN[... Unlimited Players<br/>Zero-Cost Operations<br/>Complete Data Ownership]
     end
 
-    subgraph "Game Layer"
-        TL[Traditional League Chain]
-        QM[Quick Match Chain]
-        PR[Prediction Market Chain]
-        ML[Merchant League Chain]
-    end
-
-    subgraph "Oracle Layer"
-        PO[Price Oracle Chain]
-        AI[AI Analysis Chain]
-        SE[Sentiment Engine Chain]
-        MI[Market Intelligence Chain]
-    end
-
-    subgraph "Infrastructure Layer"
-        MC[Merchant Chain]
-        AC[Achievement Chain]
-        AN[Analytics Chain]
-        BR[Bridge Registry Chain]
-    end
-
-    subgraph "Social Layer"
-        ES[Event Stream Network]
-        SC[Social Challenge Chain]
-        GR[Global Rankings Chain]
-        CF[Community Features Chain]
-    end
-
-    PC1 -.-> TL
-    PC2 -.-> QM
-    PCN -.-> PR
-
-    PO --> TL
-    PO --> QM
-    PO --> PR
-
-    AI --> PC1
-    AI --> PC2
-    AI --> PCN
-
-    SE --> AI
-    MI --> AI
-
-    MC --> ML
-    AC --> PC1
-    AC --> PC2
-    AC --> PCN
-
-    ES --> SC
-    ES --> GR
-    ES --> CF
+    PC1 --> GameMsg[Cross-Chain Messages<br/>to Game Modes]
+    PC2 --> GameMsg
+    PC3 --> GameMsg
+    PCN --> GameMsg
 
     style PC1 fill:#ff6b6b
     style PC2 fill:#ff6b6b
+    style PC3 fill:#ff6b6b
     style PCN fill:#ff6b6b
+    style GameMsg fill:#e8f4f8
+```
+
+### Layer 2: Game Mode Microchains
+
+```mermaid
+graph TB
+    GameMsg[Messages from<br/>Player Chains] --> TL
+    GameMsg --> QM
+    GameMsg --> PR
+
+    subgraph "Game Mode Chains"
+        TL[Traditional Leagues<br/>7-Day Competitions<br/>Portfolio Tracking<br/>Auto-Cleanup]
+        QM[Quick Match<br/>24-Hour Lightning<br/>Spectator Mode<br/>Rapid Turnover]
+        PR[Price Range Prediction<br/>Skill-Based Betting<br/>AI-Powered Analysis<br/>Multi-Oracle Validation]
+    end
+
+    TL --> Results[Performance Results<br/>Back to Player Chains]
+    QM --> Results
+    PR --> Results
+
     style TL fill:#4ecdc4
     style QM fill:#45b7d1
     style PR fill:#96ceb4
+    style GameMsg fill:#e8f4f8
+    style Results fill:#e8f4f8
+```
+
+### Layer 3: Oracle & AI Network
+
+```mermaid
+graph TB
+    subgraph "External Data Sources"
+        EX1[CoinGecko API]
+        EX2[CoinMarketCap API]
+        EX3[Binance WebSocket]
+        EX4[Social Sentiment APIs]
+        EX5[News Analysis APIs]
+    end
+
+    EX1 --> PO[Price Oracle Chain<br/>Real-Time Prices<br/>Multi-Source Validation<br/>Consensus Algorithm]
+    EX2 --> PO
+    EX3 --> PO
+
+    EX4 --> SE[Sentiment Engine Chain<br/>Social Analysis<br/>Market Psychology<br/>Trend Detection]
+    EX5 --> SE
+
+    PO --> AI[AI Analysis Chain<br/>Pattern Recognition<br/>Predictive Models<br/>Player Personalization]
+    SE --> AI
+
+    AI --> GameChains[Feed to Game Mode Chains]
+    PO --> GameChains
+
     style PO fill:#ffeaa7
-    style ES fill:#dda0dd
+    style SE fill:#ffb74d
+    style AI fill:#81c784
+    style GameChains fill:#e8f4f8
+```
+
+### Layer 4: Infrastructure & Social
+
+```mermaid
+graph TB
+    subgraph "Infrastructure Chains"
+        AC[Achievement Chain<br/>Global Badge System<br/>Cross-Game Recognition<br/>Social Proof]
+        MC[Merchant Chain<br/>NFT Trading<br/>Premium Features<br/>Tokenized Assets]
+        AN[Analytics Chain<br/>Global Statistics<br/>Performance Insights<br/>Market Analysis]
+    end
+
+    subgraph "Social Layer Chains"
+        SC[Social Challenge Chain<br/>Friend Competitions<br/>Community Events<br/>Collaborative Gaming]
+        GR[Global Rankings Chain<br/>Leaderboards<br/>Hall of Fame<br/>Achievement Showcase]
+        CF[Community Features Chain<br/>Forums & Chat<br/>Strategy Sharing<br/>Mentorship Programs]
+    end
+
+    AC --> PlayerChains[Update Player Chains]
+    MC --> PlayerChains
+    AN --> PlayerChains
+
+    SC --> SocialNet[Social Network Updates]
+    GR --> SocialNet
+    CF --> SocialNet
+
+    style AC fill:#ba68c8
+    style MC fill:#ff8a65
+    style AN fill:#4db6ac
+    style SC fill:#dda0dd
+    style GR fill:#f06292
+    style CF fill:#aed581
+```
+
+### Layer 5: Cross-Chain Integration Flow
+
+```mermaid
+graph LR
+    PlayerAction[Player Action<br/>Portfolio Submission] --> PlayerChain[Personal Chain Update]
+
+    PlayerChain --> CrossMsg[Cross-Chain Message]
+    CrossMsg --> GameChain[Game Mode Chain]
+
+    GameChain --> OracleReq[Request Oracle Data]
+    OracleReq --> OracleChain[Oracle Network]
+
+    OracleChain --> GameResult[Calculate Results]
+    GameResult --> UpdatePlayer[Update Player Chain]
+
+    UpdatePlayer --> SocialUpdate[Update Social/Achievement Chains]
+    SocialUpdate --> GlobalState[Global State Consistency]
+
+    style PlayerAction fill:#e1f5fe
+    style PlayerChain fill:#ff6b6b
+    style GameChain fill:#4ecdc4
+    style OracleChain fill:#ffeaa7
+    style SocialUpdate fill:#dda0dd
+    style GlobalState fill:#c8e6c9
 ```
 
 ## 1. Personal Player Chains (Unlimited)

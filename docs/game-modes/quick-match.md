@@ -12,7 +12,7 @@ Quick Match represents the fastest, most accessible entry point into CoinDrafts,
 
 - **Duration**: 24 hours (rolling start times)
 - **Portfolio Size**: 3 cryptocurrency selections (streamlined)
-- **Entry Fee**: $0.50 POL (50% lower barrier)
+- **Entry Fee**: $0.50 USDC (50% lower barrier)
 - **Maximum Participants**: Unlimited (auto-scaling chains)
 - **Updates**: Every 30 seconds (ultra-responsive)
 - **Scoring**: Performance-based with speed bonuses
@@ -30,7 +30,7 @@ graph TB
 
         subgraph "Quick Match Infrastructure"
             QMR[Quick Match Registry<br/>🎮 Match Orchestration<br/>⚡ 24-Hour Lifecycle<br/>🔄 Auto-Scaling]
-            QM1[Active Quick Match #1<br/>⚡ 24-Hour Competition<br/>🎯 3 Cryptocurrency Portfolio<br/>💸 $0.50 POL Entry<br/>👥 Live Participants]
+            QM1[Active Quick Match #1<br/>⚡ 24-Hour Competition<br/>🎯 3 Cryptocurrency Portfolio<br/>💸 $0.50 USDC Entry<br/>👥 Live Participants]
             QM2[Active Quick Match #2<br/>🏃 Speed Bonus System<br/>📊 Real-Time Rankings<br/>⏰ Auto-Finalization<br/>🎉 Instant Rewards]
             QMN[Active Quick Match #N<br/>🔄 Parallel Processing<br/>♾️ Unlimited Scaling<br/>🗑️ Auto-Cleanup<br/>📈 Performance Metrics]
         end

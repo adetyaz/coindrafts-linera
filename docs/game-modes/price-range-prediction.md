@@ -12,7 +12,7 @@ Price Range Prediction represents the most sophisticated and skill-intensive gam
 
 - **Duration**: 7 days (prediction window)
 - **Challenge Type**: Exact price range forecasting
-- **Entry Fee**: $1 POL (with dynamic multipliers up to 20x)
+- **Entry Fee**: $1 USDC (with dynamic multipliers up to 20x)
 - **Validation**: Multi-source oracle consensus
 - **Rewards**: Exponential scaling based on accuracy and difficulty
 - **Skills Required**: Technical analysis, market sentiment, fundamental analysis
@@ -29,7 +29,7 @@ graph TB
         end
 
         subgraph "Prediction Market Infrastructure"
-            PMC[Prediction Market Chain<br/>🎲 Price Range Betting<br/>💎 $1 POL Entry<br/>📈 Dynamic Multipliers<br/>⚖️ Consensus Validation]
+            PMC[Prediction Market Chain<br/>🎲 Price Range Betting<br/>💎 $1 USDC Entry<br/>📈 Dynamic Multipliers<br/>⚖️ Consensus Validation]
             CP[Confidence Pools<br/>🤝 Meta-Gaming Markets<br/>💰 Secondary Betting<br/>📊 Community Sentiment<br/>🎯 Prediction Backing]
             SB[Secondary Betting<br/>💸 Bet on Predictions<br/>🎰 Success/Failure Odds<br/>🔥 Community Wagering<br/>📈 Dynamic Odds]
         end

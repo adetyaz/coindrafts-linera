@@ -1,0 +1,28 @@
+[package]
+name = "simple-todo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Linera SDK
+linera-sdk = { workspace = true }
+linera-views = { workspace = true }
+linera-base = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# GraphQL
+async-graphql = { workspace = true }
+
+# Utilities
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "rlib"]

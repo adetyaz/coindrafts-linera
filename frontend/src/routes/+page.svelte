@@ -1,161 +1,161 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { todos, loading, error, wallet } from '$lib/stores';
-	import { todoService } from '$lib/todoService';
-	import { walletService } from '$lib/walletService';
+	let currentView = $state<'home' | 'dashboard' | 'portfolio'>('home');
+	let portfolioMode = $state<'game' | 'tournament'>('game');
+	let selectedGameId = $state('');
+	let selectedTournamentId = $state('');
 
-	let newTodoText = '';
+	function showDashboard() {
+		currentView = 'dashboard';
+	}
 
-	onMount(async () => {
-		// Check if wallet is already connected
-		await walletService.checkConnection();
-		
-		// Fetch initial todos
-		await todoService.fetchTodos();
-	});
-
-	async function handleAddTodo() {
-		if (newTodoText.trim()) {
-			try {
-				await todoService.addTodo(newTodoText);
-				newTodoText = '';
-			} catch (err) {
-				console.error('Failed to add todo:', err);
-			}
+	function showPortfolio(mode: 'game' | 'tournament', id: string = '') {
+		currentView = 'portfolio';
+		portfolioMode = mode;
+		if (mode === 'game') {
+			selectedGameId = id;
+		} else {
+			selectedTournamentId = id;
 		}
 	}
 
-	async function handleToggleTodo(id: number) {
-		try {
-			await todoService.toggleTodo(id);
-		} catch (err) {
-			console.error('Failed to toggle todo:', err);
-		}
-	}
-
-	async function handleDeleteTodo(id: number) {
-		try {
-			await todoService.deleteTodo(id);
-		} catch (err) {
-			console.error('Failed to delete todo:', err);
-		}
-	}
-
-	async function handleConnectWallet() {
-		try {
-			await walletService.connectWallet();
-		} catch (err) {
-			console.error('Failed to connect wallet:', err);
-		}
-	}
-
-	async function handleDisconnectWallet() {
-		await walletService.disconnectWallet();
+	function showHome() {
+		currentView = 'home';
 	}
 </script>
 
-<div class="container mx-auto p-6 max-w-2xl">
-	<header class="mb-8">
-		<h1 class="text-3xl font-bold text-gray-900 mb-2">CoinDrafts Todo Demo</h1>
-		<p class="text-gray-600">Simple todo app built on Linera blockchain</p>
-		
-		<!-- Wallet Connection -->
-		<div class="mt-4 p-4 bg-gray-50 rounded-lg">
-			{#if $wallet.connected}
-				<div class="flex items-center justify-between">
-					<div>
-						<p class="text-sm text-gray-700">Connected: {$wallet.address?.slice(0, 8)}...{$wallet.address?.slice(-6)}</p>
-						<p class="text-xs text-gray-500">Chain ID: {$wallet.chainId}</p>
-					</div>
-					<button 
-						on:click={handleDisconnectWallet}
-						class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm"
-					>
-						Disconnect
-					</button>
-				</div>
-			{:else}
-				<button 
-					on:click={handleConnectWallet}
-					class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-				>
-					Connect Wallet
-				</button>
-			{/if}
-		</div>
-	</header>
-
-	<!-- Add Todo Form -->
-	<div class="mb-6">
-		<div class="flex gap-2">
-			<input
-				bind:value={newTodoText}
-				on:keydown={(e) => e.key === 'Enter' && handleAddTodo()}
-				placeholder="Enter a new todo..."
-				class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-				disabled={$loading}
-			/>
-			<button
-				on:click={handleAddTodo}
-				disabled={$loading || !newTodoText.trim()}
-				class="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white px-6 py-2 rounded-lg"
+<nav class="bg-gray-800 text-white p-4 mb-6">
+	<div class="container mx-auto flex justify-between items-center">
+		<h1 class="text-2xl font-bold">CoinDrafts</h1>
+		<div class="space-x-4">
+			<button 
+				onclick={showHome}
+				class="hover:bg-gray-700 px-3 py-2 rounded {currentView === 'home' ? 'bg-gray-700' : ''}"
 			>
-				Add
+				Home
+			</button>
+			<button 
+				onclick={showDashboard}
+				class="hover:bg-gray-700 px-3 py-2 rounded {currentView === 'dashboard' ? 'bg-gray-700' : ''}"
+			>
+				Dashboard
+			</button>
+			<button 
+				onclick={() => showPortfolio('game')}
+				class="hover:bg-gray-700 px-3 py-2 rounded {currentView === 'portfolio' ? 'bg-gray-700' : ''}"
+			>
+				Portfolio
 			</button>
 		</div>
 	</div>
+</nav>
 
-	<!-- Error Display -->
-	{#if $error}
-		<div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-			Error: {$error}
+{#if currentView === 'home'}
+	<main class="container mx-auto p-6">
+		<div class="text-center mb-12">
+			<h1 class="text-5xl font-bold mb-4">Welcome to CoinDrafts</h1>
+			<p class="text-xl text-gray-600 mb-8">
+				Compete in cryptocurrency portfolio contests and tournaments on the Linera blockchain
+			</p>
 		</div>
-	{/if}
 
-	<!-- Loading Indicator -->
-	{#if $loading}
-		<div class="text-center py-4">
-			<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-			<p class="mt-2 text-gray-600">Loading...</p>
+		<div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+			<div class="bg-white shadow-lg rounded-lg p-8 border">
+				<h2 class="text-2xl font-semibold mb-4">Quick Games</h2>
+				<p class="text-gray-600 mb-6">
+					Join fast-paced portfolio contests. Pick your top 5 cryptocurrencies 
+					and compete against other players in real-time.
+				</p>
+				<ul class="text-sm text-gray-600 mb-6 space-y-2">
+					<li>• Select up to 5 cryptocurrencies</li>
+					<li>• Real-time price tracking</li>
+					<li>• Instant results</li>
+					<li>• Multiple game modes</li>
+				</ul>
+				<button 
+					onclick={showDashboard}
+					class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded w-full"
+				>
+					View Active Games
+				</button>
+			</div>
+
+			<div class="bg-white shadow-lg rounded-lg p-8 border">
+				<h2 class="text-2xl font-semibold mb-4">Tournaments</h2>
+				<p class="text-gray-600 mb-6">
+					Enter structured tournaments with multiple rounds. Build larger portfolios 
+					and compete for bigger prizes over extended periods.
+				</p>
+				<ul class="text-sm text-gray-600 mb-6 space-y-2">
+					<li>• Select up to 10 cryptocurrencies</li>
+					<li>• Multi-round competition</li>
+					<li>• Entry fees and prize pools</li>
+					<li>• Various tournament formats</li>
+				</ul>
+				<button 
+					onclick={showDashboard}
+					class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded w-full"
+				>
+					Browse Tournaments
+				</button>
+			</div>
 		</div>
-	{/if}
 
-	<!-- Todo List -->
-	<div class="space-y-2">
-		{#if $todos.length === 0 && !$loading}
-			<p class="text-gray-500 text-center py-8">No todos yet. Add one above!</p>
-		{:else}
-			{#each $todos as todo (todo.id)}
-				<div class="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-					<input
-						type="checkbox"
-						checked={todo.completed}
-						on:change={() => handleToggleTodo(todo.id)}
-						class="w-5 h-5 text-blue-600"
-					/>
-					<span class="flex-1 {todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}">
-						{todo.text}
-					</span>
-					<span class="text-xs text-gray-400">
-						{new Date(todo.created_at / 1000).toLocaleDateString()}
-					</span>
-					<button
-						on:click={() => handleDeleteTodo(todo.id)}
-						class="text-red-500 hover:text-red-700 text-sm"
-					>
-						Delete
-					</button>
+		<div class="text-center mt-12">
+			<h2 class="text-2xl font-semibold mb-4">How It Works</h2>
+			<div class="grid md:grid-cols-4 gap-6 max-w-4xl mx-auto">
+				<div class="text-center">
+					<div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+						<span class="text-blue-600 font-bold text-xl">1</span>
+					</div>
+					<h3 class="font-semibold mb-2">Choose Your Portfolio</h3>
+					<p class="text-sm text-gray-600">Select cryptocurrencies you think will perform best</p>
 				</div>
-			{/each}
-		{/if}
-	</div>
+				<div class="text-center">
+					<div class="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+						<span class="text-green-600 font-bold text-xl">2</span>
+					</div>
+					<h3 class="font-semibold mb-2">Submit Entry</h3>
+					<p class="text-sm text-gray-600">Lock in your choices before the competition starts</p>
+				</div>
+				<div class="text-center">
+					<div class="bg-yellow-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+						<span class="text-yellow-600 font-bold text-xl">3</span>
+					</div>
+					<h3 class="font-semibold mb-2">Track Performance</h3>
+					<p class="text-sm text-gray-600">Watch real-time price movements and rankings</p>
+				</div>
+				<div class="text-center">
+					<div class="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+						<span class="text-purple-600 font-bold text-xl">4</span>
+					</div>
+					<h3 class="font-semibold mb-2">Win Prizes</h3>
+					<p class="text-sm text-gray-600">Earn rewards based on portfolio performance</p>
+				</div>
+			</div>
+		</div>
 
-	<!-- Connection Status -->
-	<footer class="mt-8 p-4 bg-gray-50 rounded-lg text-sm text-gray-600">
-		<p><strong>Linera Service:</strong> http://localhost:8080</p>
-		<p><strong>Status:</strong> {$loading ? 'Loading...' : 'Ready'}</p>
-		<p class="text-xs mt-2">
-			This demo connects to a local Linera network. Make sure your Linera service is running.
-		</p>
-	</footer>
-</div>
+		<div class="text-center mt-12">
+			<p class="text-gray-600 mb-6">
+				Powered by <strong>Linera Protocol</strong> - Fast, secure, and decentralized
+			</p>
+			<button 
+				onclick={showDashboard}
+				class="bg-linear-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-lg text-lg"
+			>
+				Get Started
+			</button>
+		</div>
+	</main>
+{:else if currentView === 'dashboard'}
+	{#await import('./dashboard.svelte') then { default: Dashboard }}
+		<Dashboard />
+	{/await}
+{:else if currentView === 'portfolio'}
+	{#await import('./portfolio.svelte') then { default: Portfolio }}
+		<Portfolio 
+			gameId={selectedGameId} 
+			tournamentId={selectedTournamentId} 
+			mode={portfolioMode} 
+		/>
+	{/await}
+{/if}

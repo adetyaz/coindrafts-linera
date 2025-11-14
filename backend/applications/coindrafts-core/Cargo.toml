@@ -1,0 +1,31 @@
+[package]
+name = "coindrafts-core"
+version = "0.1.0"
+edition = "2021"
+description = "CoinDrafts Core - The Orchestration Hub for game management and cross-chain coordination"
+
+[dependencies]
+# Linera SDK
+linera-base = { workspace = true }
+linera-sdk = { workspace = true }
+linera-views = { workspace = true }
+
+# Async GraphQL for service layer
+async-graphql = { workspace = true }
+
+# Standard dependencies
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+anyhow = "1.0"
+thiserror = "1.0"
+log = "0.4"
+
+[[bin]]
+name = "coindrafts_core_contract"
+path = "src/contract.rs"
+
+[[bin]]
+name = "coindrafts_core_service"
+path = "src/service.rs"
+

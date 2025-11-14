@@ -1,0 +1,44 @@
+Phase 1: Deployment & Infrastructure (Critical)
+Deploy to Linera Testnet
+
+Start a local Linera validator or connect to a public testnet
+Deploy both traditional-leagues and coindrafts-core applications
+Get application IDs and chain IDs for frontend integration
+Frontend Connection Setup
+
+Configure the Svelte frontend to connect to deployed applications
+Set up GraphQL endpoints for queries and mutations
+Test basic connectivity and data fetching
+Phase 2: Core User Experience
+Basic UI Flow Implementation
+
+Create Game → Join Tournament → Submit Portfolio → View Results
+Tournament listing and status display
+Portfolio creation interface with crypto selection
+Wallet Integration
+
+Connect Linera wallet for user authentication
+Enable transaction signing for operations
+Handle wallet connection states and errors
+Phase 3: Real-time Features
+Live Updates
+Tournament countdown timers
+Player count updates
+Live leaderboards and results
+Tournament status changes (Registration → In Progress → Completed)
+Phase 4: Testing Preparation
+Demo Data & Scenarios
+
+Pre-created tournaments for immediate testing
+Sample portfolios with different risk profiles
+Mock price data for realistic scoring
+Cross-chain Verification
+
+Test message flow: CoinDrafts Core ↔ Traditional Leagues
+Verify tournament creation, player registration, and completion
+Check portfolio synchronization and winner calculation
+User Testing Setup
+
+Test user accounts with some USDC tokens
+User guides and onboarding flow
+Feedback collection system (forms, analytics)

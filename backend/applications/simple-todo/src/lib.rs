@@ -1,15 +1,16 @@
-pub mod contract;
-pub mod service;
-pub mod state;
+#![cfg_attr(target_arch = "wasm32", no_main)]
 
-use linera_sdk::base::{ContractAbi, ServiceAbi};
+use async_graphql::{Request, Response, SimpleObject};
+use linera_sdk::{
+    graphql::GraphQLMutationRoot,
+    linera_base_types::{ContractAbi, ServiceAbi},
+};
 use serde::{Deserialize, Serialize};
-use async_graphql::SimpleObject;
 
 pub struct SimpleTodoAbi;
 
 impl ContractAbi for SimpleTodoAbi {
-    type Operation = Operation;
+    type Operation = SimpleTodoOperation;
     type Response = ();
 }
 
@@ -18,25 +19,16 @@ impl ServiceAbi for SimpleTodoAbi {
     type QueryResponse = Response;
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum Operation {
+#[derive(Debug, Serialize, Deserialize, GraphQLMutationRoot)]
+pub enum SimpleTodoOperation {
     AddTodo { text: String },
-    ToggleTodo { id: u64 },
+    EditTodo { id: u64, text: String },
     DeleteTodo { id: u64 },
+    ToggleTodo { id: u64 },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum Request {
-    GetTodos,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum Response {
-    Todos(Vec<Todo>),
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, SimpleObject)]
-pub struct Todo {
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
+pub struct TodoItem {
     pub id: u64,
     pub text: String,
     pub completed: bool,

@@ -92,9 +92,9 @@
 		switch (status) {
 			case 'active':
 			case 'waiting_for_players':
-				return 'text-green-600';
+				return 'text-primary-green';
 			case 'in_progress':
-				return 'text-blue-600';
+				return 'text-primary-green';
 			case 'completed':
 				return 'text-gray-600';
 			default:
@@ -123,7 +123,7 @@
 				<h2 class="text-2xl font-semibold">Active Games</h2>
 				<button 
 					onclick={() => showCreateGame = true}
-					class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+					class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full cursor-pointer"
 				>
 					Create Game
 				</button>
@@ -149,7 +149,7 @@
 							{#if game.status === 'waiting_for_players' && game.playerCount < game.maxPlayers}
 								<button 
 									onclick={() => joinGame(game.gameId)}
-									class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
+									class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full w-full cursor-pointer"
 								>
 									Join Game
 								</button>
@@ -198,7 +198,7 @@
 							{#if tournament.status === 'registration_open' && tournament.currentParticipants < tournament.maxParticipants}
 								<button 
 									onclick={() => joinTournament(tournament.id)}
-									class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
+									class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full w-full cursor-pointer"
 								>
 									Register
 								</button>
@@ -233,7 +233,7 @@
 				</button>
 				<button 
 					onclick={createGame}
-					class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+					class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full cursor-pointer"
 				>
 					Create
 				</button>

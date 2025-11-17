@@ -24,15 +24,10 @@ export default {
 				'bg-accent': '#06110a',
 				'text-primary': '#e6ffe6',
 				'text-secondary': '#9aff9a',
-				'border-color': '#072007',
-				// Legacy compatibility
-				'primary-purple': '#39ff14',
-				'dark-purple': '#0bd10b',
-				'light-purple': '#7bff6b'
+				'border-color': '#072007'
 			},
 			backgroundImage: {
-				'green-gradient': 'linear-gradient(135deg, #39ff14 0%, #7bff6b 100%)',
-				'purple-gradient': 'linear-gradient(135deg, #39ff14 0%, #7bff6b 100%)'
+				'green-gradient': 'linear-gradient(135deg, #39ff14 0%, #7bff6b 100%)'
 			},
 			animation: {
 				'fade-in': 'fadeIn 0.5s ease-in',

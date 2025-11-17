@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { coinDraftsService } from '$lib/coinDraftsService';
 	import type { PlayerProfile, Tournament, Game } from '$lib/coinDraftsService';
+	import { Gamepad2, Trophy, DollarSign, BarChart3, Zap, Target, Diamond, Lock } from '@lucide/svelte';
 
 	let player: PlayerProfile | null = $state(null);
 	let tournaments: Tournament[] = $state([]);
@@ -53,12 +54,12 @@
 
 	function getTierIcon(tier: string) {
 		switch (tier.toLowerCase()) {
-			case 'bronze': return '🥉';
-			case 'silver': return '🥈';
-			case 'gold': return '🥇';
-			case 'platinum': return '💎';
-			case 'diamond': return '💜';
-			default: return '🏅';
+			case 'bronze': return Trophy;
+			case 'silver': return Trophy;
+			case 'gold': return Trophy;
+			case 'platinum': return Diamond;
+			case 'diamond': return Diamond;
+			default: return Trophy;
 		}
 	}
 </script>
@@ -77,7 +78,7 @@
 			<div class="text-4xl mb-4">👤</div>
 			<h2 class="text-2xl font-bold text-white mb-4">Player Not Found</h2>
 			<p class="text-text-secondary mb-8">No player data available. Play some games to create your profile!</p>
-			<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-lg">
+			<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full cursor-pointer">
 				Browse Tournaments
 			</a>
 		</div>
@@ -107,7 +108,7 @@
 						<div class="text-sm text-text-secondary">Games Played</div>
 					</div>
 					<div class="text-center">
-						<div class="text-2xl font-bold text-green-400">{player.stats.gamesWon}</div>
+						<div class="text-2xl font-bold text-primary-green">{player.stats.gamesWon}</div>
 						<div class="text-sm text-text-secondary">Games Won</div>
 					</div>
 					<div class="text-center">
@@ -121,25 +122,33 @@
 		<!-- Stats Overview -->
 		<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
 			<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-primary-green/30 text-center">
-				<div class="text-3xl mb-2">🎮</div>
+				<div class="flex justify-center mb-2">
+					<Gamepad2 class="w-8 h-8 text-primary-green" />
+				</div>
 				<div class="text-2xl font-bold text-white">{player.stats.gamesPlayed}</div>
 				<div class="text-sm text-text-secondary">Total Games</div>
 			</div>
 			
-			<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-green-500/30 text-center">
-				<div class="text-3xl mb-2">🏆</div>
-				<div class="text-2xl font-bold text-green-400">{player.stats.gamesWon}</div>
+			<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-primary-green/30 text-center">
+				<div class="flex justify-center mb-2">
+					<Trophy class="w-8 h-8 text-primary-green" />
+				</div>
+				<div class="text-2xl font-bold text-primary-green">{player.stats.gamesWon}</div>
 				<div class="text-sm text-text-secondary">Wins</div>
 			</div>
 			
 			<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-primary-green/30 text-center">
-				<div class="text-3xl mb-2">💰</div>
+				<div class="flex justify-center mb-2">
+					<DollarSign class="w-8 h-8 text-primary-green" />
+				</div>
 				<div class="text-2xl font-bold text-primary-green">${player.stats.totalEarnings}</div>
 				<div class="text-sm text-text-secondary">Earnings</div>
 			</div>
 			
 			<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-primary-green/30 text-center">
-				<div class="text-3xl mb-2">📊</div>
+				<div class="flex justify-center mb-2">
+					<BarChart3 class="w-8 h-8 text-primary-green" />
+				</div>
 				<div class="text-2xl font-bold text-primary-green">
 					{player.stats.gamesPlayed > 0 ? Math.round((player.stats.gamesWon / player.stats.gamesPlayed) * 100) : 0}%
 				</div>
@@ -149,13 +158,18 @@
 
 		<!-- Current Tournaments -->
 		<div class="mb-8">
-			<h2 class="text-2xl font-bold text-white mb-6">🏆 Active Tournaments</h2>
+			<h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+				<Trophy class="w-8 h-8 text-primary-green" />
+				Active Tournaments
+			</h2>
 			{#if tournaments.length === 0}
-				<div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-gray-500/30 text-center">
-					<div class="text-4xl mb-4">🏆</div>
+				<div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-primary-green/30 text-center">
+					<div class="flex justify-center mb-4">
+						<Trophy class="w-16 h-16 text-primary-green" />
+					</div>
 					<h3 class="text-lg font-semibold text-white mb-2">No Active Tournaments</h3>
 					<p class="text-text-secondary mb-4">You're not currently participating in any tournaments.</p>
-					<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-lg">
+					<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full cursor-pointer">
 						Browse Tournaments
 					</a>
 				</div>
@@ -165,7 +179,7 @@
 						<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-primary-green/30">
 							<div class="flex justify-between items-start mb-4">
 								<h3 class="text-lg font-semibold text-white">{tournament.name}</h3>
-								<span class="text-xs px-2 py-1 bg-green-500/20 text-green-300 rounded-full border border-green-500/30">
+								<span class="text-xs px-2 py-1 bg-primary-green/20 text-primary-green rounded-full border border-primary-green/30">
 									{tournament.status}
 								</span>
 							</div>
@@ -185,7 +199,7 @@
 								</div>
 							</div>
 							
-							<a href="/tournaments/{tournament.id}" class="block w-full bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-lg transition-colors">
+							<a href="/tournaments/{tournament.id}" class="block w-full bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-full transition-colors cursor-pointer">
 								View Details
 							</a>
 						</div>
@@ -196,13 +210,19 @@
 
 		<!-- Recent Games -->
 		<div class="mb-8">
-			<h2 class="text-2xl font-bold text-white mb-6">⚡ Recent Games</h2>
+			<h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+				<Zap class="w-8 h-8 text-primary-green" />
+				Recent Games
+			</h2>
 			{#if games.length === 0}
-				<div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-gray-500/30 text-center">
-					<div class="text-4xl mb-4">⚡</div>
+				<div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-primary-green/30 text-center">
+					<div class="flex justify-center mb-4">
+						<Zap class="w-16 h-16 text-primary-green" />
+					</div>
 					<h3 class="text-lg font-semibold text-white mb-2">No Recent Games</h3>
 					<p class="text-text-secondary mb-4">Start playing to see your game history here.</p>
-					<a href="/quick-match" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+					<a href="/quick-match" class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full cursor-pointer flex items-center gap-2 mx-auto w-fit">
+						<Zap class="w-4 h-4" />
 						Play Quick Match
 					</a>
 				</div>
@@ -216,7 +236,7 @@
 									<p class="text-sm text-text-secondary">{game.mode}</p>
 								</div>
 								<span class="text-xs px-2 py-1 rounded-full border {
-									game.status === 'Active' ? 'bg-green-500/20 text-green-300 border-green-500/30' :
+									game.status === 'Active' ? 'bg-primary-green/20 text-primary-green border-primary-green/30' :
 									game.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-300 border-primary-green/30' :
 									'bg-gray-500/20 text-gray-300 border-gray-500/30'
 								}">
@@ -235,7 +255,7 @@
 								</div>
 							</div>
 							
-							<a href="/games/{game.gameId}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2 rounded-lg transition-colors">
+							<a href="/games/{game.gameId}" class="block w-full bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-full transition-colors cursor-pointer">
 								View Game
 							</a>
 						</div>
@@ -250,42 +270,54 @@
 			<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
 				<!-- Mock achievements based on player stats -->
 				{#if player.stats.gamesPlayed >= 1}
-					<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-green-500/30 text-center">
-						<div class="text-2xl mb-2">🎮</div>
-						<div class="text-xs text-green-300 font-medium">First Game</div>
+					<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-primary-green/30 text-center">
+						<div class="flex justify-center mb-2">
+							<Gamepad2 class="w-6 h-6 text-primary-green" />
+						</div>
+						<div class="text-xs text-primary-green font-medium">First Game</div>
 					</div>
 				{/if}
 				
 				{#if player.stats.gamesWon >= 1}
 					<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-primary-green/30 text-center">
-						<div class="text-2xl mb-2">🏆</div>
-						<div class="text-xs text-yellow-300 font-medium">First Win</div>
+						<div class="flex justify-center mb-2">
+							<Trophy class="w-6 h-6 text-primary-green" />
+						</div>
+						<div class="text-xs text-primary-green font-medium">First Win</div>
 					</div>
 				{/if}
 				
 				{#if player.stats.gamesPlayed >= 5}
 					<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-primary-green/30 text-center">
-						<div class="text-2xl mb-2">🎯</div>
-						<div class="text-xs text-blue-300 font-medium">Regular Player</div>
+						<div class="flex justify-center mb-2">
+							<Target class="w-6 h-6 text-primary-green" />
+						</div>
+						<div class="text-xs text-primary-green font-medium">Regular Player</div>
 					</div>
 				{/if}
 				
 				{#if player.stats.totalEarnings >= 100}
 					<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-primary-green/30 text-center">
-						<div class="text-2xl mb-2">💰</div>
+						<div class="flex justify-center mb-2">
+							<DollarSign class="w-6 h-6 text-primary-green" />
+						</div>
 						<div class="text-xs text-primary-green font-medium">High Earner</div>
 					</div>
 				{/if}
 				
 				<!-- Locked achievements -->
-				<div class="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-gray-500/30 text-center opacity-50">
-					<div class="text-2xl mb-2">🔒</div>
-					<div class="text-xs text-gray-400 font-medium">Win Streak</div>
+				<div class="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-border-color text-center opacity-50">
+					<div class="flex justify-center mb-2">
+						<Lock class="w-6 h-6 text-text-secondary" />
+					</div>
+					<div class="text-xs text-text-secondary font-medium">Win Streak</div>
 				</div>
 				
-				<div class="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-gray-500/30 text-center opacity-50">
-					<div class="text-2xl mb-2">🔒</div>
-					<div class="text-xs text-gray-400 font-medium">Tournament Master</div>
+				<div class="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-border-color text-center opacity-50">
+					<div class="flex justify-center mb-2">
+						<Lock class="w-6 h-6 text-text-secondary" />
+					</div>
+					<div class="text-xs text-text-secondary font-medium">Tournament Master</div>
 				</div>
 			</div>
 		</div>
@@ -293,11 +325,13 @@
 		<!-- Action Buttons -->
 		<div class="text-center">
 			<div class="flex flex-col sm:flex-row gap-4 justify-center">
-				<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-lg transition-colors">
-					🏆 Join Tournament
+				<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 mx-auto w-fit">
+					<Trophy class="w-5 h-5" />
+					Join Tournament
 				</a>
-				<a href="/quick-match" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
-					⚡ Quick Match
+				<a href="/quick-match" class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 mx-auto w-fit">
+					<Zap class="w-5 h-5" />
+					Quick Match
 				</a>
 			</div>
 		</div>

@@ -81,12 +81,12 @@
 	{/if}
 
 	{#if submitted}
-		<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+		<div class="bg-primary-green/20 border border-primary-green/30 text-primary-green px-4 py-3 rounded mb-6">
 			<h3 class="font-bold">Portfolio Submitted Successfully!</h3>
 			<p>Your portfolio has been submitted and is now being tracked.</p>
 			<button 
 				onclick={reset}
-				class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+				class="mt-4 bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full cursor-pointer"
 			>
 				Submit Another Portfolio
 			</button>
@@ -108,11 +108,11 @@
 				{:else}
 					<div class="flex flex-wrap gap-2 mb-4">
 						{#each selectedCryptos as crypto}
-							<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center">
+							<span class="bg-primary-green/20 text-primary-green px-3 py-1 rounded-full text-sm flex items-center">
 								{crypto}
 								<button 
 									onclick={() => removeCrypto(crypto)}
-									class="ml-2 text-blue-600 hover:text-red-600 font-bold"
+									class="ml-2 text-primary-green hover:text-white font-bold cursor-pointer"
 								>
 									×
 								</button>
@@ -179,7 +179,7 @@
 				<button 
 					onclick={submitPortfolio}
 					disabled={!canSubmit || submitting}
-					class="bg-green-500 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-2 px-6 rounded"
+					class="bg-primary-green hover:bg-dark-green disabled:bg-gray-400 text-black font-bold py-2 px-6 rounded-full cursor-pointer"
 				>
 					{#if submitting}
 						Submitting...

@@ -10,7 +10,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="min-h-screen" style="background: linear-gradient(135deg, #581c87 0%, #1e3a8a 50%, #312e81 100%)">
+<div class="min-h-screen bg-black">
 	<Navigation />
 	<main>
 		{@render children()}

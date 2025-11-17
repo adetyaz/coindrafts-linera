@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { coinDraftsService } from '$lib/coinDraftsService';
 	import type { Tournament, Game } from '$lib/coinDraftsService';
+	import { Gamepad2, Zap, Trophy, Target, Flame } from '@lucide/svelte';
 
 	let tournaments: Tournament[] = $state([]);
 	let activeGames: Game[] = $state([]);
@@ -43,11 +44,13 @@
 			
 			<!-- CTA Buttons -->
 			<div class="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
-				<a href="/tournaments" class="btn-primary text-lg px-8 py-4 animate-slide-up">
-					🏆 Browse Tournaments
+				<a href="/tournaments" class="btn-primary text-lg px-8 py-4 animate-slide-up flex items-center gap-2">
+					<Trophy class="w-5 h-5" />
+					Browse Tournaments
 				</a>
-				<a href="/quick-match" class="btn-secondary text-lg px-8 py-4 animate-slide-up">
-					⚡ Quick Match
+				<a href="/quick-match" class="btn-secondary text-lg px-8 py-4 animate-slide-up flex items-center gap-2">
+					<Zap class="w-5 h-5" />
+					Quick Match
 				</a>
 			</div>
 
@@ -77,7 +80,10 @@
 	<section class="py-16 px-4">
 		<div class="max-w-6xl mx-auto">
 			<div class="text-center mb-12">
-				<h2 class="text-4xl font-bold text-white mb-4">🔥 Featured Tournaments</h2>
+				<h2 class="text-4xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+					<Flame class="w-10 h-10 text-primary-green" />
+					Featured Tournaments
+				</h2>
 				<p class="text-text-secondary text-lg">Join live tournaments and compete for crypto rewards</p>
 			</div>
 			
@@ -144,10 +150,15 @@
 				</div>
 			{:else}
 				<div class="text-center py-12">
-					<div class="text-6xl mb-4">🎮</div>
+					<div class="flex justify-center mb-4">
+						<Gamepad2 class="w-24 h-24 text-primary-green" />
+					</div>
 					<h3 class="text-xl font-semibold text-white mb-2">No tournaments yet</h3>
 					<p class="text-text-secondary mb-6">Be the first to create an exciting tournament!</p>
-					<a href="/tournaments" class="btn-primary">Create Tournament</a>
+					<a href="/tournaments" class="btn-primary flex items-center gap-2 mx-auto w-fit">
+						<Trophy class="w-5 h-5" />
+						Create Tournament
+					</a>
 				</div>
 			{/if}
 		
@@ -160,10 +171,15 @@
 
 	<!-- Game Modes Section -->
 	<section class="mb-16">
-		<h2 class="text-3xl font-bold text-white mb-8 text-center">🎮 Game Modes</h2>
+		<h2 class="text-3xl font-bold text-white mb-8 text-center flex items-center justify-center gap-3">
+			<Gamepad2 class="w-10 h-10 text-primary-green" />
+			Game Modes
+		</h2>
 		<div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
 			<div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-primary-green/30 text-center">
-				<div class="text-4xl mb-4">⚡</div>
+				<div class="flex justify-center mb-4">
+					<Zap class="w-12 h-12 text-primary-green" />
+				</div>
 				<h3 class="text-xl font-semibold text-white mb-4">Quick Match</h3>
 				<p class="text-text-secondary mb-6 text-sm leading-relaxed">
 					Fast-paced 24-hour games. Pick your top cryptocurrencies and compete for instant rewards.
@@ -174,13 +190,15 @@
 					<li>• Instant results</li>
 					<li>• Low entry fees</li>
 				</ul>
-				<a href="/quick-match" class="bg-primary-green hover:bg-dark-green text-black font-medium py-2 px-6 rounded-lg transition-colors">
+				<a href="/quick-match" class="bg-primary-green hover:bg-dark-green text-black font-medium py-2 px-6 rounded-full transition-colors cursor-pointer">
 					Play Now
 				</a>
 			</div>
 
 			<div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-primary-green/30 text-center">
-				<div class="text-4xl mb-4">🏆</div>
+				<div class="flex justify-center mb-4">
+					<Trophy class="w-12 h-12 text-primary-green" />
+				</div>
 				<h3 class="text-xl font-semibold text-white mb-4">Traditional Leagues</h3>
 				<p class="text-text-secondary mb-6 text-sm leading-relaxed">
 					Multi-round tournaments with elimination brackets. Bigger portfolios, bigger prizes.
@@ -191,13 +209,15 @@
 					<li>• Tournament brackets</li>
 					<li>• Prize pools</li>
 				</ul>
-				<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-medium py-2 px-6 rounded-lg transition-colors">
+				<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-medium py-2 px-6 rounded-full transition-colors cursor-pointer">
 					Join League
 				</a>
 			</div>
 
 			<div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-primary-green/30 text-center">
-				<div class="text-4xl mb-4">🎯</div>
+				<div class="flex justify-center mb-4">
+					<Target class="w-12 h-12 text-primary-green" />
+				</div>
 				<h3 class="text-xl font-semibold text-white mb-4">Price Prediction</h3>
 				<p class="text-text-secondary mb-6 text-sm leading-relaxed">
 					Predict exact price movements and multipliers. Test your market knowledge.
@@ -208,7 +228,7 @@
 					<li>• Technical analysis</li>
 					<li>• Expert leaderboards</li>
 				</ul>
-				<button class="bg-primary-green/50 text-primary-green font-medium py-2 px-6 rounded-lg cursor-not-allowed">
+				<button class="bg-primary-green/50 text-primary-green font-medium py-2 px-6 rounded-full cursor-not-allowed">
 					Coming Soon
 				</button>
 			</div>
@@ -259,13 +279,14 @@
 		<div class="flex flex-col sm:flex-row gap-4 justify-center">
 			<a 
 				href="/tournaments" 
-				class="btn-primary font-bold py-3 px-8 shadow-lg hover:shadow-xl"
+				class="btn-primary font-bold py-3 px-8 shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto w-fit"
 			>
-				🏆 Join Tournament
+				<Trophy class="w-5 h-5" />
+				Join Tournament
 			</a>
 			<a 
 				href="/about" 
-				class="border border-white/30 text-white hover:bg-white/10 font-medium py-3 px-8 rounded-lg transition-all duration-200"
+				class="border border-white/30 text-white hover:bg-white/10 font-medium py-3 px-8 rounded-full transition-all duration-200 cursor-pointer"
 			>
 				Learn More
 			</a>

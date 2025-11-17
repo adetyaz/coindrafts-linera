@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { coinDraftsService } from '$lib/coinDraftsService';
 	import type { Tournament } from '$lib/coinDraftsService';
+	import { Trophy, Plus } from '@lucide/svelte';
 
 	let tournaments: Tournament[] = $state([]);
 	let filteredTournaments: Tournament[] = $state([]);
@@ -88,14 +89,18 @@
 	<!-- Header -->
 	<div class="flex flex-col md:flex-row justify-between items-center mb-8">
 		<div>
-			<h1 class="text-4xl font-bold text-white mb-2">🏆 Tournaments</h1>
+			<h1 class="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+				<Trophy class="w-10 h-10 text-primary-green" />
+				Tournaments
+			</h1>
 			<p class="text-text-secondary">Compete in structured multi-round competitions</p>
 		</div>
 		<button 
 			onclick={() => showCreateModal = true}
-			class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-lg transition-colors"
+			class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2"
 		>
-			➕ Create Tournament
+			<Plus class="w-5 h-5" />
+			Create Tournament
 		</button>
 	</div>
 
@@ -140,12 +145,14 @@
 		</div>
 	{:else if filteredTournaments.length === 0}
 		<div class="text-center py-12">
-			<div class="text-4xl mb-4">🏆</div>
+			<div class="flex justify-center mb-4">
+				<Trophy class="w-16 h-16 text-primary-green" />
+			</div>
 			<h3 class="text-xl font-semibold text-white mb-2">No tournaments found</h3>
 			<p class="text-text-secondary mb-6">Be the first to create a tournament!</p>
-			<button 
+			<button
 				onclick={() => showCreateModal = true}
-				class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-lg"
+				class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full cursor-pointer flex items-center gap-2 mx-auto"
 			>
 				Create Tournament
 			</button>
@@ -158,7 +165,7 @@
 					<div class="flex justify-between items-start mb-4">
 						<h3 class="text-lg font-semibold text-white pr-4">{tournament.name}</h3>
 						<span class="text-xs px-2 py-1 rounded-full border {
-							tournament.status === 'Active' ? 'bg-green-500/20 text-green-300 border-green-500/30' :
+							tournament.status === 'Active' ? 'bg-primary-green/20 text-primary-green border-primary-green/30' :
 							tournament.status === 'Pending' ? 'bg-primary-green/10 text-text-secondary border-border-color' :
 							'bg-gray-500/20 text-gray-300 border-gray-500/30'
 						}">
@@ -206,14 +213,14 @@
 					<div class="flex gap-2">
 						<a 
 							href="/tournaments/{tournament.id}"
-							class="flex-1 bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-lg transition-colors font-medium"
+							class="flex-1 bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
 						>
 							View Details
 						</a>
 						{#if tournament.status === 'Pending' && tournament.currentParticipants < tournament.maxParticipants}
 							<a 
 								href="/tournaments/{tournament.id}/join"
-								class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
+								class="bg-primary-green hover:bg-dark-green text-black px-4 py-2 rounded-full transition-colors font-medium cursor-pointer"
 							>
 								Join
 							</a>
@@ -240,7 +247,7 @@
 							bind:value={newTournament.name}
 							type="text" 
 							required
-							class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white placeholder-blue-300"
+							class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white placeholder-white/60"
 							placeholder="Enter tournament name"
 						>
 					</div>
@@ -283,13 +290,13 @@
 					<button 
 						type="button"
 						onclick={() => showCreateModal = false}
-						class="flex-1 border border-white/30 text-white hover:bg-white/10 py-2 rounded-lg transition-colors"
+						class="flex-1 border border-white/30 text-white hover:bg-white/10 py-2 rounded-full transition-colors cursor-pointer"
 					>
 						Cancel
 					</button>
 					<button 
 						type="submit"
-						class="flex-1 bg-primary-green hover:bg-dark-green text-black py-2 rounded-lg transition-colors font-bold"
+						class="flex-1 bg-primary-green hover:bg-dark-green text-black py-2 rounded-full transition-colors font-bold cursor-pointer"
 					>
 						Create Tournament
 					</button>

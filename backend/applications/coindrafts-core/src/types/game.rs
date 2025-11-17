@@ -38,8 +38,8 @@ pub enum GameMode {
 pub struct GameRules {
     /// Can players change portfolio after submission
     pub allow_portfolio_changes: bool,
-    /// Maximum portfolio value change per hour (percentage)
-    pub max_hourly_change: f64,
+    /// Maximum portfolio value change per hour (percentage * 100, e.g., 50% = 5000)
+    pub max_hourly_change: u32,
     /// Risk multiplier settings
     pub risk_multiplier_enabled: bool,
     /// AI confidence scoring enabled
@@ -101,7 +101,7 @@ impl GameRules {
     pub fn traditional_league() -> Self {
         Self {
             allow_portfolio_changes: false,
-            max_hourly_change: 50.0, // 50% max hourly change
+            max_hourly_change: 5000, // 50% * 100 = 5000
             risk_multiplier_enabled: true,
             ai_scoring_enabled: true,
             synergy_bonuses_enabled: true,
@@ -112,7 +112,7 @@ impl GameRules {
     pub fn quick_match() -> Self {
         Self {
             allow_portfolio_changes: true, // Allow changes in quick matches
-            max_hourly_change: 100.0, // 100% max hourly change
+            max_hourly_change: 10000, // 100% * 100 = 10000
             risk_multiplier_enabled: true,
             ai_scoring_enabled: false, // Simplified scoring
             synergy_bonuses_enabled: false,
@@ -123,7 +123,7 @@ impl GameRules {
     pub fn price_prediction() -> Self {
         Self {
             allow_portfolio_changes: false,
-            max_hourly_change: 25.0, // 25% max hourly change
+            max_hourly_change: 2500, // 25% * 100 = 2500
             risk_multiplier_enabled: false, // Focus on prediction accuracy
             ai_scoring_enabled: true,
             synergy_bonuses_enabled: true,

@@ -136,20 +136,24 @@ pub struct Tournament {
     pub completed_at: Option<u64>,
 }
 
-/// Price data for cryptocurrency scoring
+/// Price data for cryptocurrency scoring (using integer representations)
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 pub struct PriceData {
     pub symbol: String,
-    pub start_price: f64,
-    pub end_price: f64,
-    pub percentage_change: f64,
+    /// Start price in micro-units (price * 1_000_000 for 6 decimal precision)
+    pub start_price: u64,
+    /// End price in micro-units (price * 1_000_000 for 6 decimal precision)
+    pub end_price: u64,
+    /// Percentage change scaled by 10000 (e.g., 5.25% = 52500)
+    pub percentage_change: i32,
 }
 
 /// Portfolio performance result
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 pub struct PortfolioPerformance {
     pub player_account: String,
-    pub total_return: f64,
+    /// Total return percentage scaled by 10000 (e.g., 12.50% = 125000)
+    pub total_return: i32,
     pub rank: u32,
     pub portfolio: TournamentPortfolio,
 }
@@ -159,7 +163,8 @@ pub struct PortfolioPerformance {
 pub struct LeaderboardEntry {
     pub rank: u32,
     pub player_account: String,
-    pub total_return: f64,
+    /// Total return percentage scaled by 10000 (e.g., 12.50% = 125000)
+    pub total_return: i32,
     pub winning_amount: u64, // USDC winnings
 }
 
@@ -169,33 +174,33 @@ impl PriceData {
         vec![
             PriceData {
                 symbol: "BTC".to_string(),
-                start_price: 45000.0,
-                end_price: 46800.0, // +4% return
-                percentage_change: 4.0,
+                start_price: 45_000_000_000, // $45,000.00 * 1_000_000
+                end_price: 46_800_000_000,   // $46,800.00 * 1_000_000 (+4% return)
+                percentage_change: 40000,     // 4.0% * 10000
             },
             PriceData {
                 symbol: "ETH".to_string(),
-                start_price: 3200.0,
-                end_price: 3360.0, // +5% return
-                percentage_change: 5.0,
+                start_price: 3_200_000_000,  // $3,200.00 * 1_000_000
+                end_price: 3_360_000_000,    // $3,360.00 * 1_000_000 (+5% return)
+                percentage_change: 50000,     // 5.0% * 10000
             },
             PriceData {
                 symbol: "ADA".to_string(),
-                start_price: 0.45,
-                end_price: 0.47, // +4.4% return
-                percentage_change: 4.4,
+                start_price: 450_000,        // $0.45 * 1_000_000
+                end_price: 470_000,          // $0.47 * 1_000_000 (+4.4% return)
+                percentage_change: 44000,     // 4.4% * 10000
             },
             PriceData {
                 symbol: "SOL".to_string(),
-                start_price: 180.0,
-                end_price: 171.0, // -5% return
-                percentage_change: -5.0,
+                start_price: 180_000_000,    // $180.00 * 1_000_000
+                end_price: 171_000_000,      // $171.00 * 1_000_000 (-5% return)
+                percentage_change: -50000,    // -5.0% * 10000
             },
             PriceData {
                 symbol: "DOT".to_string(),
-                start_price: 8.5,
-                end_price: 9.0, // +5.9% return
-                percentage_change: 5.9,
+                start_price: 8_500_000,      // $8.50 * 1_000_000
+                end_price: 9_000_000,        // $9.00 * 1_000_000 (+5.9% return)
+                percentage_change: 59000,     // 5.9% * 10000
             },
         ]
     }
@@ -209,26 +214,29 @@ impl ScoringEngine {
     pub fn calculate_portfolio_performance(
         portfolio: &TournamentPortfolio,
         price_data: &[PriceData],
-    ) -> f64 {
-        let mut total_return = 0.0;
+    ) -> i32 {
+        let mut total_return = 0i32;
         
         for allocation in &portfolio.cryptocurrencies {
             if let Some(price_info) = price_data.iter().find(|p| p.symbol == allocation.symbol) {
-                let weight = allocation.allocation_percent as f64 / 100.0;
-                let contribution = price_info.percentage_change * weight;
+                let weight = allocation.allocation_percent as i32;
+                // percentage_change is already scaled by 10000, weight is 0-100
+                // So: (percentage_change * weight) / 100 gives us the contribution scaled by 10000
+                let contribution = (price_info.percentage_change * weight) / 100;
                 total_return += contribution;
             }
         }
         
-        // Apply risk adjustment bonus/penalty
+        // Apply risk adjustment bonus/penalty (scaled by 10000)
         let risk_multiplier = match portfolio.risk_level {
-            RiskLevel::Conservative => 0.8, // Lower returns but safer
-            RiskLevel::Moderate => 1.0,     // No adjustment
-            RiskLevel::Aggressive => 1.1,   // Slight bonus for risk
-            RiskLevel::HighRisk => 1.2,     // Higher bonus but higher risk
+            RiskLevel::Conservative => 8000,  // 0.8 * 10000 (lower returns but safer)
+            RiskLevel::Moderate => 10000,     // 1.0 * 10000 (no adjustment)
+            RiskLevel::Aggressive => 11000,   // 1.1 * 10000 (slight bonus for risk)
+            RiskLevel::HighRisk => 12000,     // 1.2 * 10000 (higher bonus but higher risk)
         };
         
-        total_return * risk_multiplier
+        // Apply risk multiplier: (total_return * risk_multiplier) / 10000
+        (total_return * risk_multiplier) / 10000
     }
     
     /// Calculate tournament winners and rankings
@@ -237,7 +245,7 @@ impl ScoringEngine {
         price_data: &[PriceData],
         total_prize_pool: u64,
     ) -> Vec<LeaderboardEntry> {
-        let mut performance: Vec<(String, f64)> = portfolios
+        let mut performance: Vec<(String, i32)> = portfolios
             .iter()
             .map(|(player, portfolio)| {
                 let score = Self::calculate_portfolio_performance(portfolio, price_data);
@@ -246,7 +254,7 @@ impl ScoringEngine {
             .collect();
         
         // Sort by performance (highest first)
-        performance.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        performance.sort_by(|a, b| b.1.cmp(&a.1));
         
         // Calculate prize distribution (60% winner, 30% second, 10% third)
         performance
@@ -255,9 +263,9 @@ impl ScoringEngine {
             .map(|(index, (player, score))| {
                 let rank = (index + 1) as u32;
                 let winning_amount = match rank {
-                    1 => (total_prize_pool as f64 * 0.6) as u64,
-                    2 => (total_prize_pool as f64 * 0.3) as u64,
-                    3 => (total_prize_pool as f64 * 0.1) as u64,
+                    1 => (total_prize_pool * 60) / 100,  // 60%
+                    2 => (total_prize_pool * 30) / 100,  // 30%
+                    3 => (total_prize_pool * 10) / 100,  // 10%
                     _ => 0,
                 };
                 

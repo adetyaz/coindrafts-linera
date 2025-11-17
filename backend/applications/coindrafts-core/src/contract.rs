@@ -9,7 +9,7 @@ Handles game creation, player registration, and portfolio submissions.
 
 mod state;
 
-use coindrafts_core::{CoinDraftsAbi, CoinDraftsOperation, Game, PlayerProfile, PlayerStats, PlayerTier, Portfolio, PortfolioStatus, CryptoHolding, GameMode, GameStatus, CoinDraftsMessage, TraditionalLeaguesMessage};
+use coindrafts_core::{CoinDraftsAbi, CoinDraftsOperation, Game, PlayerProfile, PlayerStats, PlayerTier, Portfolio, PortfolioStatus, CryptoHolding, GameMode, GameStatus, TraditionalLeaguesMessage};
 use self::state::CoinDraftsState;
 use linera_sdk::{
     linera_base_types::WithContractAbi,
@@ -105,13 +105,13 @@ impl Contract for CoinDraftsContract {
                         games_played: 0,
                         games_won: 0,
                         top_10_finishes: 0,
-                        avg_performance: 0.0,
-                        best_performance: 0.0,
+                        avg_performance: 0,
+                        best_performance: 0,
                         current_streak: 0,
                         longest_streak: 0,
                         accuracy_score: 0,
                     },
-                    tier: PlayerTier::Bronze,
+                    tier: PlayerTier::Rookie,
                     total_earnings_usdc: 0,
                 };
 
@@ -210,7 +210,7 @@ impl Contract for CoinDraftsContract {
                 
                 // Update player status based on verification
                 if verified {
-                    if let Ok(Some(mut player)) = self.state.players.get(&player_account).await {
+                    if let Ok(Some(player)) = self.state.players.get(&player_account).await {
                         // Could add verification status to player profile
                         let _ = self.state.players.insert(&player_account, player);
                     }

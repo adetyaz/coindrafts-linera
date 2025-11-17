@@ -8,11 +8,11 @@
 
 	let showCreateGame = $state(false);
 	let showCreateTournament = $state(false);
-	let gameMode = $state('quick');
+	let gameMode = $state('QUICK_MATCH');
 	let tournamentName = $state('');
 	let entryFee = $state(10);
 	let maxParticipants = $state(16);
-	let tournamentType = $state('single_elimination');
+	let tournamentType = $state('SINGLE_ELIMINATION');
 
 	$effect(() => {
 		async function loadData() {
@@ -52,7 +52,7 @@
 			tournamentName = '';
 			entryFee = 10;
 			maxParticipants = 16;
-			tournamentType = 'single_elimination';
+			tournamentType = 'SINGLE_ELIMINATION';
 			// Refresh tournaments list
 			tournaments = await coinDraftsService.fetchTournaments();
 		} catch (err) {
@@ -166,7 +166,7 @@
 				<h2 class="text-2xl font-semibold">Tournaments</h2>
 				<button 
 					onclick={() => showCreateTournament = true}
-					class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+					class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded"
 				>
 					Create Tournament
 				</button>
@@ -219,9 +219,9 @@
 			<div class="mb-4">
 				<label for="gameMode" class="block text-gray-700 text-sm font-bold mb-2">Game Mode:</label>
 				<select id="gameMode" bind:value={gameMode} class="w-full px-3 py-2 border rounded">
-					<option value="quick">Quick Game</option>
-					<option value="classic">Classic Mode</option>
-					<option value="pro">Pro Mode</option>
+					<option value="QUICK_MATCH">Quick Match</option>
+					<option value="TRADITIONAL_LEAGUE">Traditional League</option>
+					<option value="PRICE_PREDICTION">Price Prediction</option>
 				</select>
 			</div>
 			<div class="flex justify-end space-x-2">
@@ -281,9 +281,10 @@
 			<div class="mb-4">
 				<label for="tournamentType" class="block text-gray-700 text-sm font-bold mb-2">Tournament Type:</label>
 				<select id="tournamentType" bind:value={tournamentType} class="w-full px-3 py-2 border rounded">
-					<option value="single_elimination">Single Elimination</option>
-					<option value="double_elimination">Double Elimination</option>
-					<option value="round_robin">Round Robin</option>
+					<option value="SINGLE_ELIMINATION">Single Elimination</option>
+					<option value="DOUBLE_ELIMINATION">Double Elimination</option>
+					<option value="ROUND_ROBIN">Round Robin</option>
+					<option value="SWISS">Swiss System</option>
 				</select>
 			</div>
 			<div class="flex justify-end space-x-2">
@@ -295,7 +296,7 @@
 				</button>
 				<button 
 					onclick={createTournament}
-					class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+					class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded"
 				>
 					Create
 				</button>

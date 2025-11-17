@@ -3,7 +3,7 @@ import { HttpLink } from '@apollo/client/link/http';
 
 // Linera service GraphQL endpoint
 const httpLink = new HttpLink({
-	uri: 'http://localhost:8080/chains/5458ff78b91cf0522b84f76a49baffaf69656be042eafc19365c3f7157a7b5d0/applications/cb15f2be1bb53075b79257d79ac7e4e5cfef76b3e2db6f73ee48ede2cd192311'
+	uri: 'http://localhost:8080/chains/3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e/applications/291a8797a591dee08a8cad1420a740520577f88d611548ff697df2eb14ed73e8'
 });
 
 export const client = new ApolloClient({

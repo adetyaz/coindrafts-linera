@@ -21,15 +21,15 @@ pub const MAX_PORTFOLIO_SIZE: u8 = 10;
 pub const MIN_ALLOCATION_PERCENT: u8 = 1;
 pub const MAX_ALLOCATION_PERCENT: u8 = 100;
 
-// Scoring and bonus constants
-pub const MAX_RISK_MULTIPLIER: f64 = 1.05; // 5% max bonus
-pub const MAX_AI_CONFIDENCE_BONUS: f64 = 1.05; // 5% max bonus
-pub const MAX_SYNERGY_BONUS: f64 = 1.03; // 3% max bonus
-pub const MAX_DIVERSITY_BONUS: f64 = 1.02; // 2% max bonus
+// Scoring and bonus constants (scaled by 10000 for precision)
+pub const MAX_RISK_MULTIPLIER: u32 = 10500; // 1.05 * 10000 = 10500 (5% max bonus)
+pub const MAX_AI_CONFIDENCE_BONUS: u32 = 10500; // 1.05 * 10000 = 10500 (5% max bonus)
+pub const MAX_SYNERGY_BONUS: u32 = 10300; // 1.03 * 10000 = 10300 (3% max bonus)
+pub const MAX_DIVERSITY_BONUS: u32 = 10200; // 1.02 * 10000 = 10200 (2% max bonus)
 pub const MIN_SYNERGY_ALLOCATION: u8 = 40; // 40% minimum for synergy bonus
 
-// Fee and economic constants
-pub const PLATFORM_FEE_PERCENT: f64 = 0.05; // 5% platform fee
+// Fee and economic constants (scaled by 10000 for precision)
+pub const PLATFORM_FEE_PERCENT: u32 = 500; // 0.05 * 10000 = 500 (5% platform fee)
 pub const GAS_RESERVE_USDC: u64 = 10_000; // $0.01 USDC for gas
 
 // Time constants (in microseconds)

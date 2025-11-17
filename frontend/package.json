@@ -45,6 +45,9 @@
 	},
 	"dependencies": {
 		"@apollo/client": "^4.0.9",
+		"@fontsource/monaspace-krypton": "^5.2.5",
+		"@fontsource/space-grotesk": "^5.2.10",
+		"@lucide/svelte": "^0.554.0",
 		"graphql": "^16.12.0"
 	}
 }

@@ -3,11 +3,11 @@ import { HttpLink } from '@apollo/client/link/http';
 
 // CoinDrafts Core application endpoint
 const COINDRAFTS_CORE_URI =
-	'http://localhost:8080/chains/5458ff78b91cf0522b84f76a49baffaf69656be042eafc19365c3f7157a7b5d0/applications/c59acaa0b0fb2cb0adc02ecb77767d368cf36c33fb1f1ffa74bb8755735a349f';
+	'http://localhost:8080/chains/3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e/applications/291a8797a591dee08a8cad1420a740520577f88d611548ff697df2eb14ed73e8';
 
 // Traditional Leagues application endpoint
 const TRADITIONAL_LEAGUES_URI =
-	'http://localhost:8080/chains/5458ff78b91cf0522b84f76a49baffaf69656be042eafc19365c3f7157a7b5d0/applications/2cdcd8ada23c84bad4d71145ed855e33931be4f81d16c27d764ceee54bd23fd4';
+	'http://localhost:8080/chains/3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e/applications/39d51c08f0cc40daabcdda83e974c3e9ddfc3656c7298161a2069a4f856ae0f2';
 
 // CoinDrafts Core client
 export const coinDraftsClient = new ApolloClient({

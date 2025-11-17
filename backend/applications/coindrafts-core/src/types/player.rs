@@ -25,7 +25,7 @@ pub struct PlayerProfile {
     pub total_earnings_usdc: u64,
 }
 
-/// Player statistics
+/// Player statistics with performance metrics
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 pub struct PlayerStats {
     /// Total games played
@@ -34,15 +34,15 @@ pub struct PlayerStats {
     pub games_won: u32,
     /// Games finished in top 10%
     pub top_10_finishes: u32,
-    /// Average portfolio performance percentage
-    pub avg_performance: f64,
-    /// Best single game performance percentage
-    pub best_performance: f64,
+    /// Average performance score (using integer representation: score * 100)
+    pub avg_performance: u32,
+    /// Best performance score ever achieved (using integer representation: score * 100)
+    pub best_performance: u32,
     /// Current win streak
     pub current_streak: u32,
     /// Longest win streak
     pub longest_streak: u32,
-    /// Portfolio accuracy score (0-100)
+    /// Accuracy score for predictions (0-100 scale)
     pub accuracy_score: u8,
 }
 
@@ -79,8 +79,8 @@ impl Default for PlayerStats {
             games_played: 0,
             games_won: 0,
             top_10_finishes: 0,
-            avg_performance: 0.0,
-            best_performance: 0.0,
+            avg_performance: 0,
+            best_performance: 0,
             current_streak: 0,
             longest_streak: 0,
             accuracy_score: 0,

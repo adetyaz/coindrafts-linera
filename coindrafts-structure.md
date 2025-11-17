@@ -9,8 +9,8 @@ CoinDrafts on Linera: The world's first **real-time cryptocurrency fantasy gamin
 ### ✅ Completed Foundation
 
 - [x] **SimpleTodo Application**: Successfully deployed and tested
-  - Application ID: `cb15f2be1bb53075b79257d79ac7e4e5cfef76b3e2db6f73ee48ede2cd192311`
-  - Chain ID: `5458ff78b91cf0522b84f76a49baffaf69656be042eafc19365c3f7157a7b5d0`
+  - Application ID: `291a8797a591dee08a8cad1420a740520577f88d611548ff697df2eb14ed73e8`
+  - Chain ID: `3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e`
   - GraphQL endpoint: Working with real-time data persistence
   - Frontend integration: Apollo Client configured with proper cache handling
 

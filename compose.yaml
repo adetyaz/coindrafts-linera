@@ -1,0 +1,16 @@
+services:
+  coindrafts:
+    build: .
+    volumes:
+      - .:/build
+    ports:
+      - "5173:5173" # Frontend
+      - "8080:8080" # Linera faucet
+      - "9001:9001" # Localnet validator proxy
+      - "13001:13001" # Localnet validator
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s

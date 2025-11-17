@@ -1,5 +1,9 @@
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 import { HttpLink } from '@apollo/client/link/http';
+import {
+	PUBLIC_COINDRAFTS_CORE_APP_ID,
+	PUBLIC_TRADITIONAL_LEAGUES_APP_ID
+} from '$env/static/public';
 
 // Types
 interface Game {
@@ -28,22 +32,81 @@ interface MutationResult {
 	success: boolean;
 }
 
+// Player and Portfolio types
+interface PlayerProfile {
+	playerId: string;
+	playerName: string;
+	stats: {
+		gamesPlayed: number;
+		gamesWon: number;
+		totalEarnings: number;
+	};
+	tier: string;
+}
+
+interface Portfolio {
+	playerId: string;
+	cryptocurrencies: string[];
+	submittedAt: number;
+	status: string;
+}
+
 // GraphQL Response Types
 interface GamesQueryResult {
 	games: Game[];
+}
+
+interface GameQueryResult {
+	game: Game;
+}
+
+interface PlayersQueryResult {
+	players: PlayerProfile[];
+}
+
+interface PortfoliosQueryResult {
+	portfolios: Portfolio[];
 }
 
 interface TournamentsQueryResult {
 	tournaments: Tournament[];
 }
 
+interface TournamentQueryResult {
+	tournament: Tournament;
+}
+
+interface ActiveTournamentsQueryResult {
+	activeTournaments: Tournament[];
+}
+
+interface TournamentParticipantsQueryResult {
+	tournamentParticipants: string[];
+}
+
+interface TournamentResultsQueryResult {
+	tournamentResults: string[];
+}
+
 // Mutation Response Types
 // Removed fake mutation result interfaces - using direct success checking instead
+
+// Configuration - SvelteKit environment variables
+const LINERA_GRAPHQL_BASE = 'http://localhost:8080';
+const DEFAULT_CHAIN_ID = '3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e';
+
+// Application IDs - using SvelteKit environment variables with fallbacks
+const COINDRAFTS_CORE_APP_ID =
+	PUBLIC_COINDRAFTS_CORE_APP_ID ||
+	'c59acaa0b0fb2cb0adc02ecb77767d368cf36c33fb1f1ffa74bb8755735a349f';
+const TRADITIONAL_LEAGUES_APP_ID =
+	PUBLIC_TRADITIONAL_LEAGUES_APP_ID ||
+	'2cdcd8ada23c84bad4d71145ed855e33931be4f81d16c27d764ceee54bd23fd4';
 
 // GraphQL Clients
 const coinDraftsClient = new ApolloClient({
 	link: new HttpLink({
-		uri: 'http://localhost:8080/chains/5458ff78b91cf0522b84f76a49baffaf69656be042eafc19365c3f7157a7b5d0/applications/c59acaa0b0fb2cb0adc02ecb77767d368cf36c33fb1f1ffa74bb8755735a349f'
+		uri: `${LINERA_GRAPHQL_BASE}/chains/${DEFAULT_CHAIN_ID}/applications/${COINDRAFTS_CORE_APP_ID}`
 	}),
 	cache: new InMemoryCache(),
 	defaultOptions: {
@@ -54,7 +117,7 @@ const coinDraftsClient = new ApolloClient({
 
 const tradLeaguesClient = new ApolloClient({
 	link: new HttpLink({
-		uri: 'http://localhost:8080/chains/5458ff78b91cf0522b84f76a49baffaf69656be042eafc19365c3f7157a7b5d0/applications/2cdcd8ada23c84bad4d71145ed855e33931be4f81d16c27d764ceee54bd23fd4'
+		uri: `${LINERA_GRAPHQL_BASE}/chains/${DEFAULT_CHAIN_ID}/applications/${TRADITIONAL_LEAGUES_APP_ID}`
 	}),
 	cache: new InMemoryCache(),
 	defaultOptions: {
@@ -78,6 +141,7 @@ const GET_GAMES = gql`
 	}
 `;
 
+// CoinDrafts Core single game query
 const GET_GAME = gql`
 	query GetGame($gameId: String!) {
 		game(gameId: $gameId) {
@@ -91,6 +155,7 @@ const GET_GAME = gql`
 	}
 `;
 
+// CoinDrafts Core portfolios query
 const GET_PORTFOLIOS = gql`
 	query GetPortfolios($gameId: String!) {
 		portfolios(gameId: $gameId) {
@@ -102,10 +167,43 @@ const GET_PORTFOLIOS = gql`
 	}
 `;
 
+// CoinDrafts Core players query
+const GET_PLAYERS = gql`
+	query GetPlayers {
+		players {
+			playerId
+			playerName
+			stats {
+				gamesPlayed
+				gamesWon
+				totalEarnings
+			}
+			tier
+		}
+	}
+`;
+
 // Traditional Leagues queries
 const GET_TOURNAMENTS = gql`
 	query GetTournaments {
 		tournaments {
+			id
+			name
+			tournamentType
+			status
+			entryFeeUsdc
+			maxParticipants
+			currentParticipants
+			currentRound
+			maxRounds
+			createdAt
+		}
+	}
+`;
+
+const GET_TOURNAMENT = gql`
+	query GetTournament($id: String!) {
+		tournament(id: $id) {
 			id
 			name
 			tournamentType
@@ -134,6 +232,18 @@ const GET_ACTIVE_TOURNAMENTS = gql`
 			maxRounds
 			createdAt
 		}
+	}
+`;
+
+const GET_TOURNAMENT_PARTICIPANTS = gql`
+	query GetTournamentParticipants($tournamentId: String!) {
+		tournamentParticipants(tournamentId: $tournamentId)
+	}
+`;
+
+const GET_TOURNAMENT_RESULTS = gql`
+	query GetTournamentResults($tournamentId: String!) {
+		tournamentResults(tournamentId: $tournamentId)
 	}
 `;
 
@@ -182,16 +292,72 @@ const REGISTER_FOR_TOURNAMENT = gql`
 
 // Service
 class CoinDraftsService {
+	// === GAME QUERIES ===
 	async fetchGames(): Promise<Game[]> {
 		const result = await coinDraftsClient.query<GamesQueryResult>({ query: GET_GAMES });
 		return result.data?.games || [];
 	}
 
+	async fetchGame(gameId: string): Promise<Game | null> {
+		const result = await coinDraftsClient.query<GameQueryResult>({
+			query: GET_GAME,
+			variables: { gameId }
+		});
+		return result.data?.game || null;
+	}
+
+	async fetchPlayers(): Promise<PlayerProfile[]> {
+		const result = await coinDraftsClient.query<PlayersQueryResult>({
+			query: GET_PLAYERS
+		});
+		return result.data?.players || [];
+	}
+
+	async fetchPortfolios(gameId: string): Promise<Portfolio[]> {
+		const result = await coinDraftsClient.query<PortfoliosQueryResult>({
+			query: GET_PORTFOLIOS,
+			variables: { gameId }
+		});
+		return result.data?.portfolios || [];
+	}
+
+	// === TOURNAMENT QUERIES ===
 	async fetchTournaments(): Promise<Tournament[]> {
 		const result = await tradLeaguesClient.query<TournamentsQueryResult>({
 			query: GET_TOURNAMENTS
 		});
 		return result.data?.tournaments || [];
+	}
+
+	async fetchTournament(id: string): Promise<Tournament | null> {
+		const result = await tradLeaguesClient.query<TournamentQueryResult>({
+			query: GET_TOURNAMENT,
+			variables: { id }
+		});
+		return result.data?.tournament || null;
+	}
+
+	async fetchActiveTournaments(): Promise<Tournament[]> {
+		const result = await tradLeaguesClient.query<ActiveTournamentsQueryResult>({
+			query: GET_ACTIVE_TOURNAMENTS
+		});
+		return result.data?.activeTournaments || [];
+	}
+
+	async fetchTournamentParticipants(tournamentId: string): Promise<string[]> {
+		const result = await tradLeaguesClient.query<TournamentParticipantsQueryResult>({
+			query: GET_TOURNAMENT_PARTICIPANTS,
+			variables: { tournamentId }
+		});
+		return result.data?.tournamentParticipants || [];
+	}
+
+	async fetchTournamentResults(tournamentId: string): Promise<string[]> {
+		const result = await tradLeaguesClient.query<TournamentResultsQueryResult>({
+			query: GET_TOURNAMENT_RESULTS,
+			variables: { tournamentId }
+		});
+		return result.data?.tournamentResults || [];
 	}
 
 	async createGame(mode: string): Promise<MutationResult> {
@@ -210,11 +376,11 @@ class CoinDraftsService {
 	): Promise<MutationResult> {
 		const result = await tradLeaguesClient.mutate({
 			mutation: CREATE_TOURNAMENT,
-			variables: { 
-				name, 
+			variables: {
+				name,
 				entryFeeUsdc: entryFeeUsdc.toString(), // Convert to string as expected by backend
-				maxParticipants, 
-				tournamentType 
+				maxParticipants,
+				tournamentType
 			}
 		});
 		return { success: !!result.data };
@@ -246,8 +412,7 @@ class CoinDraftsService {
 		});
 		return { success: !!result.data };
 	}
-
 }
 
 export const coinDraftsService = new CoinDraftsService();
-export type { Game, Tournament, MutationResult };
+export type { Game, Tournament, MutationResult, PlayerProfile, Portfolio };

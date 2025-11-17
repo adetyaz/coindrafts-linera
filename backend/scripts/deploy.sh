@@ -8,9 +8,9 @@ cd "$(dirname "$0")/../.."
 
 # Set environment variables
 echo "🔧 Setting up environment..."
-export LINERA_WALLET="/tmp/.tmptEVJHF/wallet_0.json"
-export LINERA_KEYSTORE="/tmp/.tmptEVJHF/keystore_0.json"
-export LINERA_STORAGE="rocksdb:/tmp/.tmptEVJHF/client_0.db"
+export LINERA_WALLET="/tmp/.tmpnTPXIS/wallet_0.json"
+export LINERA_KEYSTORE="/tmp/.tmpnTPXIS/keystore_0.json"
+export LINERA_STORAGE="rocksdb:/tmp/.tmpnTPXIS/client_0.db"
 
 # Stop any running service to avoid database lock
 echo "🛑 Stopping any running Linera service..."
@@ -40,7 +40,7 @@ if [ $? -eq 0 ]; then
     echo "🌐 Starting GraphQL service..."
     linera service --port 8080 &
     sleep 3
-    echo "🌐 GraphQL endpoint: http://localhost:8080/graphql"
+    echo "🌐 GraphQL endpoint: http://localhost:8080"
 else
     echo "❌ Deployment failed!"
     exit 1

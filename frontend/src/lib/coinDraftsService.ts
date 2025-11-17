@@ -98,10 +98,10 @@ const DEFAULT_CHAIN_ID = '3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b357
 // Application IDs - using SvelteKit environment variables with fallbacks
 const COINDRAFTS_CORE_APP_ID =
 	PUBLIC_COINDRAFTS_CORE_APP_ID ||
-	'c59acaa0b0fb2cb0adc02ecb77767d368cf36c33fb1f1ffa74bb8755735a349f';
+	'291a8797a591dee08a8cad1420a740520577f88d611548ff697df2eb14ed73e8';
 const TRADITIONAL_LEAGUES_APP_ID =
 	PUBLIC_TRADITIONAL_LEAGUES_APP_ID ||
-	'2cdcd8ada23c84bad4d71145ed855e33931be4f81d16c27d764ceee54bd23fd4';
+	'39d51c08f0cc40daabcdda83e974c3e9ddfc3656c7298161a2069a4f856ae0f2';
 
 // GraphQL Clients
 const coinDraftsClient = new ApolloClient({
@@ -361,11 +361,33 @@ class CoinDraftsService {
 	}
 
 	async createGame(mode: string): Promise<MutationResult> {
-		const result = await coinDraftsClient.mutate({
-			mutation: CREATE_GAME,
-			variables: { mode }
-		});
-		return { success: !!result.data };
+		try {
+			console.log('Sending game creation request to:', coinDraftsClient.link);
+			console.log('Variables:', { mode });
+
+			const result = await coinDraftsClient.mutate({
+				mutation: CREATE_GAME,
+				variables: { mode }
+			});
+
+			console.log('GraphQL Result:', result);
+			console.log('Result data:', result.data);
+			console.log('Result error:', result.error);
+
+			if (result.error) {
+				console.error('GraphQL Error:', result.error);
+				return { success: false };
+			}
+
+			// Check if we got the game ID directly as a string
+			const success = !!(result.data && typeof result.data === 'string');
+			console.log('Game creation success:', success, 'Game ID:', result.data);
+
+			return { success };
+		} catch (error) {
+			console.error('Game creation error:', error);
+			return { success: false };
+		}
 	}
 
 	async createTournament(
@@ -374,43 +396,97 @@ class CoinDraftsService {
 		maxParticipants: number,
 		tournamentType: string
 	): Promise<MutationResult> {
-		const result = await tradLeaguesClient.mutate({
-			mutation: CREATE_TOURNAMENT,
-			variables: {
+		try {
+			console.log('Sending tournament creation request to:', tradLeaguesClient.link);
+			console.log('Variables:', {
 				name,
-				entryFeeUsdc: entryFeeUsdc.toString(), // Convert to string as expected by backend
+				entryFeeUsdc: entryFeeUsdc.toString(),
 				maxParticipants,
 				tournamentType
+			});
+
+			const result = await tradLeaguesClient.mutate({
+				mutation: CREATE_TOURNAMENT,
+				variables: {
+					name,
+					entryFeeUsdc: entryFeeUsdc.toString(), // Convert to string as expected by backend
+					maxParticipants,
+					tournamentType
+				}
+			});
+
+			console.log('GraphQL Result:', result);
+			console.log('Result data:', result.data);
+			console.log('Result error:', result.error);
+
+			if (result.error) {
+				console.error('GraphQL Error:', result.error);
+				return { success: false };
 			}
-		});
-		return { success: !!result.data };
+
+			// Check if we got the tournament ID directly as a string
+			const success = !!(result.data && typeof result.data === 'string');
+			console.log('Tournament creation success:', success, 'Tournament ID:', result.data);
+
+			return { success };
+		} catch (error) {
+			console.error('Tournament creation error:', error);
+			return { success: false };
+		}
 	}
 
 	async registerPlayer(gameId: string, playerName: string): Promise<MutationResult> {
-		const result = await coinDraftsClient.mutate({
-			mutation: REGISTER_PLAYER,
-			variables: { gameId, playerName }
-		});
-		return { success: !!result.data };
+		try {
+			const result = await coinDraftsClient.mutate({
+				mutation: REGISTER_PLAYER,
+				variables: { gameId, playerName }
+			});
+
+			const success = !!(result.data && typeof result.data === 'string');
+			console.log('Player registration success:', success, 'Transaction ID:', result.data);
+
+			return { success };
+		} catch (error) {
+			console.error('Player registration error:', error);
+			return { success: false };
+		}
 	}
 
 	async registerForTournament(
 		tournamentId: string,
 		playerAccount: string
 	): Promise<MutationResult> {
-		const result = await tradLeaguesClient.mutate({
-			mutation: REGISTER_FOR_TOURNAMENT,
-			variables: { tournamentId, playerAccount }
-		});
-		return { success: !!result.data };
+		try {
+			const result = await tradLeaguesClient.mutate({
+				mutation: REGISTER_FOR_TOURNAMENT,
+				variables: { tournamentId, playerAccount }
+			});
+
+			const success = !!(result.data && typeof result.data === 'string');
+			console.log('Tournament registration success:', success, 'Transaction ID:', result.data);
+
+			return { success };
+		} catch (error) {
+			console.error('Tournament registration error:', error);
+			return { success: false };
+		}
 	}
 
 	async submitPortfolio(gameId: string, cryptocurrencies: string[]): Promise<MutationResult> {
-		const result = await coinDraftsClient.mutate({
-			mutation: SUBMIT_PORTFOLIO,
-			variables: { gameId, cryptocurrencies }
-		});
-		return { success: !!result.data };
+		try {
+			const result = await coinDraftsClient.mutate({
+				mutation: SUBMIT_PORTFOLIO,
+				variables: { gameId, cryptocurrencies }
+			});
+
+			const success = !!(result.data && typeof result.data === 'string');
+			console.log('Portfolio submission success:', success, 'Transaction ID:', result.data);
+
+			return { success };
+		} catch (error) {
+			console.error('Portfolio submission error:', error);
+			return { success: false };
+		}
 	}
 }
 

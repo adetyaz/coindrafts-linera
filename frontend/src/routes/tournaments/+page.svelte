@@ -3,11 +3,13 @@
 	import { coinDraftsService } from '$lib/coinDraftsService';
 	import type { Tournament } from '$lib/coinDraftsService';
 	import { Trophy, Plus } from '@lucide/svelte';
+	import { showToast } from '$lib/stores/toasts';
 
 	let tournaments: Tournament[] = $state([]);
 	let filteredTournaments: Tournament[] = $state([]);
 	let loading = $state(true);
 	let showCreateModal = $state(false);
+	let creating = $state(false);
 	
 	// Filters
 	let statusFilter = $state('all');
@@ -19,7 +21,7 @@
 		name: '',
 		entryFeeUsdc: 10,
 		maxParticipants: 16,
-		tournamentType: 'SingleElimination'
+		tournamentType: 'SINGLE_ELIMINATION'
 	});
 
 	onMount(async () => {
@@ -50,8 +52,38 @@
 		});
 	}
 
-	async function createTournament() {
+	async function joinTournament(tournamentId: string) {
 		try {
+			// For now, use a default player account - in a real app this would come from user authentication
+			const playerAccount = `player_${Date.now()}`;
+			const result = await coinDraftsService.registerForTournament(tournamentId, playerAccount);
+			if (result.success) {
+				showToast('Successfully joined tournament!', 'success');
+				await loadTournaments(); // Refresh the list
+			} else {
+				showToast('Failed to join tournament. Please try again.', 'error');
+			}
+		} catch (error) {
+			console.error('Error joining tournament:', error);
+			showToast('Error joining tournament. Please try again.', 'error');
+		}
+	}
+
+	async function createTournament() {
+		// Validate form
+		if (!newTournament.name.trim()) {
+			showToast('Please enter a tournament name', 'error');
+			return;
+		}
+		
+		if (newTournament.entryFeeUsdc < 1) {
+			showToast('Entry fee must be at least $1', 'error');
+			return;
+		}
+
+		try {
+			creating = true;
+			console.log('Creating tournament with data:', newTournament);
 			const result = await coinDraftsService.createTournament(
 				newTournament.name,
 				newTournament.entryFeeUsdc,
@@ -59,7 +91,10 @@
 				newTournament.tournamentType
 			);
 			
+			console.log('Tournament creation result:', result);
+			
 			if (result.success) {
+				showToast('Tournament created successfully!', 'success');
 				showCreateModal = false;
 				await loadTournaments();
 				// Reset form
@@ -67,11 +102,16 @@
 					name: '',
 					entryFeeUsdc: 10,
 					maxParticipants: 16,
-					tournamentType: 'SingleElimination'
+					tournamentType: 'SINGLE_ELIMINATION'
 				};
+			} else {
+				showToast('Failed to create tournament. Please try again.', 'error');
 			}
 		} catch (error) {
 			console.error('Error creating tournament:', error);
+			showToast('Error creating tournament. Check console for details.', 'error');
+		} finally {
+			creating = false;
 		}
 	}
 
@@ -97,7 +137,8 @@
 		</div>
 		<button 
 			onclick={() => showCreateModal = true}
-			class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2"
+			class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 border-2 border-primary-green"
+			style="background-color: #39ff14 !important; color: black !important; display: flex !important; visibility: visible !important;"
 		>
 			<Plus class="w-5 h-5" />
 			Create Tournament
@@ -121,10 +162,10 @@
 				<label class="block text-sm font-medium text-text-secondary mb-2">Type</label>
 				<select bind:value={typeFilter} class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white">
 					<option value="all">All Types</option>
-					<option value="SingleElimination">Single Elimination</option>
-					<option value="DoubleElimination">Double Elimination</option>
-					<option value="RoundRobin">Round Robin</option>
-					<option value="Swiss">Swiss</option>
+					<option value="SINGLE_ELIMINATION">Single Elimination</option>
+					<option value="DOUBLE_ELIMINATION">Double Elimination</option>
+					<option value="ROUND_ROBIN">Round Robin</option>
+					<option value="SWISS">Swiss System</option>
 				</select>
 			</div>
 			<div>
@@ -211,20 +252,18 @@
 
 					<!-- Actions -->
 					<div class="flex gap-2">
+						<button 
+							onclick={() => joinTournament(tournament.id)}
+							class="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
+						>
+							Join Tournament
+						</button>
 						<a 
 							href="/tournaments/{tournament.id}"
 							class="flex-1 bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
 						>
 							View Details
 						</a>
-						{#if tournament.status === 'Pending' && tournament.currentParticipants < tournament.maxParticipants}
-							<a 
-								href="/tournaments/{tournament.id}/join"
-								class="bg-primary-green hover:bg-dark-green text-black px-4 py-2 rounded-full transition-colors font-medium cursor-pointer"
-							>
-								Join
-							</a>
-						{/if}
 					</div>
 				</div>
 			{/each}
@@ -278,10 +317,10 @@
 					<div>
 						<label for="tournament-type" class="block text-sm font-medium text-text-secondary mb-2">Tournament Type</label>
 						<select id="tournament-type" bind:value={newTournament.tournamentType} class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white">
-							<option value="SingleElimination">Single Elimination</option>
-							<option value="DoubleElimination">Double Elimination</option>
-							<option value="RoundRobin">Round Robin</option>
-							<option value="Swiss">Swiss</option>
+							<option value="SINGLE_ELIMINATION">Single Elimination</option>
+							<option value="DOUBLE_ELIMINATION">Double Elimination</option>
+							<option value="ROUND_ROBIN">Round Robin</option>
+							<option value="SWISS">Swiss System</option>
 						</select>
 					</div>
 				</div>
@@ -296,9 +335,14 @@
 					</button>
 					<button 
 						type="submit"
-						class="flex-1 bg-primary-green hover:bg-dark-green text-black py-2 rounded-full transition-colors font-bold cursor-pointer"
+						disabled={creating}
+						class="flex-1 py-2 rounded-full transition-colors font-bold {
+							creating 
+								? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
+								: 'bg-primary-green hover:bg-dark-green text-black cursor-pointer'
+						}"
 					>
-						Create Tournament
+						{creating ? 'Creating...' : 'Create Tournament'}
 					</button>
 				</div>
 			</form>

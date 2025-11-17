@@ -3,11 +3,32 @@
 	import { coinDraftsService } from '$lib/coinDraftsService';
 	import type { Game } from '$lib/coinDraftsService';
 	import { Zap, Plus, DollarSign, Rocket, Flame, Gamepad2 } from '@lucide/svelte';
+	import { showToast } from '$lib/stores/toasts';
 
 	let games: Game[] = $state([]);
 	let loading = $state(true);
 	let showCreateModal = $state(false);
-	let selectedMode = $state('QuickMatch');
+	let selectedMode = $state('QUICK_MATCH');
+	let selectedCryptos = $state<string[]>([]);
+	let entryFee = $state(1);
+	let maxPlayers = $state(10);
+	let creating = $state(false);
+
+	// Available cryptocurrencies for selection
+	const availableCryptos = [
+		'Bitcoin (BTC)', 'Ethereum (ETH)', 'Cardano (ADA)', 'Solana (SOL)', 
+		'Polkadot (DOT)', 'Chainlink (LINK)', 'Polygon (MATIC)', 'Avalanche (AVAX)',
+		'Cosmos (ATOM)', 'Near Protocol (NEAR)', 'Algorand (ALGO)', 'Fantom (FTM)',
+		'Hedera (HBAR)', 'Internet Computer (ICP)', 'VeChain (VET)', 'Tezos (XTZ)'
+	];
+
+	function toggleCrypto(crypto: string) {
+		if (selectedCryptos.includes(crypto)) {
+			selectedCryptos = selectedCryptos.filter(c => c !== crypto);
+		} else if (selectedCryptos.length < 5) {
+			selectedCryptos = [...selectedCryptos, crypto];
+		}
+	}
 
 	onMount(async () => {
 		await loadGames();
@@ -17,8 +38,8 @@
 		try {
 			loading = true;
 			const allGames = await coinDraftsService.fetchGames();
-			// Filter for QuickMatch games only
-			games = allGames.filter(game => game.mode === 'QuickMatch');
+			// Filter for QUICK_MATCH games only
+			games = allGames.filter(game => game.mode === 'QUICK_MATCH');
 		} catch (error) {
 			console.error('Error loading games:', error);
 		} finally {
@@ -27,14 +48,66 @@
 	}
 
 	async function createGame() {
+		// Validate form
+		if (selectedCryptos.length === 0) {
+			showToast('Please select at least 1 cryptocurrency', 'error');
+			return;
+		}
+		
+		if (entryFee < 1 || entryFee > 100) {
+			showToast('Entry fee must be between $1 and $100', 'error');
+			return;
+		}
+
+		if (maxPlayers < 5 || maxPlayers > 20) {
+			showToast('Max players must be between 5 and 20', 'error');
+			return;
+		}
+		
 		try {
+			creating = true;
+			console.log('Creating game with data:', {
+				mode: selectedMode,
+				cryptos: selectedCryptos,
+				entryFee,
+				maxPlayers
+			});
+			
 			const result = await coinDraftsService.createGame(selectedMode);
+			console.log('Game creation result:', result);
+			
 			if (result.success) {
+				showToast('Game created successfully!', 'success');
 				showCreateModal = false;
+				selectedCryptos = [];
+				entryFee = 1;
+				maxPlayers = 10;
 				await loadGames();
+			} else {
+				showToast('Failed to create game. Please try again.', 'error');
 			}
 		} catch (error) {
 			console.error('Error creating game:', error);
+			showToast('Error creating game. Check console for details.', 'error');
+		} finally {
+			creating = false;
+		}
+	}
+
+	async function joinGame(gameId: string) {
+		try {
+			// For now, use a default player name - in a real app this would come from user authentication
+			const playerName = `Player_${Date.now()}`;
+			const result = await coinDraftsService.registerPlayer(gameId, playerName);
+			if (result.success) {
+				showToast('Successfully joined the game!', 'success');
+				await loadGames(); // Refresh the games list
+			} else {
+				showToast('Failed to join game. Please try again.', 'error');
+			}
+		} catch (error) {
+			console.error('Error joining game:', error);
+			showToast('Error joining game. Please try again.', 'error');
 		}
 	}
 </script>
@@ -55,10 +128,11 @@
 		</div>
 		<button 
 			onclick={() => showCreateModal = true}
-			class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2"
+			class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 border-2 border-primary-green"
+			style="background-color: #39ff14 !important; color: black !important; display: flex !important; visibility: visible !important;"
 		>
 			<Plus class="w-5 h-5" />
-			Create Game
+			🚀 CREATE GAME NOW 🚀
 		</button>
 	</div>
 
@@ -142,7 +216,28 @@
 							<div class="flex justify-between text-sm">
 								<span class="text-text-secondary">Created:</span>
 								<span class="text-white font-medium">
-									{new Date(game.createdAt * 1000).toLocaleDateString()}
+									{#if game.createdAt}
+										{(() => {
+											// Try different date formats
+											const timestamp = typeof game.createdAt === 'string' ? parseInt(game.createdAt) : game.createdAt;
+											if (isNaN(timestamp)) return 'Unknown';
+											
+											// Try as milliseconds first, then seconds
+											const dateMs = new Date(timestamp);
+											const dateSec = new Date(timestamp * 1000);
+											
+											// Check which one gives a reasonable date (after year 2000)
+											if (dateMs.getFullYear() > 2000) {
+												return dateMs.toLocaleDateString();
+											} else if (dateSec.getFullYear() > 2000) {
+												return dateSec.toLocaleDateString();
+											} else {
+												return 'Unknown';
+											}
+										})()}
+									{:else}
+										Unknown
+									{/if}
 								</span>
 							</div>
 						</div>
@@ -155,28 +250,26 @@
 							</div>
 							<div class="w-full bg-white/20 rounded-full h-2">
 								<div 
-									class="h-2 rounded-full transition-all duration-300"
-									style="background: linear-gradient(to right, #3b82f6, #06b6d4); width: {(game.playerCount / game.maxPlayers) * 100}%"
+									class="bg-primary-green h-2 rounded-full transition-all duration-300"
+									style="width: {(game.playerCount / game.maxPlayers) * 100}%"
 								></div>
 							</div>
 						</div>
 
 						<!-- Action Buttons -->
 						<div class="flex gap-2">
+							<button 
+								onclick={() => joinGame(game.gameId)}
+								class="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
+							>
+								Join Game
+							</button>
 							<a 
 								href="/games/{game.gameId}"
 								class="flex-1 bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
 							>
 								View Game
 							</a>
-							{#if game.status === 'Pending' && game.playerCount < game.maxPlayers}
-								<a 
-									href="/games/{game.gameId}/join"
-									class="bg-primary-green hover:bg-dark-green text-black px-4 py-2 rounded-full transition-colors font-medium cursor-pointer"
-								>
-									Join
-								</a>
-							{/if}
 						</div>
 					</div>
 				{/each}
@@ -189,29 +282,29 @@
 		<h2 class="text-3xl font-bold text-white mb-8 text-center">How Quick Match Works</h2>
 		<div class="grid md:grid-cols-4 gap-6 max-w-4xl mx-auto">
 			<div class="text-center">
-				<div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(45deg, #3b82f6, #06b6d4)">
-					<span class="text-white font-bold">1</span>
+				<div class="w-12 h-12 rounded-full bg-primary-green flex items-center justify-center mx-auto mb-4">
+					<span class="text-black font-bold">1</span>
 				</div>
 				<h3 class="font-semibold text-white mb-2">Pick 5 Cryptos</h3>
 				<p class="text-sm text-text-secondary">Select your top 5 cryptocurrencies</p>
 			</div>
 			<div class="text-center">
-				<div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(45deg, #06b6d4, #10b981)">
-					<span class="text-white font-bold">2</span>
+				<div class="w-12 h-12 rounded-full bg-primary-green flex items-center justify-center mx-auto mb-4">
+					<span class="text-black font-bold">2</span>
 				</div>
 				<h3 class="font-semibold text-white mb-2">24-Hour Window</h3>
 				<p class="text-sm text-text-secondary">Game runs for exactly 24 hours</p>
 			</div>
 			<div class="text-center">
-				<div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(45deg, #10b981, #f59e0b)">
-					<span class="text-white font-bold">3</span>
+				<div class="w-12 h-12 rounded-full bg-primary-green flex items-center justify-center mx-auto mb-4">
+					<span class="text-black font-bold">3</span>
 				</div>
 				<h3 class="font-semibold text-white mb-2">Real-Time Tracking</h3>
 				<p class="text-sm text-text-secondary">Watch live price movements</p>
 			</div>
 			<div class="text-center">
-				<div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background: linear-gradient(45deg, #f59e0b, #8b5cf6)">
-					<span class="text-white font-bold">4</span>
+				<div class="w-12 h-12 rounded-full bg-primary-green flex items-center justify-center mx-auto mb-4">
+					<span class="text-black font-bold">4</span>
 				</div>
 				<h3 class="font-semibold text-white mb-2">Instant Payout</h3>
 				<p class="text-sm text-text-secondary">Winners paid immediately</p>
@@ -234,7 +327,7 @@
 							<input 
 								type="radio" 
 								bind:group={selectedMode} 
-								value="QuickMatch"
+								value="QUICK_MATCH"
 								class="text-primary-green"
 							>
 							<div>
@@ -256,10 +349,57 @@
 					</div>
 				</div>
 
+				<!-- Cryptocurrency Selection -->
+				<div>
+					<label class="block text-sm font-medium text-text-secondary mb-3">
+						Select Cryptocurrencies ({selectedCryptos.length}/5)
+					</label>
+					<div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto bg-white/5 rounded-lg p-3 border border-white/20">
+						{#each availableCryptos as crypto}
+							<button
+								type="button"
+								onclick={() => toggleCrypto(crypto)}
+								class="text-left p-2 rounded-lg text-sm transition-all cursor-pointer {
+									selectedCryptos.includes(crypto) 
+										? 'bg-primary-green text-black font-medium' 
+										: 'bg-white/10 text-white hover:bg-white/20'
+								} {selectedCryptos.length >= 5 && !selectedCryptos.includes(crypto) ? 'opacity-50 cursor-not-allowed' : ''}"
+								disabled={selectedCryptos.length >= 5 && !selectedCryptos.includes(crypto)}
+							>
+								{crypto}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Game Settings -->
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="entry-fee" class="block text-sm font-medium text-text-secondary mb-2">Entry Fee ($)</label>
+						<input 
+							id="entry-fee"
+							bind:value={entryFee}
+							type="number" 
+							min="1"
+							max="100"
+							class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white"
+						>
+					</div>
+					<div>
+						<label for="max-players" class="block text-sm font-medium text-text-secondary mb-2">Max Players</label>
+						<select id="max-players" bind:value={maxPlayers} class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white">
+							<option value={5}>5 Players</option>
+							<option value={10}>10 Players</option>
+							<option value={15}>15 Players</option>
+							<option value={20}>20 Players</option>
+						</select>
+					</div>
+				</div>
+
 				<div class="bg-primary-green/20 border border-primary-green/30 rounded-lg p-4">
 					<h4 class="text-white font-medium mb-2">Quick Match Rules:</h4>
 					<ul class="text-sm text-text-secondary space-y-1">
-						<li>• Select up to 5 cryptocurrencies</li>
+						<li>• Select up to 5 cryptocurrencies ✓</li>
 						<li>• 24-hour competition period</li>
 						<li>• Real-time price tracking</li>
 						<li>• Winners based on portfolio % gain</li>
@@ -275,9 +415,14 @@
 					</button>
 					<button 
 						onclick={createGame}
-						class="flex-1 bg-primary-green hover:bg-dark-green text-black py-3 rounded-full transition-colors font-bold cursor-pointer"
+						disabled={selectedCryptos.length === 0 || creating}
+						class="flex-1 py-3 rounded-full transition-colors font-bold {
+							(selectedCryptos.length === 0 || creating)
+								? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
+								: 'bg-primary-green hover:bg-dark-green text-black cursor-pointer'
+						}"
 					>
-						Create Game
+						{creating ? 'Creating Game...' : `Create Game ${selectedCryptos.length > 0 ? `(${selectedCryptos.length} cryptos)` : ''}`}
 					</button>
 				</div>
 			</div>

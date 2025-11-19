@@ -95,13 +95,19 @@ interface TournamentResultsQueryResult {
 const LINERA_GRAPHQL_BASE = 'http://localhost:8080';
 const DEFAULT_CHAIN_ID = '3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e';
 
-// Application IDs - using SvelteKit environment variables with fallbacks
-const COINDRAFTS_CORE_APP_ID =
-	PUBLIC_COINDRAFTS_CORE_APP_ID ||
-	'291a8797a591dee08a8cad1420a740520577f88d611548ff697df2eb14ed73e8';
-const TRADITIONAL_LEAGUES_APP_ID =
-	PUBLIC_TRADITIONAL_LEAGUES_APP_ID ||
-	'39d51c08f0cc40daabcdda83e974c3e9ddfc3656c7298161a2069a4f856ae0f2';
+// Application IDs - MUST be set via environment variables after deployment
+const COINDRAFTS_CORE_APP_ID = PUBLIC_COINDRAFTS_CORE_APP_ID;
+const TRADITIONAL_LEAGUES_APP_ID = PUBLIC_TRADITIONAL_LEAGUES_APP_ID;
+
+// Validate that application IDs are available
+if (!COINDRAFTS_CORE_APP_ID || !TRADITIONAL_LEAGUES_APP_ID) {
+	throw new Error(
+		'Application IDs not found! Please run the deployment script first.\n' +
+			'Missing: ' +
+			(!COINDRAFTS_CORE_APP_ID ? 'PUBLIC_COINDRAFTS_CORE_APP_ID ' : '') +
+			(!TRADITIONAL_LEAGUES_APP_ID ? 'PUBLIC_TRADITIONAL_LEAGUES_APP_ID' : '')
+	);
+}
 
 // GraphQL Clients
 const coinDraftsClient = new ApolloClient({

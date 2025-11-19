@@ -23,6 +23,12 @@ CoinDrafts allows users to compete in cryptocurrency portfolio contests and tour
 # Clone and run the complete application
 docker compose up --force-recreate
 
+# ⏱️  First run takes 5-10 minutes to:
+#    • Build Rust backend applications
+#    • Deploy to local Linera network
+#    • Generate unique application IDs
+#    • Start frontend with proper configuration
+
 # Access the application
 # Frontend: http://localhost:5173
 # GraphQL: http://localhost:8080
@@ -50,10 +56,15 @@ docker compose up --force-recreate
    docker compose up --force-recreate
    ```
 
-3. **Wait for deployment**
-   - The container will build and deploy both Linera applications
+3. **Wait for backend build and deployment** ⏱️
+
+   - **Build phase**: Compiles Rust applications (~3-5 minutes)
+   - **Deploy phase**: Deploys to Linera network, generates unique application IDs (~2-3 minutes)
+   - **Startup phase**: Configures frontend with application IDs (~1 minute)
    - Frontend will be available at http://localhost:5173
    - Backend GraphQL at http://localhost:8080
+
+   **Note**: Each user gets unique application IDs - deployments cannot be shared between developers.
 
 ## Port Configuration
 
@@ -115,13 +126,32 @@ The application includes health checks that verify the frontend is accessible at
 - **Styling**: TailwindCSS
 - **Deployment**: Docker + Docker Compose
 
-## Contributing
+## Development Process
 
-This is a buildathon submission. For development:
+This project uses Linera's microchain architecture requiring local deployment:
 
-1. Applications are automatically deployed on container start
-2. Frontend supports hot reloading during development
-3. GraphQL endpoints are dynamically configured based on deployed application IDs
+### Backend Build & Deployment
+
+1. **Rust Compilation**: Backend applications are built from source (~5 minutes)
+2. **Linera Network**: Local network initialized with validator and faucet
+3. **Application Deployment**: Each application gets a unique ID per developer
+4. **Environment Configuration**: Frontend configured with generated application IDs
+
+### Development Workflow
+
+- **First time**: Full build and deployment process (~10 minutes)
+- **Subsequent runs**: Applications already deployed, fast startup (~1 minute)
+- **Hot reloading**: Frontend supports live development
+- **Reset option**: `rm frontend/.env` forces full redeployment
+
+### Alternative Development Setup
+
+For faster native development (no Docker):
+
+```bash
+# See DEVELOPMENT.md for detailed setup instructions
+./dev-setup.sh with-frontend
+```
 
 ## License
 

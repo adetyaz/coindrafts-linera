@@ -11,6 +11,12 @@
 	let showCreateModal = $state(false);
 	let creating = $state(false);
 	
+	// Chain selection for joining
+	let showChainSelectionModal = $state(false);
+	let selectedTournamentId = $state('');
+	let selectedChainId = $state('');
+	let connecting = $state(false);
+	
 	// Filters
 	let statusFilter = $state('all');
 	let typeFilter = $state('all');
@@ -53,12 +59,30 @@
 	}
 
 	async function joinTournament(tournamentId: string) {
+		// First, show chain selection modal
+		showChainSelectionModal = true;
+		selectedTournamentId = tournamentId;
+	}
+
+	async function connectToChainAndJoin() {
+		if (!selectedChainId) {
+			showToast('Please select a chain first', 'error');
+			return;
+		}
+
 		try {
-			// For now, use a default player account - in a real app this would come from user authentication
-			const playerAccount = `player_${Date.now()}`;
-			const result = await coinDraftsService.registerForTournament(tournamentId, playerAccount);
+			connecting = true;
+			
+		
+			const playerChainId = selectedChainId;
+			const result = await coinDraftsService.registerForTournament(
+				selectedTournamentId, 
+				playerChainId
+			);
+			
 			if (result.success) {
-				showToast('Successfully joined tournament!', 'success');
+				showToast(`Successfully joined tournament using chain ${playerChainId}!`, 'success');
+				showChainSelectionModal = false;
 				await loadTournaments(); // Refresh the list
 			} else {
 				showToast('Failed to join tournament. Please try again.', 'error');
@@ -66,6 +90,8 @@
 		} catch (error) {
 			console.error('Error joining tournament:', error);
 			showToast('Error joining tournament. Please try again.', 'error');
+		} finally {
+			connecting = false;
 		}
 	}
 
@@ -346,6 +372,61 @@
 					</button>
 				</div>
 			</form>
+		</div>
+	</div>
+{/if}
+
+<!-- Chain Selection Modal -->
+{#if showChainSelectionModal}
+	<div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-primary-green/30 max-w-md w-full">
+			<h2 class="text-2xl font-bold text-white mb-6">Select Your Player Chain</h2>
+			
+			<div class="space-y-4 mb-6">
+				<p class="text-text-secondary">
+					CoinDrafts uses your personal microchain for complete data sovereignty. Select which chain to use for this tournament.
+				</p>
+				
+				<div>
+					<label for="chain-id" class="block text-sm font-medium text-text-secondary mb-2">
+						Player Chain ID
+					</label>
+					<input 
+						id="chain-id"
+						bind:value={selectedChainId}
+						type="text" 
+						placeholder="Enter your chain ID (e.g., 1db1936dad0717597a7743a8353c9c0191c2256e7fb9a8ed92f09f6665813578e24)"
+						class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white placeholder-white/60 text-sm"
+					>
+				</div>
+				
+				<div class="bg-primary-green/10 border border-primary-green/30 rounded-lg p-3">
+					<p class="text-xs text-primary-green">
+						💡 Your chain ID represents your personal blockchain where your game data is stored with complete sovereignty.
+					</p>
+				</div>
+			</div>
+			
+			<div class="flex gap-4">
+				<button 
+					type="button"
+					onclick={() => showChainSelectionModal = false}
+					class="flex-1 border border-white/30 text-white hover:bg-white/10 py-2 rounded-full transition-colors cursor-pointer"
+				>
+					Cancel
+				</button>
+				<button 
+					onclick={connectToChainAndJoin}
+					disabled={connecting || !selectedChainId.trim()}
+					class="flex-1 py-2 rounded-full transition-colors font-bold {
+						(connecting || !selectedChainId.trim())
+							? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
+							: 'bg-primary-green hover:bg-dark-green text-black cursor-pointer'
+					}"
+				>
+					{connecting ? 'Connecting...' : 'Join Tournament'}
+				</button>
+			</div>
 		</div>
 	</div>
 {/if}

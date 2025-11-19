@@ -1,6 +1,6 @@
 # CoinDrafts - Linera Buildathon Submission
 
-A decentralized cryptocurrency portfolio gaming platform built on Linera Protocol v0.15.5.
+A decentralized cryptocurrency portfolio gaming platform built on Linera Protocol v0.15.3.
 
 ## Overview
 
@@ -109,7 +109,7 @@ The application includes health checks that verify the frontend is accessible at
 
 ## Technology Stack
 
-- **Blockchain**: Linera Protocol v0.15.5
+- **Blockchain**: Linera Protocol v0.15.3
 - **Backend**: Rust with GraphQL
 - **Frontend**: SvelteKit + Apollo GraphQL Client
 - **Styling**: TailwindCSS

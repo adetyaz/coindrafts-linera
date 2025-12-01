@@ -1,0 +1,299 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [coindrafts internal] load build definition from Dockerfile
+#1 transferring dockerfile: 689B 0.0s done
+#1 DONE 0.0s
+
+#2 [coindrafts internal] load metadata for docker.io/library/rust:1.86-slim
+#2 ...
+
+#3 [coindrafts auth] library/rust:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [coindrafts internal] load metadata for docker.io/library/rust:1.86-slim
+#2 DONE 1.8s
+
+#4 [coindrafts internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.1s
+
+#5 [coindrafts 1/7] FROM docker.io/library/rust:1.86-slim@sha256:57d415bbd61ce11e2d5f73de068103c7bd9f3188dc132c97cef4a8f62989e944
+#5 DONE 0.0s
+
+#6 [coindrafts 2/7] RUN apt-get update && apt-get install -y     pkg-config     protobuf-compiler     clang     make
+#6 CACHED
+
+#7 [coindrafts 5/7] RUN apt-get install -y curl
+#7 CACHED
+
+#8 [coindrafts 6/7] RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.40.3/install.sh | bash     && . ~/.nvm/nvm.sh     && nvm install lts/krypton     && npm install -g pnpm
+#8 CACHED
+
+#9 [coindrafts 3/7] RUN cargo install --locked linera-service@0.15.5 linera-storage-service@0.15.5
+#9 CACHED
+
+#10 [coindrafts 4/7] RUN rustup target add wasm32-unknown-unknown
+#10 CACHED
+
+#11 [coindrafts 7/7] WORKDIR /build
+#11 CACHED
+
+#12 [coindrafts] exporting to image
+#12 exporting layers done
+#12 writing image sha256:dadc05e1379d66f1b4ccdb469fb346c814b3a5ba6d2b08d573892a5eb69bf9ac done
+#12 naming to docker.io/library/coindrafts-lin-coindrafts done
+#12 DONE 0.0s
+ Network coindrafts-lin_default  Creating
+ Network coindrafts-lin_default  Created
+ Container coindrafts-lin-coindrafts-1  Creating
+ Container coindrafts-lin-coindrafts-1  Created
+Attaching to coindrafts-1
+coindrafts-1  | Starting CoinDrafts Linera Application...
+coindrafts-1  | 2025-11-30T12:10:35.097648Z  INFO linera: You may append the following script to your `~/.bash_profile` or `source` it when needed.
+coindrafts-1  | 2025-11-30T12:10:35.097808Z  INFO linera: This will install several functions to facilitate testing with a local Linera network
+coindrafts-1  | export LINERA_WALLET="/tmp/.tmpoDWnkn/wallet_0.json"
+coindrafts-1  | export LINERA_KEYSTORE="/tmp/.tmpoDWnkn/keystore_0.json"
+coindrafts-1  | export LINERA_STORAGE="rocksdb:/tmp/.tmpoDWnkn/client_0.db"
+coindrafts-1  | 
+coindrafts-1  | [2m2025-11-30T12:10:35.201897Z[0m [32m INFO[0m [2mlinera_storage_server[0m[2m:[0m Starting linera_storage_service on endpoint=127.0.0.1:43585
+coindrafts-1  | OTLP export requires the 'opentelemetry' feature to be enabled! Falling back to default tracing initialization.
+coindrafts-1  | 2025-11-30T12:10:36.499502Z  INFO linera_server: Wrote server config server_0.json
+coindrafts-1  | 2025-11-30T12:10:36.501220Z  INFO linera_server: Wrote committee config committee.json
+coindrafts-1  | 2025-11-30T12:10:36.635163Z DEBUG linera: Initializing storage using configuration: rocksdb:/tmp/.tmpoDWnkn/client_0.db:spawn_blocking:table_linera
+coindrafts-1  | 2025-11-30T12:10:37.020861Z  INFO linera: Genesis config created in 417 ms
+coindrafts-1  | 2025-11-30T12:10:37.292661Z  INFO linera: Namespace table_default_server_0_db was initialized in 194 ms
+coindrafts-1  | OTLP export requires the 'opentelemetry' feature to be enabled! Falling back to default tracing initialization.
+coindrafts-1  | 2025-11-30T12:10:37.520142Z  WARN linera_service::cli_wrappers::local_net: Waiting for validator proxy 0 to start
+coindrafts-1  | 2025-11-30T12:10:37.572866Z  INFO GrpcProxy::run{public_address=0.0.0.0:13001 internal_address=0.0.0.0:10001 metrics_address=0.0.0.0:12001}: linera_proxy::grpc: Starting proxy
+coindrafts-1  | 2025-11-30T12:10:38.033698Z  INFO linera_service::cli_wrappers::local_net: Successfully started validator proxy 0 port=13001
+coindrafts-1  | 2025-11-30T12:10:38.143405Z  INFO linera_service::cli_wrappers::local_net: Successfully started validator proxy 0 port=13001
+coindrafts-1  | OTLP export requires the 'opentelemetry' feature to be enabled! Falling back to default tracing initialization.
+coindrafts-1  | 2025-11-30T12:10:38.195357Z  INFO linera_version::version_info: Linera protocol: v0.15.5
+coindrafts-1  | 2025-11-30T12:10:38.195480Z  INFO linera_version::version_info: RPC API hash: K9p3m/MsIPZL32CYddAqlG6PHKprJvMjei5cIiqFgDY
+coindrafts-1  | 2025-11-30T12:10:38.195494Z  INFO linera_version::version_info: GraphQL API hash: RmwcE5swpH/HkjbetY/YyD6ebNQFS9oeU6ayEAvDjEQ
+coindrafts-1  | 2025-11-30T12:10:38.195498Z  INFO linera_version::version_info: WIT API hash: 0X+I4jeHCdpD2M0R+OVodI4pH+dF9rt0K/iHENVcnug
+coindrafts-1  | 2025-11-30T12:10:38.195501Z  INFO linera_version::version_info: Source code: https://github.com/linera-io/linera-protocol/tree/1fcaeec37c10165bf4ce93cf03612520667ad4fd
+coindrafts-1  | 2025-11-30T12:10:38.270126Z  WARN linera_service::cli_wrappers::local_net: Waiting for validator server 0:0 to start
+coindrafts-1  | 2025-11-30T12:10:38.321808Z  INFO linera_server: Running shard number 0
+coindrafts-1  | 2025-11-30T12:10:38.321942Z  INFO linera_server: Shard booted on localhost
+coindrafts-1  | 2025-11-30T12:10:38.321963Z  INFO linera_server: Public key: 029c6a0eed3eac357a6a9a8645fb52956d94f80dd3cc265f660d0e4c7b09861126
+coindrafts-1  | 2025-11-30T12:10:38.322211Z  INFO linera_rpc::grpc::server: spawning gRPC server on 0.0.0.0:9001 for shard 0
+coindrafts-1  | 2025-11-30T12:10:38.322419Z  INFO linera_rpc::grpc::server: spawning cross-chain queries thread on 0.0.0.0 for shard 0 nickname="Shard 0 @ 0.0.0.0:9001"
+coindrafts-1  | 2025-11-30T12:10:38.322674Z  INFO linera_rpc::grpc::server: spawning notifications thread on 0.0.0.0 for shard 0 nickname="Shard 0 @ 0.0.0.0:9001"
+coindrafts-1  | 2025-11-30T12:10:38.791760Z  INFO linera_service::cli_wrappers::local_net: Successfully started validator server 0:0 port=9001
+coindrafts-1  | 2025-11-30T12:10:39.793504Z  INFO linera_service::cli::net_up_utils: Local test network successfully started.
+coindrafts-1  | To use the admin wallet of this test network, you may set the environment variables LINERA_WALLET, LINERA_KEYSTORE, and LINERA_STORAGE as follows.
+coindrafts-1  | 
+coindrafts-1  | 2025-11-30T12:10:39.823900Z  WARN linera_service::cli_wrappers::wallet: Waiting for faucet to start
+coindrafts-1  | OTLP export requires the 'opentelemetry' feature to be enabled! Falling back to default tracing initialization.
+coindrafts-1  | 2025-11-30T12:10:39.829237Z DEBUG linera: Running command using storage configuration: rocksdb:/tmp/.tmpoDWnkn/client_0.db:spawn_blocking:table_linera
+coindrafts-1  | 2025-11-30T12:10:40.163341Z  INFO linera: Starting faucet service using chain 0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8
+coindrafts-1  | 2025-11-30T12:10:40.222468Z DEBUG linera_rpc::grpc::client: sending gRPC request handler="handle_chain_info_query" request=ChainInfoQuery { chain_id: 0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8, request_owner_balance: Reserved(0), request_manager_values: true, create_network_actions: false }
+coindrafts-1  | 2025-11-30T12:10:40.298369Z  INFO linera_faucet_server::database: Connecting to SQLite database database_url="sqlite:/tmp/.tmpqMKKt8/faucet_storage.sqlite"
+coindrafts-1  | 2025-11-30T12:10:40.356011Z  INFO linera_faucet_server::database: Database schema initialized
+coindrafts-1  | 2025-11-30T12:10:40.356079Z  INFO linera_faucet_server::database: Starting database synchronization with blockchain
+coindrafts-1  | 2025-11-30T12:10:40.357065Z  INFO linera_faucet_server::database: Chain is empty, no synchronization needed
+coindrafts-1  | 2025-11-30T12:10:40.357133Z  INFO linera_faucet_server::database: Found sync point at height 0, processing 0 blocks
+coindrafts-1  | 2025-11-30T12:10:40.357143Z  INFO linera_faucet_server::database: Database synchronization completed
+coindrafts-1  | 2025-11-30T12:10:40.373382Z  INFO FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_faucet_server: GraphiQL IDE: http://localhost:8080
+coindrafts-1  | 2025-11-30T12:10:40.379477Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}:run{enable_background_sync=false}: linera_rpc::grpc::client: sending gRPC request handler="handle_chain_info_query" request=ChainInfoQuery { chain_id: d784efeec4aeda3731cd15f35c2c943142f2612ac7d0caacdefc3beee5665a00, request_owner_balance: Reserved(0), request_manager_values: true, create_network_actions: false }
+coindrafts-1  | 2025-11-30T12:10:40.403279Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_client::chain_listener: Processing inbox for 0e3ea998
+coindrafts-1  | 2025-11-30T12:10:40.411613Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_rpc::grpc::client: sending gRPC request handler="handle_chain_info_query" request=ChainInfoQuery { chain_id: 0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8, request_owner_balance: Reserved(0), request_manager_values: true, create_network_actions: false }
+coindrafts-1  | 2025-11-30T12:10:40.411730Z  INFO FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_client::chain_listener: Done processing inbox of chain. 0 blocks created on chain 0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8.
+coindrafts-1  | 2025-11-30T12:10:40.421318Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client: Connected to validator 029c6a0eed3eac357a6a9a8645fb52956d94f80dd3cc265f660d0e4c7b09861126
+coindrafts-1  | 2025-11-30T12:10:40.424687Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_client::chain_listener: Processing inbox for 66cf3c85
+coindrafts-1  | 2025-11-30T12:10:40.425339Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_rpc::grpc::client: sending gRPC request handler="handle_chain_info_query" request=ChainInfoQuery { chain_id: 66cf3c8577d70ae690b39e351ad01ba7fc632dcd0c7ed01584d0ee7118fb1256, request_owner_balance: Reserved(0), request_manager_values: true, create_network_actions: false }
+coindrafts-1  | 2025-11-30T12:10:40.429906Z  INFO FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_client::chain_listener: Done processing inbox of chain. 0 blocks created on chain 66cf3c8577d70ae690b39e351ad01ba7fc632dcd0c7ed01584d0ee7118fb1256.
+coindrafts-1  | 2025-11-30T12:10:40.436118Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_client::chain_listener: Processing inbox for d784efee
+coindrafts-1  | 2025-11-30T12:10:40.437565Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client: Connected to validator 029c6a0eed3eac357a6a9a8645fb52956d94f80dd3cc265f660d0e4c7b09861126
+coindrafts-1  | 2025-11-30T12:10:40.438576Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_rpc::grpc::client: sending gRPC request handler="handle_chain_info_query" request=ChainInfoQuery { chain_id: d784efeec4aeda3731cd15f35c2c943142f2612ac7d0caacdefc3beee5665a00, request_owner_balance: Reserved(0), request_manager_values: true, create_network_actions: false }
+coindrafts-1  | 2025-11-30T12:10:40.441416Z  INFO FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_client::chain_listener: Done processing inbox of chain. 0 blocks created on chain d784efeec4aeda3731cd15f35c2c943142f2612ac7d0caacdefc3beee5665a00.
+coindrafts-1  | 2025-11-30T12:10:40.446870Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client: Connected to validator 029c6a0eed3eac357a6a9a8645fb52956d94f80dd3cc265f660d0e4c7b09861126
+coindrafts-1  | 2025-11-30T12:10:40.851684Z  INFO linera_service::cli_wrappers::wallet: Faucet has started
+coindrafts-1  | 
+coindrafts-1  | READY!
+coindrafts-1  | 2025-11-30T12:10:40.939571Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:40.940791Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:40.942296Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:40.946398Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:41.490600Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:41.665743Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:41.666243Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:41.733141Z  INFO linera: Wallet initialized in 836 ms
+coindrafts-1  | 2025-11-30T12:10:41.795447Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:42.266593Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:42.267389Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:10:42.273450Z  INFO linera: Requesting a new chain for owner 0x3fb01a4ab794275a97604b966990460ba4369335b4ac48b59ddfa663a1d0c741 using the faucet at address http://localhost:8080
+coindrafts-1  | 2025-11-30T12:10:42.293188Z  INFO FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_faucet_server: Processing batch of 1 requests
+coindrafts-1  | 2025-11-30T12:10:42.344755Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client: Proposing the local pending block.
+coindrafts-1  | 2025-11-30T12:10:42.345388Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client: Proposing block for round multi-leader round 0
+coindrafts-1  | 2025-11-30T12:10:42.361893Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client: Submitting block proposal to validators round=multi-leader round 0
+coindrafts-1  | 2025-11-30T12:10:42.365056Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_rpc::grpc::client: sending gRPC request handler="handle_block_proposal" request=BlockProposal { content: ProposalContent { block: ProposedBlock { chain_id: 0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8, epoch: Epoch(0), transactions: [ExecuteOperation(System(OpenChain(OpenChainConfig { ownership: ChainOwnership { owners: {Address32(3fb01a4ab794275a97604b966990460ba4369335b4ac48b59ddfa663a1d0c741): 100}, multi_leader_rounds: 2, open_multi_leader_rounds: false, timeout_config: TimeoutConfig { base_timeout: TimeDelta(10000000), timeout_increment: TimeDelta(1000000), fallback_duration: TimeDelta(18446744073709551615) } }, balance: Amount(1000000000000000000000), application_permissions: ApplicationPermissions })))], height: BlockHeight(0), timestamp: Timestamp(1764504642312651), authenticated_signer: Some(Address32(849fd841cc19a76d835ae50e48c1ae9f1a6d718095f628e127c87c7f81ba77c6)), previous_block_hash: None }, round: MultiLeader(0) }, signature: Ed25519 { signature: d8888529ecabf98b, public_key: 1606121b1c67ae9e } }
+coindrafts-1  | 2025-11-30T12:10:42.437572Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client: Submitting block for confirmation round=multi-leader round 0
+coindrafts-1  | 2025-11-30T12:10:42.438374Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_rpc::grpc::client: sending gRPC request handler="handle_lite_certificate" request=HandleLiteCertRequest { certificate: LiteCertificate { value: LiteValue { value_hash: 9ad0468819eb34ed3fb40dfe0fb70311b02627b3b2165c72e7dd3532a843d77b, chain_id: 0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8, kind: Validated }, round: MultiLeader(0), signatures: [(029c6a0eed3eac357a.., 46a0e145f5187f4806..)] }, wait_for_outgoing_messages: true }
+coindrafts-1  | 2025-11-30T12:10:42.483246Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client::chain_client_state: Clearing pending proposal: a block was committed at height 0
+coindrafts-1  | 2025-11-30T12:10:42.483344Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client: Sending confirmed block to validators round=multi-leader round 0
+coindrafts-1  | 2025-11-30T12:10:42.488993Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_rpc::grpc::client: sending gRPC request handler="handle_lite_certificate" request=HandleLiteCertRequest { certificate: LiteCertificate { value: LiteValue { value_hash: 9ad0468819eb34ed3fb40dfe0fb70311b02627b3b2165c72e7dd3532a843d77b, chain_id: 0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8, kind: Confirmed }, round: MultiLeader(0), signatures: [(029c6a0eed3eac357a.., 31dfb86ef82907825c..)] }, wait_for_outgoing_messages: true }
+coindrafts-1  | 2025-11-30T12:10:42.490981Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_client::chain_listener: Processing inbox for 0e3ea998
+coindrafts-1  | 2025-11-30T12:10:42.497387Z  INFO FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_client::chain_listener: Done processing inbox of chain. 0 blocks created on chain 0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8.
+coindrafts-1  | 2025-11-30T12:10:42.507583Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_faucet_server: Found chain 60508a69dade9a943bef78135352073182bcdf93300529dfa4accfe7b0be58e0 created for owner 0x3fb01a4ab794275a97604b966990460ba4369335b4ac48b59ddfa663a1d0c741
+coindrafts-1  | 2025-11-30T12:10:42.508511Z DEBUG FaucetService::run{port=8080 chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8}: linera_core::client: Accepting redundant notification for new block chain_id=0e3ea998f2d9f45775014a739e732fb6c36b331afe8e56d07ec81ecd7c7364c8
+coindrafts-1  | 60508a69dade9a943bef78135352073182bcdf93300529dfa4accfe7b0be58e0
+coindrafts-1  | 0x3fb01a4ab794275a97604b966990460ba4369335b4ac48b59ddfa663a1d0c741
+coindrafts-1  | 2025-11-30T12:10:42.558551Z  INFO linera: New chain requested and added in 290 ms
+coindrafts-1  | Building and publishing CoinDrafts Core backend...
+coindrafts-1  |     Updating crates.io index
+coindrafts-1  |  Downloading crates ...
+coindrafts-1  |   Downloaded darling_macro v0.21.3
+coindrafts-1  |   Downloaded matchers v0.2.0
+coindrafts-1  |   Downloaded anstream v0.6.21
+coindrafts-1  |   Downloaded is-terminal v0.4.17
+coindrafts-1  |   Downloaded enumset_derive v0.14.0
+coindrafts-1  |   Downloaded clap_lex v0.7.6
+coindrafts-1  |   Downloaded cfg-if v1.0.4
+coindrafts-1  |   Downloaded anstyle v1.0.13
+coindrafts-1  |   Downloaded percent-encoding v2.3.2
+coindrafts-1  |   Downloaded potential_utf v0.1.4
+coindrafts-1  |   Downloaded stable_deref_trait v1.2.1
+coindrafts-1  |   Downloaded tokio-macros v2.6.0
+coindrafts-1  |   Downloaded nu-ansi-term v0.50.3
+coindrafts-1  |   Downloaded semver v1.0.27
+coindrafts-1  |   Downloaded serde_bytes v0.11.19
+coindrafts-1  |   Downloaded self_cell v1.2.1
+coindrafts-1  |   Downloaded wasm-bindgen-macro v0.2.105
+coindrafts-1  |   Downloaded toml_datetime v0.7.3
+coindrafts-1  |   Downloaded serde-wasm-bindgen v0.4.5
+coindrafts-1  |   Downloaded proc-macro-crate v3.4.0
+coindrafts-1  |   Downloaded is_terminal_polyfill v1.70.2
+coindrafts-1  |   Downloaded if_chain v1.0.3
+coindrafts-1  |   Downloaded form_urlencoded v1.2.2
+coindrafts-1  |   Downloaded foldhash v0.2.0
+coindrafts-1  |   Downloaded errno v0.3.14
+coindrafts-1  |   Downloaded clap_derive v4.5.49
+coindrafts-1  |   Downloaded zerovec-derive v0.11.2
+coindrafts-1  |   Downloaded find-msvc-tools v0.1.4
+coindrafts-1  |   Downloaded lock_api v0.4.14
+coindrafts-1  |   Downloaded parking_lot_core v0.9.12
+coindrafts-1  |   Downloaded time-core v0.1.6
+coindrafts-1  |   Downloaded thiserror-impl v2.0.17
+coindrafts-1  |   Downloaded thiserror v2.0.17
+coindrafts-1  |   Downloaded serde_with_macros v3.15.1
+coindrafts-1  |   Downloaded parking_lot v0.12.5
+coindrafts-1  |   Downloaded litemap v0.8.1
+coindrafts-1  |   Downloaded camino v1.2.1
+coindrafts-1  |   Downloaded log v0.4.28
+coindrafts-1  |   Downloaded toml_parser v1.0.4
+coindrafts-1  |   Downloaded proc-macro2 v1.0.103
+coindrafts-1  |   Downloaded darling v0.21.3
+coindrafts-1  |   Downloaded wasm-bindgen-futures v0.4.55
+coindrafts-1  |   Downloaded pest_meta v2.8.3
+coindrafts-1  |   Downloaded zeroize v1.8.2
+coindrafts-1  |   Downloaded yoke v0.8.1
+coindrafts-1  |   Downloaded writeable v0.6.2
+coindrafts-1  |   Downloaded unicode-ident v1.0.22
+coindrafts-1  |   Downloaded toml_edit v0.23.7
+coindrafts-1  |   Downloaded wasm-bindgen v0.2.105
+coindrafts-1  |   Downloaded twox-hash v2.1.2
+coindrafts-1  |   Downloaded mio v1.1.0
+coindrafts-1  |   Downloaded memchr v2.7.6
+coindrafts-1  |   Downloaded icu_collections v2.1.1
+coindrafts-1  |   Downloaded alloy-primitives v1.4.1
+coindrafts-1  |   Downloaded serde v1.0.228
+coindrafts-1  |   Downloaded ruzstd v0.8.1
+coindrafts-1  |   Downloaded indexmap v2.12.0
+coindrafts-1  |   Downloaded cc v1.2.45
+coindrafts-1  |   Downloaded backtrace v0.3.76
+coindrafts-1  |   Downloaded uuid v1.18.1
+coindrafts-1  |   Downloaded icu_normalizer_data v2.1.1
+coindrafts-1  |   Downloaded wasm-bindgen-macro-support v0.2.105
+coindrafts-1  |   Downloaded darling_core v0.21.3
+coindrafts-1  |   Downloaded wasm-streams v0.4.2
+coindrafts-1  |   Downloaded socket2 v0.6.1
+coindrafts-1  |   Downloaded serde_derive v1.0.228
+coindrafts-1  |   Downloaded serde_core v1.0.228
+coindrafts-1  |   Downloaded hashbrown v0.16.0
+coindrafts-1  |   Downloaded icu_properties v2.1.1
+coindrafts-1  |   Downloaded zerotrie v0.2.3
+coindrafts-1  |   Downloaded time v0.3.44
+coindrafts-1  |   Downloaded typenum v1.19.0
+coindrafts-1  |   Downloaded serde_json v1.0.145
+coindrafts-1  |   Downloaded url v2.5.7
+coindrafts-1  |   Downloaded zerovec v0.11.5
+coindrafts-1  |   Downloaded chrono v0.4.42
+coindrafts-1  |   Downloaded aho-corasick v1.1.4
+coindrafts-1  |   Downloaded winnow v0.7.13
+coindrafts-1  |   Downloaded gimli v0.32.3
+coindrafts-1  |   Downloaded syn v2.0.110
+coindrafts-1  |   Downloaded zerocopy v0.8.27
+coindrafts-1  |   Downloaded tracing-subscriber v0.3.20
+coindrafts-1  |   Downloaded regex-syntax v0.8.8
+coindrafts-1  |   Downloaded object v0.37.3
+coindrafts-1  |   Downloaded serde_with v3.15.1
+coindrafts-1  |   Downloaded proptest v1.9.0
+coindrafts-1  |   Downloaded rustix v1.1.2
+coindrafts-1  |   Downloaded regex v1.12.2
+coindrafts-1  |   Downloaded idna v1.1.0
+coindrafts-1  |   Downloaded icu_properties_data v2.1.1
+coindrafts-1  |   Downloaded clap_builder v4.5.51
+coindrafts-1  |   Downloaded tokio-util v0.7.17
+coindrafts-1  |   Downloaded ruint v1.17.0
+coindrafts-1  |   Downloaded pest v2.8.3
+coindrafts-1  |   Downloaded icu_normalizer v2.1.1
+coindrafts-1  |   Downloaded icu_locale_core v2.1.1
+coindrafts-1  |   Downloaded getrandom v0.3.4
+coindrafts-1  |   Downloaded regex-automata v0.4.13
+coindrafts-1  |   Downloaded async-trait v0.1.89
+coindrafts-1  |   Downloaded tinyvec v1.10.0
+coindrafts-1  |   Downloaded tinystr v0.8.2
+coindrafts-1  |   Downloaded libc v0.2.177
+coindrafts-1  |   Downloaded web-sys v0.3.82
+coindrafts-1  |   Downloaded tempfile v3.23.0
+coindrafts-1  |   Downloaded quote v1.0.42
+coindrafts-1  |   Downloaded pest_generator v2.8.3
+coindrafts-1  |   Downloaded pest_derive v2.8.3
+coindrafts-1  |   Downloaded clap v4.5.51
+coindrafts-1  |   Downloaded zstd-sys v2.0.16+zstd.1.5.7
+coindrafts-1  |   Downloaded tokio v1.48.0
+coindrafts-1  |   Downloaded anyhow v1.0.100
+coindrafts-1  |   Downloaded js-sys v0.3.82
+coindrafts-1  |   Downloaded jobserver v0.1.34
+coindrafts-1  |   Downloaded icu_provider v2.1.1
+coindrafts-1  |   Downloaded bitflags v2.10.0
+coindrafts-1  |   Downloaded addr2line v0.25.1
+coindrafts-1  |   Downloaded enumset v1.1.10
+coindrafts-1  |   Downloaded deranged v0.5.5
+coindrafts-1  |   Downloaded const-hex v1.17.0
+coindrafts-1  |   Downloaded yoke-derive v0.8.1
+coindrafts-1  |   Downloaded web-time v1.1.0
+coindrafts-1  |   Downloaded wasm-bindgen-shared v0.2.105
+coindrafts-1  |   Downloaded generic-array v0.14.9
+coindrafts-1  |   Downloaded linux-raw-sys v0.11.0
+coindrafts-1  |     Finished `release` profile [optimized] target(s) in 24.06s
+coindrafts-1  | 2025-11-30T12:11:09.156299Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:11:09.606599Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:11:09.607592Z  INFO linera: Using default wallet directory /root/.config/linera
+coindrafts-1  | 2025-11-30T12:11:09.614144Z  INFO linera: Publishing and creating application on chain 60508a69dade9a943bef78135352073182bcdf93300529dfa4accfe7b0be58e0
+coindrafts-1  | 2025-11-30T12:11:09.615847Z  INFO linera_client::client_context: Loading bytecode files
+coindrafts-1  | 2025-11-30T12:11:09.755441Z  INFO linera_client::client_context: Publishing module
+coindrafts-1  | 2025-11-30T12:11:13.171043Z  WARN handle_block_proposal{nickname="Shard 0 @ 0.0.0.0:9001" chain_id=Some(60508a69dade9a943bef78135352073182bcdf93300529dfa4accfe7b0be58e0)}: linera_rpc::grpc::server: Failed to handle block proposal nickname="Shard 0 @ 0.0.0.0:9001" error=Blobs not found: [BlobId { blob_type: ContractBytecode, hash: 7c5ee5ca6c71d31b6a2ac12a09be3c3c4132d149f0da6adad8f898152e288899 }, BlobId { blob_type: ServiceBytecode, hash: a000fccfb55488a556ee0c965bce600996cd5623cb04ab20352dd43dea105332 }]
+coindrafts-1  | 2025-11-30T12:11:13.173692Z  WARN handle_block_proposal{address="http://localhost:13001"}: grpc_client: error=Blobs not found: [BlobId { blob_type: ContractBytecode, hash: 7c5ee5ca6c71d31b6a2ac12a09be3c3c4132d149f0da6adad8f898152e288899 }, BlobId { blob_type: ServiceBytecode, hash: a000fccfb55488a556ee0c965bce600996cd5623cb04ab20352dd43dea105332 }]
+coindrafts-1  | 2025-11-30T12:11:13.432506Z  INFO linera_client::client_context: Module published successfully!
+coindrafts-1  | 2025-11-30T12:11:13.432641Z  INFO linera_client::client_context: Synchronizing client and processing inbox
+coindrafts-1  | 2025-11-30T12:11:13.471033Z  INFO linera_core::client: find_received_certificates finished
+coindrafts-1  | 2025-11-30T12:11:13.770248Z ERROR linera_execution::wasm::runtime_api: panicked at backend/applications/coindrafts-core/src/contract.rs:26:1:
+coindrafts-1  | Failed to deserialize instantiation argument [123, 125]
+coindrafts-1  | 2025-11-30T12:11:13.878936Z ERROR linera: Error is Failed to create application
+coindrafts-1  | 
+coindrafts-1  | Caused by:
+coindrafts-1  |     chain client error: Local node operation failed: Worker operation failed: Execution error: Failed to execute Wasm module: RuntimeError: unreachable
+coindrafts-1  |         at <dlmalloc::sys::System as dlmalloc::Allocator>::alloc::h7854ea493b2e339b (coindrafts_core_contract-41921e8807120afe.wasm[326]:0x23fdd)
+coindrafts-1  |         at <std::io::error::ErrorKind as core::fmt::Debug>::fmt::hb6ad0966e83c93d0 (coindrafts_core_contract-41921e8807120afe.wasm[323]:0x23f8b)
+coindrafts-1  |         at rust_panic (coindrafts_core_contract-41921e8807120afe.wasm[322]:0x23f7b)
+coindrafts-1  |         at std::alloc::default_alloc_error_hook::h506240636c79c4be (coindrafts_core_contract-41921e8807120afe.wasm[306]:0x23466)
+coindrafts-1  |         at std::panicking::begin_panic_handler::{{closure}}::hc2b9d3fc26dda7f9 (coindrafts_core_contract-41921e8807120afe.wasm[305]:0x233c6)
+coindrafts-1  |         at <std::panicking::begin_panic_handler::FormatStringPayload as core::panic::PanicPayload>::take_box::hce64a596033fd7a0 (coindrafts_core_contract-41921e8807120afe.wasm[314]:0x23b3d)
+coindrafts-1  |         at core::fmt::write::hc6e936c76abb2ca8 (coindrafts_core_contract-41921e8807120afe.wasm[357]:0x29e20)
+coindrafts-1  |         at linera_sdk::contract::runtime::MessageBuilder<Message>::send_to::hbe9234fbab1ecca6 (coindrafts_core_contract-41921e8807120afe.wasm[121]:0x16e94)
+coindrafts-1  |         at linera:app/contract-entrypoints#execute-operation (coindrafts_core_contract-41921e8807120afe.wasm[34]:0x8d37) during Operation(0)
+coindrafts-1  | xargs: kill: No such file or directory
+[Kcoindrafts-1 exited with code 1

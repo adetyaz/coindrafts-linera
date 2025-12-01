@@ -319,6 +319,20 @@ class CoinDraftsService {
 		return result.data?.players || [];
 	}
 
+	// Helper method to find a specific player by account/chain ID
+	async fetchPlayerProfile(playerId: string): Promise<PlayerProfile | null> {
+		const players = await this.fetchPlayers();
+		return players.find((p) => p.playerId === playerId) || null;
+	}
+
+	// Helper method to get games where a specific player is registered
+	async fetchPlayerGames(playerId: string): Promise<Game[]> {
+		const allGames = await this.fetchGames();
+		// For now, we'll need to check portfolios for each game to see if player participated
+		// This is a simplified version - ideally backend would have a direct query
+		return allGames;
+	}
+
 	async fetchPortfolios(gameId: string): Promise<Portfolio[]> {
 		const result = await coinDraftsClient.query<PortfoliosQueryResult>({
 			query: GET_PORTFOLIOS,

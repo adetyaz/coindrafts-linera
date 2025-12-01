@@ -2,7 +2,7 @@
 
 set -eu
 
-echo "🚀 Starting CoinDrafts Linera Application..."
+echo "Starting CoinDrafts Linera Application..."
 
 # Set up Linera network
 eval "$(linera net helper)"
@@ -12,22 +12,21 @@ export LINERA_FAUCET_URL=http://localhost:8080
 linera wallet init --faucet="$LINERA_FAUCET_URL"
 linera wallet request-chain --faucet="$LINERA_FAUCET_URL"
 
-echo "📦 Building and publishing CoinDrafts Core backend..."
-cd /build/backend/applications/coindrafts-core
-linera build
-COINDRAFTS_CORE_BYTECODE_ID=$(linera publish target/wasm32-unknown-unknown/release/coindrafts-core_{contract,service}.wasm)
-COINDRAFTS_CORE_APP_ID=$(linera create-application $COINDRAFTS_CORE_BYTECODE_ID)
+echo "Building and publishing CoinDrafts Core backend..."
+cd /build
+cargo build --release --target wasm32-unknown-unknown --package coindrafts-core
 
-echo "📦 Building and publishing Traditional Leagues backend..."
-cd /build/backend/applications/traditional-leagues  
-linera build
-TRADITIONAL_LEAGUES_BYTECODE_ID=$(linera publish target/wasm32-unknown-unknown/release/traditional-leagues_{contract,service}.wasm)
-TRADITIONAL_LEAGUES_APP_ID=$(linera create-application $TRADITIONAL_LEAGUES_BYTECODE_ID)
+COINDRAFTS_CORE_APP_ID=$(linera publish-and-create target/wasm32-unknown-unknown/release/coindrafts_core_{contract,service}.wasm --json-argument "null")
 
-echo "🌐 Starting GraphQL service..."
-linera_spawn linera service --listen 0.0.0.0:8080
+echo "Building and publishing Traditional Leagues backend..."
+cd /build
+cargo build --release --target wasm32-unknown-unknown --package traditional-leagues
+TRADITIONAL_LEAGUES_APP_ID=$(linera publish-and-create target/wasm32-unknown-unknown/release/traditional_leagues_{contract,service}.wasm --json-argument "null")
 
-echo "🎨 Building and running SvelteKit frontend..."
+echo "Starting GraphQL service..."
+linera_spawn linera service --port 8080
+
+echo "Building and running SvelteKit frontend..."
 cd /build/frontend
 
 # Install dependencies
@@ -46,11 +45,11 @@ echo "PUBLIC_TRADITIONAL_LEAGUES_APP_ID=$TRADITIONAL_LEAGUES_APP_ID" >> .env
 # Start SvelteKit development server
 npm run dev -- --host 0.0.0.0 --port 5173
 
-echo "✅ CoinDrafts is running!"
-echo "🌐 Frontend: http://localhost:5173"
-echo "🔗 GraphQL: http://localhost:8080"
-echo "📊 CoinDrafts Core: $COINDRAFTS_CORE_APP_ID"
-echo "🏆 Traditional Leagues: $TRADITIONAL_LEAGUES_APP_ID"
+echo "CoinDrafts is running!"
+echo "Frontend: http://localhost:5173"
+echo "GraphQL: http://localhost:8080"
+echo "CoinDrafts Core: $COINDRAFTS_CORE_APP_ID"
+echo "Traditional Leagues: $TRADITIONAL_LEAGUES_APP_ID"
 
 # Keep the container running
 wait

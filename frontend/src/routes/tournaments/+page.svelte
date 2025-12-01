@@ -4,12 +4,15 @@
 	import type { Tournament } from '$lib/coinDraftsService';
 	import { Trophy, Plus } from '@lucide/svelte';
 	import { showToast } from '$lib/stores/toasts';
+	import { wallet } from '$lib/stores/wallet';
 
 	let tournaments: Tournament[] = $state([]);
 	let filteredTournaments: Tournament[] = $state([]);
 	let loading = $state(true);
 	let showCreateModal = $state(false);
 	let creating = $state(false);
+	
+	const walletState = $derived($wallet);
 	
 	// Chain selection for joining
 	let showChainSelectionModal = $state(false);
@@ -59,9 +62,33 @@
 	}
 
 	async function joinTournament(tournamentId: string) {
-		// First, show chain selection modal
-		showChainSelectionModal = true;
-		selectedTournamentId = tournamentId;
+		// If wallet is connected, join directly
+		if (walletState.isConnected && walletState.chainId) {
+			try {
+				connecting = true;
+				const result = await coinDraftsService.registerForTournament(
+					tournamentId, 
+					walletState.chainId
+				);
+				
+				if (result.success) {
+					showToast('Successfully joined tournament!', 'success');
+					await loadTournaments();
+				} else {
+					showToast('Failed to join tournament. Please try again.', 'error');
+				}
+			} catch (error) {
+				console.error('Error joining tournament:', error);
+				showToast('Error joining tournament. Please try again.', 'error');
+			} finally {
+				connecting = false;
+			}
+		} else {
+			// Show chain selection modal if wallet not connected
+			showChainSelectionModal = true;
+			selectedTournamentId = tournamentId;
+			selectedChainId = ''; // Reset
+		}
 	}
 
 	async function connectToChainAndJoin() {

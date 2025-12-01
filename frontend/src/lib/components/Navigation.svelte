@@ -1,28 +1,44 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Home, Trophy, Zap, User, Info, Menu, Settings, LogOut, DollarSign } from '@lucide/svelte';
+	import { House, Trophy, Zap, User, Menu, TrendingUp, LogOut } from '@lucide/svelte';
+	import WalletConnectModal from './WalletConnectModal.svelte';
+	import { wallet } from '$lib/stores/wallet';
+	import { showToast } from '$lib/stores/toasts';
 	
 	let mobileMenuOpen = $state(false);
+	let walletModalOpen = $state(false);
 	let userMenuOpen = $state(false);
+	
+	const walletState = $derived($wallet);
 	
 	// Close dropdowns when clicking outside
 	function handleClickOutside() {
-		userMenuOpen = false;
 		mobileMenuOpen = false;
+	}
+	
+	function handleDisconnect() {
+		wallet.disconnect();
+		showToast('Wallet disconnected', 'info');
+	}
+	
+	// Truncate chain ID for display
+	function truncateChainId(chainId: string): string {
+		if (chainId.length <= 12) return chainId;
+		return `${chainId.slice(0, 6)}...${chainId.slice(-4)}`;
 	}
 	
 	type MenuItem = {
 		name: string;
 		href: string;
-		icon: typeof Home;
+		icon: typeof House;
 		color: string;
 	};
 
 	const navigationItems: MenuItem[] = [
-		{ name: 'Home', href: '/', icon: Home, color: 'text-primary-green' },
+		{ name: 'Home', href: '/', icon: House, color: 'text-primary-green' },
 		{ name: 'Tournaments', href: '/tournaments', icon: Trophy, color: 'text-primary-green' },
 		{ name: 'Quick Match', href: '/quick-match', icon: Zap, color: 'text-primary-green' },
-		{ name: 'About', href: '/about', icon: Info, color: 'text-primary-green' }
+		{ name: 'Leaderboard', href: '/leaderboard', icon: TrendingUp, color: 'text-primary-green' }
 	];
 </script>
 
@@ -61,49 +77,51 @@
 
 			<!-- Right Side Actions -->
 			<div class="flex items-center space-x-4">
-				<!-- Balance Display -->
-				<div class="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-bg-card rounded-lg border border-border-color">
-					<DollarSign class="w-4 h-4 text-primary-green" />
-					<span class="text-xs text-text-secondary">Balance</span>
-					<span class="text-sm font-mono text-primary-green">$493.00</span>
-				</div>
-
-				<!-- User Menu -->
-				<div class="relative">
-					<button 
-						onclick={() => userMenuOpen = !userMenuOpen}
-						class="flex items-center space-x-2 p-2 rounded-lg hover:bg-bg-accent transition-colors"
-					>
-						<div class="w-8 h-8 bg-primary-green rounded-full flex items-center justify-center">
-							<User class="w-4 h-4 text-black" />
-						</div>
-						<span class="hidden sm:block text-text-primary text-sm">Player</span>
-					</button>
-
-					{#if userMenuOpen}
-						<div class="absolute right-0 mt-2 w-48 bg-bg-card border border-border-color rounded-lg shadow-lg py-2 z-50">
-							<a href="/profile" class="flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-accent">
-								<User class="w-4 h-4 text-primary-green" />
-								<span>Profile</span>
-							</a>
-							<a href="/settings" class="flex items-center space-x-2 px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-accent">
-								<Settings class="w-4 h-4 text-primary-green" />
-								<span>Settings</span>
-							</a>
-							<div class="border-t border-border-color my-2"></div>
-							<button class="flex items-center space-x-2 w-full text-left px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-accent">
-								<LogOut class="w-4 h-4 text-primary-green" />
-								<span>Sign Out</span>
+				<!-- Profile and Wallet -->
+				<div class="hidden md:flex items-center space-x-3">
+					{#if walletState.isConnected}
+						<!-- Profile Link -->
+						<a 
+							href="/profile" 
+							class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+								{page.url.pathname === '/profile' 
+									? 'text-primary-green bg-primary-green/10 border border-primary-green/30' 
+									: 'text-text-secondary hover:text-text-primary hover:bg-bg-accent'}"
+						>
+							<User class="w-4 h-4" />
+							<span>Profile</span>
+						</a>
+						
+						<!-- Wallet Display -->
+						<div class="flex items-center space-x-2 px-3 py-2 rounded-lg bg-primary-green/10 border border-primary-green/20">
+							<div class="w-2 h-2 rounded-full bg-primary-green animate-pulse"></div>
+							<span class="text-sm font-mono text-primary-green">
+								{truncateChainId(walletState.chainId || '')}
+							</span>
+							<button
+								onclick={handleDisconnect}
+								class="p-1.5 rounded hover:bg-primary-green/20 text-primary-green ml-2"
+								aria-label="Disconnect wallet"
+							>
+								<LogOut class="w-4 h-4" />
 							</button>
 						</div>
+					{:else}
+						<!-- Connect Wallet Button -->
+						<button
+							onclick={() => walletModalOpen = true}
+							class="px-4 py-2 rounded-lg bg-primary-green text-black font-medium hover:bg-primary-green/90 transition-colors"
+						>
+							Connect Wallet
+						</button>
 					{/if}
 				</div>
-
-				<!-- Mobile menu button -->
-				<button 
+				
+				<!-- Mobile Menu Button -->
+				<button
 					onclick={() => mobileMenuOpen = !mobileMenuOpen}
 					class="md:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-accent"
-					aria-label="Toggle mobile menu"
+					aria-label="Toggle menu"
 				>
 					<Menu class="w-6 h-6" />
 				</button>
@@ -129,20 +147,50 @@
 						</a>
 					{/each}
 					
-					<!-- Mobile Profile Link -->
-					<a 
-						href="/profile"
-						class="flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-colors
-							{page.url.pathname === '/profile' 
-								? 'text-primary-green bg-primary-green/10 border border-primary-green/20' 
-								: 'text-text-secondary hover:text-text-primary hover:bg-bg-accent'}"
-						onclick={() => mobileMenuOpen = false}
-					>
-						<User class="w-5 h-5 text-primary-green" />
-						<span>Profile</span>
-					</a>
+					{#if walletState.isConnected}
+						<!-- Mobile Profile Link -->
+						<a 
+							href="/profile"
+							class="flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium transition-colors
+								{page.url.pathname === '/profile' 
+									? 'text-primary-green bg-primary-green/10 border border-primary-green/20' 
+									: 'text-text-secondary hover:text-text-primary hover:bg-bg-accent'}"
+							onclick={() => mobileMenuOpen = false}
+						>
+							<User class="w-5 h-5 text-primary-green" />
+							<span>Profile</span>
+						</a>
+						
+						<!-- Mobile Wallet Display -->
+						<div class="flex items-center justify-between px-4 py-3 rounded-lg bg-primary-green/10 border border-primary-green/20">
+							<div class="flex items-center space-x-2">
+								<div class="w-2 h-2 rounded-full bg-primary-green animate-pulse"></div>
+								<span class="text-sm font-mono text-primary-green">
+									{truncateChainId(walletState.chainId || '')}
+								</span>
+							</div>
+							<button
+								onclick={handleDisconnect}
+								class="p-1.5 rounded hover:bg-primary-green/20 text-primary-green"
+								aria-label="Disconnect wallet"
+							>
+								<LogOut class="w-4 h-4" />
+							</button>
+						</div>
+					{:else}
+						<!-- Mobile Connect Wallet Button -->
+						<button
+							onclick={() => walletModalOpen = true}
+							class="w-full px-4 py-3 rounded-lg bg-primary-green text-black font-medium hover:bg-primary-green/90 transition-colors"
+						>
+							Connect Wallet
+						</button>
+					{/if}
 				</div>
 			</div>
 		{/if}
 	</div>
 </nav>
+
+<!-- Wallet Connect Modal -->
+<WalletConnectModal bind:isOpen={walletModalOpen} onClose={() => walletModalOpen = false} />

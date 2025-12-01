@@ -4,6 +4,8 @@
 	import type { Game } from '$lib/coinDraftsService';
 	import { Zap, Plus, DollarSign, Rocket, Flame, Gamepad2 } from '@lucide/svelte';
 	import { showToast } from '$lib/stores/toasts';
+	import { formatTimestamp } from '$lib/utils/dateFormatter';
+	import { wallet } from '$lib/stores/wallet';
 
 	let games: Game[] = $state([]);
 	let loading = $state(true);
@@ -13,6 +15,8 @@
 	let entryFee = $state(1);
 	let maxPlayers = $state(10);
 	let creating = $state(false);
+	
+	const walletState = $derived($wallet);
 	
 	// Chain selection for joining
 	let showChainSelectionModal = $state(false);
@@ -101,9 +105,30 @@
 	}
 
 	async function joinGame(gameId: string) {
-		// First, show chain selection modal
-		showChainSelectionModal = true;
-		selectedGameId = gameId;
+		// If wallet is connected, join directly
+		if (walletState.isConnected && walletState.chainId) {
+			try {
+				connecting = true;
+				const result = await coinDraftsService.registerPlayer(gameId, walletState.chainId);
+				
+				if (result.success) {
+					showToast('Successfully joined game!', 'success');
+					await loadGames();
+				} else {
+					showToast('Failed to join game. Please try again.', 'error');
+				}
+			} catch (error) {
+				console.error('Error joining game:', error);
+				showToast('Error joining game. Please try again.', 'error');
+			} finally {
+				connecting = false;
+			}
+		} else {
+			// Show chain selection modal if wallet not connected
+			showChainSelectionModal = true;
+			selectedGameId = gameId;
+			selectedChainId = ''; // Reset
+		}
 	}
 
 	async function connectToChainAndJoinGame() {
@@ -238,28 +263,7 @@
 							<div class="flex justify-between text-sm">
 								<span class="text-text-secondary">Created:</span>
 								<span class="text-white font-medium">
-									{#if game.createdAt}
-										{(() => {
-											// Try different date formats
-											const timestamp = typeof game.createdAt === 'string' ? parseInt(game.createdAt) : game.createdAt;
-											if (isNaN(timestamp)) return 'Unknown';
-											
-											// Try as milliseconds first, then seconds
-											const dateMs = new Date(timestamp);
-											const dateSec = new Date(timestamp * 1000);
-											
-											// Check which one gives a reasonable date (after year 2000)
-											if (dateMs.getFullYear() > 2000) {
-												return dateMs.toLocaleDateString();
-											} else if (dateSec.getFullYear() > 2000) {
-												return dateSec.toLocaleDateString();
-											} else {
-												return 'Unknown';
-											}
-										})()}
-									{:else}
-										Unknown
-									{/if}
+									{formatTimestamp(game.createdAt)}
 								</span>
 							</div>
 						</div>

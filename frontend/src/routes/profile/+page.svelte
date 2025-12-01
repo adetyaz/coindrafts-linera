@@ -1,41 +1,61 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { wallet } from '$lib/stores/wallet';
 	import { coinDraftsService } from '$lib/coinDraftsService';
 	import type { PlayerProfile, Tournament, Game } from '$lib/coinDraftsService';
-	import { Gamepad2, Trophy, DollarSign, BarChart3, Zap, Target, Diamond, Lock } from '@lucide/svelte';
+	import { Gamepad2, Trophy, DollarSign, BarChart3, Zap, Target, Diamond, Lock, User } from '@lucide/svelte';
+	import { showToast } from '$lib/stores/toasts';
+
+	const walletState = $derived($wallet);
 
 	let player: PlayerProfile | null = $state(null);
 	let tournaments: Tournament[] = $state([]);
 	let games: Game[] = $state([]);
 	let loading = $state(true);
-	
-	// Mock player ID - in a real app, this would come from authentication
-	const playerId = "player-demo-123";
 
 	onMount(async () => {
+		if (!walletState.isConnected || !walletState.chainId) {
+			showToast('Please connect your wallet to view your profile', 'error');
+			goto('/');
+			return;
+		}
+		
 		await loadPlayerData();
 	});
 
 	async function loadPlayerData() {
+		if (!walletState.chainId) return;
+		
 		try {
 			loading = true;
 			
 			// Load player data and participating tournaments/games
-			const [players, allTournaments, allGames] = await Promise.all([
-				coinDraftsService.fetchPlayers(),
+			const [playerProfile, allTournaments, allGames] = await Promise.all([
+				coinDraftsService.fetchPlayerProfile(walletState.chainId),
 				coinDraftsService.fetchTournaments(),
 				coinDraftsService.fetchGames()
 			]);
 			
-			// Find current player (in real app, would be authenticated user)
-			player = players.find(p => p.playerId === playerId) || players[0] || null;
+			// Use fetched player or create default empty profile
+			player = playerProfile || {
+				playerId: walletState.chainId,
+				playerName: walletState.playerName || 'Anonymous Player',
+				stats: {
+					gamesPlayed: 0,
+					gamesWon: 0,
+					totalEarnings: 0
+				},
+				tier: 'ROOKIE'
+			};
 			
-			// Filter tournaments and games for this player (mock logic)
-			tournaments = allTournaments.slice(0, 3); // Show recent tournaments
-			games = allGames.slice(0, 4); // Show recent games
+			// Filter tournaments and games for this player (simplified - show recent)
+			tournaments = allTournaments.slice(0, 3);
+			games = allGames.slice(0, 4);
 			
 		} catch (error) {
 			console.error('Error loading player data:', error);
+			showToast('Failed to load profile data', 'error');
 		} finally {
 			loading = false;
 		}
@@ -87,18 +107,19 @@
 		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-primary-green/30 mb-8">
 			<div class="flex flex-col md:flex-row items-center gap-6">
 				<!-- Avatar -->
-				<div class="w-24 h-24 rounded-full flex items-center justify-center text-4xl" style="background: linear-gradient(45deg, #8b5cf6, #3b82f6)">
-					👤
+				<div class="w-24 h-24 rounded-full bg-primary-green/10 border-2 border-primary-green flex items-center justify-center text-4xl">
+					<User class="w-12 h-12 text-primary-green" />
 				</div>
 				
 				<!-- Player Info -->
 				<div class="text-center md:text-left">
 					<h1 class="text-3xl font-bold text-white mb-2">{player.playerName}</h1>
 					<div class="flex items-center justify-center md:justify-start gap-2 mb-4">
-						<span class="text-2xl">{getTierIcon(player.tier)}</span>
 						<span class="text-lg {getTierColor(player.tier)} font-semibold">{player.tier} Tier</span>
 					</div>
-					<p class="text-text-secondary">Player ID: {player.playerId}</p>
+					<p class="text-text-secondary font-mono text-sm">
+						{walletState.chainId?.slice(0, 8)}...{walletState.chainId?.slice(-8)}
+					</p>
 				</div>
 				
 				<!-- Quick Stats -->

@@ -10,7 +10,7 @@ across the entire Linera microchain ecosystem.
 
 mod types;
 
-use async_graphql::{Request, Response, SimpleObject, Enum};
+use async_graphql::{Request, Response, SimpleObject, Enum, InputObject};
 use linera_sdk::{
     graphql::GraphQLMutationRoot,
     linera_base_types::{ContractAbi, ServiceAbi},
@@ -19,6 +19,16 @@ use serde::{Deserialize, Serialize};
 
 // Re-export types for external use
 pub use types::*;
+
+/// Price snapshot at a specific timestamp
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject, InputObject)]
+#[graphql(input_name = "PriceSnapshotInput")]
+pub struct PriceSnapshot {
+    pub crypto_id: String,
+    /// Price in micro-units (price * 1_000_000 for 6 decimal precision)
+    pub price_usd: u64,
+    pub timestamp: u64,
+}
 
 pub struct CoinDraftsAbi;
 
@@ -37,6 +47,8 @@ pub enum CoinDraftsOperation {
     CreateGame { mode: GameMode },
     RegisterPlayer { game_id: String, player_name: String },
     SubmitPortfolio { game_id: String, cryptocurrencies: Vec<String> },
+    StartGame { game_id: String, price_snapshot: Vec<PriceSnapshot> },
+    EndGame { game_id: String, price_snapshot: Vec<PriceSnapshot> },
 }
 
 // Game status enum

@@ -191,6 +191,7 @@ impl MutationRoot {
             entry_fee_usdc: entry_fee,
             max_participants: max_participants as u32,
             tournament_type,
+            category: "ALL_CATEGORIES".to_string(),
         };
 
         self.runtime.schedule_operation(&operation);

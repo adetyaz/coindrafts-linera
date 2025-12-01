@@ -12,7 +12,7 @@ use traditional_leagues::{
     TraditionalLeaguesAbi, TraditionalLeaguesOperation, TraditionalLeaguesResponse,
     Tournament, TournamentStatus, TournamentType,
     PriceData, ScoringEngine,
-    CoinDraftsMessage, TournamentPortfolio, CryptoAllocation, RiskLevel,
+    CoinDraftsMessage, TournamentPortfolio,
 };
 use linera_sdk::{
 
@@ -61,7 +61,8 @@ impl Contract for TraditionalLeaguesContract {
                 entry_fee_usdc,
                 max_participants,
                 tournament_type,
-            } => self.create_tournament(name, entry_fee_usdc, max_participants, tournament_type).await,
+                category,
+            } => self.create_tournament(name, entry_fee_usdc, max_participants, tournament_type, category).await,
 
             TraditionalLeaguesOperation::RegisterForTournament {
                 tournament_id,
@@ -73,6 +74,16 @@ impl Contract for TraditionalLeaguesContract {
                 round,
                 portfolio,
             } => self.submit_portfolio(tournament_id, round, portfolio).await,
+
+            TraditionalLeaguesOperation::StartTournament {
+                tournament_id,
+                start_prices,
+            } => self.start_tournament(tournament_id, start_prices).await,
+
+            TraditionalLeaguesOperation::EndTournament {
+                tournament_id,
+                end_prices,
+            } => self.end_tournament(tournament_id, end_prices).await,
 
             TraditionalLeaguesOperation::AdvanceRound { tournament_id } => {
                 self.advance_round(tournament_id).await
@@ -100,6 +111,7 @@ impl Contract for TraditionalLeaguesContract {
                     entry_fee_usdc,
                     max_participants,
                     TournamentType::SingleElimination, // Default for now
+                    "ALL_CATEGORIES".to_string(), // Default category
                 ).await;
                 
                 // Extract tournament_id from response
@@ -147,19 +159,13 @@ impl Contract for TraditionalLeaguesContract {
                 // Create a default tournament portfolio since portfolio is a JSON string
                 // TODO: Parse JSON portfolio string for real implementation
                 let tournament_portfolio = TournamentPortfolio {
-                    cryptocurrencies: vec![
-                        CryptoAllocation {
-                            symbol: "BTC".to_string(),
-                            allocation_percent: 50,
-                            confidence_score: Some(80),
-                        },
-                        CryptoAllocation {
-                            symbol: "ETH".to_string(),
-                            allocation_percent: 50,
-                            confidence_score: Some(75),
-                        }
+                    crypto_picks: vec![
+                        "BTC".to_string(),
+                        "ETH".to_string(),
+                        "SOL".to_string(),
+                        "ADA".to_string(),
+                        "DOT".to_string(),
                     ],
-                    risk_level: RiskLevel::Moderate,
                     strategy_notes: Some(format!("Portfolio synced from game {}", game_id)),
                 };
                 
@@ -200,6 +206,7 @@ impl TraditionalLeaguesContract {
         entry_fee_usdc: u64,
         max_participants: u32,
         tournament_type: TournamentType,
+        category: String,
     ) -> TraditionalLeaguesResponse {
         let tournament_id = self.state.generate_tournament_id().await;
         let timestamp = self.runtime.system_time();
@@ -224,6 +231,9 @@ impl TraditionalLeaguesContract {
             created_at: timestamp.micros(),
             started_at: None,
             completed_at: None,
+            category: category.clone(),
+            start_prices: None,
+            end_prices: None,
         };
 
         // Store tournament
@@ -437,13 +447,42 @@ impl TraditionalLeaguesContract {
             return vec![];
         }
 
-        // Get mock price data for scoring
-        let price_data = PriceData::get_mock_prices();
-
-        // Get tournament info for prize pool calculation
+        // Get tournament info for prize pool calculation and price snapshots
         let tournament = match self.state.tournaments.get(tournament_id).await {
             Ok(Some(tournament)) => tournament,
             _ => return vec![],
+        };
+
+        // Build price data from tournament snapshots instead of mock prices
+        let price_data = match (&tournament.start_prices, &tournament.end_prices) {
+            (Some(start_prices), Some(end_prices)) => {
+                // Create PriceData from real snapshots
+                let mut prices = Vec::new();
+                for start_snap in start_prices {
+                    if let Some(end_snap) = end_prices.iter().find(|e| e.crypto_id == start_snap.crypto_id) {
+                        // Calculate percentage change: ((end - start) / start) * 10000
+                        let percentage_change = if start_snap.price_usd > 0 {
+                            let change = (end_snap.price_usd as i64) - (start_snap.price_usd as i64);
+                            ((change * 10000) / (start_snap.price_usd as i64)) as i32
+                        } else {
+                            0
+                        };
+                        
+                        prices.push(PriceData {
+                            symbol: start_snap.crypto_id.clone(),
+                            start_price: start_snap.price_usd,
+                            end_price: end_snap.price_usd,
+                            percentage_change,
+                        });
+                    }
+                }
+                prices
+            },
+            _ => {
+                // Fallback to mock prices if snapshots not available (shouldn't happen in production)
+                log::warn!("Tournament {} missing price snapshots, using mock data", tournament_id);
+                PriceData::get_mock_prices()
+            }
         };
 
         let total_prize_pool = tournament.entry_fee_usdc * tournament.current_participants as u64;
@@ -461,5 +500,86 @@ impl TraditionalLeaguesContract {
             .take(3)
             .map(|entry| entry.player_account)
             .collect()
+    }
+
+    /// Start tournament with price snapshot
+    async fn start_tournament(
+        &mut self,
+        tournament_id: String,
+        start_prices: Vec<traditional_leagues::PriceSnapshot>,
+    ) -> TraditionalLeaguesResponse {
+        // Get tournament
+        let mut tournament = match self.state.tournaments.get(&tournament_id).await {
+            Ok(Some(tournament)) => tournament,
+            _ => {
+                log::error!("Tournament {} not found", tournament_id);
+                return TraditionalLeaguesResponse::TournamentStarted {
+                    success: false,
+                    timestamp: 0,
+                };
+            }
+        };
+
+        // Update tournament status
+        let timestamp = self.runtime.system_time().micros();
+        tournament.status = TournamentStatus::InProgress;
+        tournament.started_at = Some(timestamp);
+        tournament.start_prices = Some(start_prices);
+
+        // Save tournament
+        self.state
+            .tournaments
+            .insert(&tournament_id, tournament)
+            .expect("Failed to update tournament");
+
+        log::info!("Tournament {} started at {}", tournament_id, timestamp);
+
+        TraditionalLeaguesResponse::TournamentStarted {
+            success: true,
+            timestamp,
+        }
+    }
+
+    /// End tournament with final price snapshot and calculate winners
+    async fn end_tournament(
+        &mut self,
+        tournament_id: String,
+        end_prices: Vec<traditional_leagues::PriceSnapshot>,
+    ) -> TraditionalLeaguesResponse {
+        // Get tournament
+        let mut tournament = match self.state.tournaments.get(&tournament_id).await {
+            Ok(Some(tournament)) => tournament,
+            _ => {
+                log::error!("Tournament {} not found", tournament_id);
+                return TraditionalLeaguesResponse::TournamentEnded {
+                    success: false,
+                    winners: vec![],
+                };
+            }
+        };
+
+        // Update tournament status
+        let timestamp = self.runtime.system_time().micros();
+        tournament.status = TournamentStatus::Completed;
+        tournament.completed_at = Some(timestamp);
+        tournament.end_prices = Some(end_prices);
+
+        // Save tournament
+        self.state
+            .tournaments
+            .insert(&tournament_id, tournament)
+            .expect("Failed to update tournament");
+
+        // Calculate winners
+        let winners = self.calculate_tournament_winners(&tournament_id).await;
+
+        log::info!(
+            "Tournament {} ended at {} with {} winners",
+            tournament_id,
+            timestamp,
+            winners.len()
+        );
+
+        TraditionalLeaguesResponse::TournamentEnded { success: true, winners }
     }
 }

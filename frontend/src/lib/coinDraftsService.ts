@@ -280,12 +280,14 @@ const CREATE_TOURNAMENT = gql`
 		$entryFeeUsdc: String!
 		$maxParticipants: Int!
 		$tournamentType: TournamentType!
+		$category: String!
 	) {
 		createTournament(
 			name: $name
 			entryFeeUsdc: $entryFeeUsdc
 			maxParticipants: $maxParticipants
 			tournamentType: $tournamentType
+			category: $category
 		)
 	}
 `;
@@ -414,7 +416,8 @@ class CoinDraftsService {
 		name: string,
 		entryFeeUsdc: number,
 		maxParticipants: number,
-		tournamentType: string
+		tournamentType: string,
+		category: string = 'ALL_CATEGORIES'
 	): Promise<MutationResult> {
 		try {
 			console.log('Sending tournament creation request to:', tradLeaguesClient.link);
@@ -422,7 +425,8 @@ class CoinDraftsService {
 				name,
 				entryFeeUsdc: entryFeeUsdc.toString(),
 				maxParticipants,
-				tournamentType
+				tournamentType,
+				category
 			});
 
 			const result = await tradLeaguesClient.mutate({
@@ -431,7 +435,8 @@ class CoinDraftsService {
 					name,
 					entryFeeUsdc: entryFeeUsdc.toString(), // Convert to string as expected by backend
 					maxParticipants,
-					tournamentType
+					tournamentType,
+					category
 				}
 			});
 

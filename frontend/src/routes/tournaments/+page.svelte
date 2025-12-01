@@ -5,6 +5,7 @@
 	import { Trophy, Plus } from '@lucide/svelte';
 	import { showToast } from '$lib/stores/toasts';
 	import { wallet } from '$lib/stores/wallet';
+	import { CRYPTO_CATEGORIES, getCategoryKeys, getCategoryName } from '$lib/data/cryptoCategories';
 
 	let tournaments: Tournament[] = $state([]);
 	let filteredTournaments: Tournament[] = $state([]);
@@ -24,13 +25,15 @@
 	let statusFilter = $state('all');
 	let typeFilter = $state('all');
 	let entryFeeFilter = $state('all');
+	let categoryFilter = $state('all');
 	
 	// Create tournament form
 	let newTournament = $state({
 		name: '',
 		entryFeeUsdc: 10,
 		maxParticipants: 16,
-		tournamentType: 'SINGLE_ELIMINATION'
+		tournamentType: 'SINGLE_ELIMINATION',
+		category: 'ALL_CATEGORIES'
 	});
 
 	onMount(async () => {
@@ -53,6 +56,7 @@
 		filteredTournaments = tournaments.filter(tournament => {
 			if (statusFilter !== 'all' && tournament.status !== statusFilter) return false;
 			if (typeFilter !== 'all' && tournament.tournamentType !== typeFilter) return false;
+			if (categoryFilter !== 'all' && tournament.category !== categoryFilter) return false;
 			if (entryFeeFilter !== 'all') {
 				if (entryFeeFilter === 'free' && tournament.entryFeeUsdc > 0) return false;
 				if (entryFeeFilter === 'paid' && tournament.entryFeeUsdc === 0) return false;
@@ -141,7 +145,8 @@
 				newTournament.name,
 				newTournament.entryFeeUsdc,
 				newTournament.maxParticipants,
-				newTournament.tournamentType
+				newTournament.tournamentType,
+				newTournament.category
 			);
 			
 			console.log('Tournament creation result:', result);
@@ -201,7 +206,7 @@
 	<!-- Filters -->
 	<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8 border border-primary-green/30">
 		<h3 class="text-lg font-semibold text-white mb-4">Filters</h3>
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+		<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 			<div>
 				<label class="block text-sm font-medium text-text-secondary mb-2">Status</label>
 				<select bind:value={statusFilter} class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white">
@@ -209,6 +214,15 @@
 					<option value="Pending">Pending</option>
 					<option value="Active">Active</option>
 					<option value="Completed">Completed</option>
+				</select>
+			</div>
+			<div>
+				<label class="block text-sm font-medium text-text-secondary mb-2">Category</label>
+				<select bind:value={categoryFilter} class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white">
+					<option value="all">All Categories</option>
+					{#each getCategoryKeys() as categoryKey}
+						<option value={categoryKey}>{getCategoryName(categoryKey)}</option>
+					{/each}
 				</select>
 			</div>
 			<div>
@@ -259,13 +273,22 @@
 					<div class="flex justify-between items-start mb-4">
 						<h3 class="text-lg font-semibold text-white pr-4">{tournament.name}</h3>
 						<span class="text-xs px-2 py-1 rounded-full border {
-							tournament.status === 'Active' ? 'bg-primary-green/20 text-primary-green border-primary-green/30' :
-							tournament.status === 'Pending' ? 'bg-primary-green/10 text-text-secondary border-border-color' :
+							tournament.status === 'Active' ? 'bg-primary-green/20 text-primary-green border-primary-green/30 animate-pulse' :
+							tournament.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
 							'bg-gray-500/20 text-gray-300 border-gray-500/30'
 						}">
-							{tournament.status}
+							{tournament.status === 'Active' ? '🔴 LIVE' : tournament.status}
 						</span>
 					</div>
+
+					<!-- Category Badge -->
+					{#if tournament.category}
+						<div class="mb-4">
+							<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+								{getCategoryName(tournament.category)}
+							</span>
+						</div>
+					{/if}
 
 					<!-- Tournament Info -->
 					<div class="space-y-3 mb-6">
@@ -375,6 +398,18 @@
 							<option value="ROUND_ROBIN">Round Robin</option>
 							<option value="SWISS">Swiss System</option>
 						</select>
+					</div>
+					
+					<div>
+						<label for="category" class="block text-sm font-medium text-text-secondary mb-2">Crypto Category</label>
+						<select id="category" bind:value={newTournament.category} class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white">
+							{#each getCategoryKeys() as categoryKey}
+								<option value={categoryKey}>{CRYPTO_CATEGORIES[categoryKey].name}</option>
+							{/each}
+						</select>
+						<p class="text-xs text-text-secondary mt-1">
+							{CRYPTO_CATEGORIES[newTournament.category].description}
+						</p>
 					</div>
 				</div>
 				

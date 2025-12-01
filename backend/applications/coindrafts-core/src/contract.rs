@@ -9,7 +9,7 @@ Handles game creation, player registration, and portfolio submissions.
 
 mod state;
 
-use coindrafts_core::{CoinDraftsAbi, CoinDraftsOperation, Game, PlayerProfile, PlayerStats, PlayerTier, Portfolio, PortfolioStatus, CryptoHolding, GameMode, GameStatus, TraditionalLeaguesMessage};
+use coindrafts_core::{CoinDraftsAbi, CoinDraftsOperation, Game, PlayerProfile, PlayerStats, PlayerTier, Portfolio, PortfolioStatus, CryptoHolding, GameMode, GameStatus, TraditionalLeaguesMessage, PriceSnapshot};
 use self::state::CoinDraftsState;
 use linera_sdk::{
     linera_base_types::WithContractAbi,
@@ -157,6 +157,33 @@ impl Contract for CoinDraftsContract {
                 
                 self.state.portfolios.insert(&game_id, portfolios)
                     .expect("Failed to submit portfolio");
+            },
+
+            CoinDraftsOperation::StartGame { game_id, price_snapshot } => {
+                // Record starting prices for the game
+                if let Ok(Some(mut game)) = self.state.games.get(&game_id).await {
+                    // Store price snapshot in a separate collection or game field
+                    // For now, update game status to Active
+                    game.status = GameStatus::Active;
+                    self.state.games.insert(&game_id, game).expect("Failed to update game");
+                    
+                    // TODO: Store price_snapshot in state for later scoring
+                    log::info!("Game {} started with {} price snapshots", game_id, price_snapshot.len());
+                }
+            },
+
+            CoinDraftsOperation::EndGame { game_id, price_snapshot } => {
+                // Record ending prices and calculate winners
+                if let Ok(Some(mut game)) = self.state.games.get(&game_id).await {
+                    // Store ending price snapshot
+                    // For now, update game status to Completed
+                    game.status = GameStatus::Completed;
+                    self.state.games.insert(&game_id, game).expect("Failed to update game");
+                    
+                    // TODO: Calculate winners based on start and end price snapshots
+                    // TODO: Distribute prizes to winners
+                    log::info!("Game {} ended with {} price snapshots", game_id, price_snapshot.len());
+                }
             },
         }
     }

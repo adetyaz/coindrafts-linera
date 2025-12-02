@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store';
 
 export interface WalletState {
-	chainId: string | null;
+	chainId: string | null; // Ethereum address used as playerAccount
 	isConnected: boolean;
 	playerName: string | null;
 }

@@ -6,6 +6,7 @@ services:
     ports:
       - "5173:5173" # Frontend
       - "8080:8080" # Linera faucet
+      - "8081:8081" # GraphQL service
       - "9001:9001" # Localnet validator proxy
       - "13001:13001" # Localnet validator
     healthcheck:

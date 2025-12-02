@@ -7,7 +7,7 @@ import {
 } from '$env/static/public';
 
 // Types
-interface Game {
+export interface Game {
 	gameId: string;
 	mode: string;
 	status: string;
@@ -30,12 +30,12 @@ interface Tournament {
 	category?: string;
 }
 
-interface MutationResult {
+export interface MutationResult {
 	success: boolean;
 }
 
 // Player and Portfolio types
-interface PlayerProfile {
+export interface PlayerProfile {
 	playerId: string;
 	playerName: string;
 	stats: {
@@ -46,11 +46,18 @@ interface PlayerProfile {
 	tier: string;
 }
 
-interface Portfolio {
+export interface Portfolio {
 	playerId: string;
 	cryptocurrencies: string[];
 	submittedAt: number;
 	status: string;
+}
+
+export interface LeaderboardEntry {
+	rank: number;
+	playerAccount: string;
+	totalReturn: number; // Scaled by 10000 (e.g., 12.50% = 125000)
+	winningAmount: number; // USDC winnings in micro-units
 }
 
 // GraphQL Response Types
@@ -88,6 +95,10 @@ interface TournamentParticipantsQueryResult {
 
 interface TournamentResultsQueryResult {
 	tournamentResults: string[];
+}
+
+interface TournamentLeaderboardQueryResult {
+	tournamentLeaderboard: LeaderboardEntry[];
 }
 
 // Mutation Response Types
@@ -253,6 +264,17 @@ const GET_TOURNAMENT_PARTICIPANTS = gql`
 const GET_TOURNAMENT_RESULTS = gql`
 	query GetTournamentResults($tournamentId: String!) {
 		tournamentResults(tournamentId: $tournamentId)
+	}
+`;
+
+const GET_TOURNAMENT_LEADERBOARD = gql`
+	query GetTournamentLeaderboard($tournamentId: String!) {
+		tournamentLeaderboard(tournamentId: $tournamentId) {
+			rank
+			playerAccount
+			totalReturn
+			winningAmount
+		}
 	}
 `;
 
@@ -497,6 +519,20 @@ class CoinDraftsService {
 		} catch (error) {
 			console.error('Tournament registration error:', error);
 			return { success: false };
+		}
+	}
+
+	async fetchLeaderboard(tournamentId: string): Promise<LeaderboardEntry[]> {
+		try {
+			const result = await tradLeaguesClient.query<TournamentLeaderboardQueryResult>({
+				query: GET_TOURNAMENT_LEADERBOARD,
+				variables: { tournamentId }
+			});
+
+			return result.data?.tournamentLeaderboard || [];
+		} catch (error) {
+			console.error('Leaderboard fetch error:', error);
+			return [];
 		}
 	}
 

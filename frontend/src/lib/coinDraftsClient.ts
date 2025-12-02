@@ -85,6 +85,17 @@ export const SUBMIT_PORTFOLIO = gql`
 	}
 `;
 
+export const GET_TOURNAMENT_LEADERBOARD = gql`
+	query GetTournamentLeaderboard($tournamentId: String!) {
+		tournamentLeaderboard(tournamentId: $tournamentId) {
+			rank
+			playerAccount
+			totalReturn
+			winningAmount
+		}
+	}
+`;
+
 // Traditional Leagues GraphQL queries and mutations
 export const GET_TOURNAMENTS = gql`
 	query GetTournaments {
@@ -139,12 +150,14 @@ export const SUBMIT_TOURNAMENT_PORTFOLIO = gql`
 	mutation SubmitTournamentPortfolio(
 		$tournamentId: String!
 		$round: Int!
-		$portfolio: TournamentPortfolioInput!
+		$cryptoPicks: [String!]!
+		$strategyNotes: String
 	) {
-		operation(
-			input: {
-				SubmitPortfolio: { tournament_id: $tournamentId, round: $round, portfolio: $portfolio }
-			}
+		submitPortfolio(
+			tournamentId: $tournamentId
+			round: $round
+			cryptoPicks: $cryptoPicks
+			strategyNotes: $strategyNotes
 		)
 	}
 `;

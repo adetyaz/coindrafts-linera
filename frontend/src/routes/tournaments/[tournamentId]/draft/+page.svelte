@@ -20,7 +20,12 @@
 	const positionWeights = [
 		{ position: 1, weight: '5x', color: 'from-red-500 to-orange-500', label: 'Highest Confidence' },
 		{ position: 2, weight: '4x', color: 'from-orange-500 to-yellow-500', label: 'High Confidence' },
-		{ position: 3, weight: '3x', color: 'from-yellow-500 to-green-500', label: 'Medium Confidence' },
+		{
+			position: 3,
+			weight: '3x',
+			color: 'from-yellow-500 to-green-500',
+			label: 'Medium Confidence'
+		},
 		{ position: 4, weight: '2x', color: 'from-green-500 to-blue-500', label: 'Low Confidence' },
 		{ position: 5, weight: '1x', color: 'from-blue-500 to-purple-500', label: 'Lowest Confidence' }
 	];
@@ -51,11 +56,11 @@
 		}
 		try {
 			loadingTournament = true;
-			
+
 			// Load tournament details
 			const tournaments = await coinDraftsService.fetchTournaments();
-			tournament = tournaments.find(t => t.id === tournamentId) || null;
-			
+			tournament = tournaments.find((t) => t.id === tournamentId) || null;
+
 			if (!tournament) {
 				addToast('Tournament not found', 'error');
 				goto('/tournaments');
@@ -64,7 +69,7 @@
 
 			// Load cryptos based on tournament category
 			availableCryptos = getCryptosForCategory(tournament.category || 'ALL_CATEGORIES');
-			
+
 			// Load prices
 			await loadPrices();
 		} catch (error) {
@@ -201,10 +206,8 @@
 				variables: {
 					tournamentId,
 					round: 1,
-					portfolio: {
-						crypto_picks: cryptoPicks,
-						strategy_notes: null
-					}
+					cryptoPicks,
+					strategyNotes: null
 				}
 			});
 
@@ -249,7 +252,9 @@
 		<h1 class="text-4xl font-bold mb-2">Draft Your Portfolio</h1>
 		{#if tournament}
 			<p class="text-gray-400 mb-2">
-				Category: <span class="text-blue-400 font-semibold">{tournament.category?.replace('_', ' ')}</span>
+				Category: <span class="text-blue-400 font-semibold"
+					>{tournament.category?.replace('_', ' ')}</span
+				>
 			</p>
 		{/if}
 		<p class="text-gray-400">
@@ -265,9 +270,7 @@
 			</div>
 		{:else}
 			<div class="mt-4 bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-				<p class="text-green-400">
-					✓ All positions filled! Ready to submit.
-				</p>
+				<p class="text-green-400">✓ All positions filled! Ready to submit.</p>
 			</div>
 		{/if}
 	</div>
@@ -330,17 +333,15 @@
 										class:text-green-400={priceData.changePercent24Hr > 0}
 										class:text-red-400={priceData.changePercent24Hr < 0}
 									>
-										{priceData.changePercent24Hr > 0 ? '+' : ''}{priceData.changePercent24Hr.toFixed(
-											2
-										)}% 24h
+										{priceData.changePercent24Hr > 0
+											? '+'
+											: ''}{priceData.changePercent24Hr.toFixed(2)}% 24h
 									</div>
 								</div>
 							{/if}
 
 							{#if isSelected}
-								<div class="mt-2 text-xs text-blue-400">
-									✓ Selected in draft
-								</div>
+								<div class="mt-2 text-xs text-blue-400">✓ Selected in draft</div>
 							{/if}
 						</div>
 					{/each}
@@ -419,9 +420,9 @@
 												class:text-green-400={priceData.changePercent24Hr > 0}
 												class:text-red-400={priceData.changePercent24Hr < 0}
 											>
-												{priceData.changePercent24Hr > 0 ? '+' : ''}{priceData.changePercent24Hr.toFixed(
-													2
-												)}%
+												{priceData.changePercent24Hr > 0
+													? '+'
+													: ''}{priceData.changePercent24Hr.toFixed(2)}%
 											</div>
 										</div>
 									{/if}

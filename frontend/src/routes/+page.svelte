@@ -36,7 +36,7 @@
 		
 		<div class="relative max-w-6xl mx-auto text-center">
 			<h1 class="text-5xl md:text-7xl font-bold text-white mb-6 animate-fade-in">
-				Welcome to <span class="text-transparent bg-clip-text bg-green-gradient font-mono">CoinDrafts</span>
+				Welcome to <span class="text-primary-green font-mono">CoinDrafts</span>
 			</h1>
 			<p class="text-xl md:text-2xl text-text-secondary mb-8 max-w-3xl mx-auto leading-relaxed">
 				The world's first real-time cryptocurrency fantasy gaming platform built on Linera's revolutionary microchain architecture
@@ -52,26 +52,6 @@
 					<Zap class="w-5 h-5" />
 					Quick Match
 				</a>
-			</div>
-
-			<!-- Stats Row -->
-			<div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-				<div class="text-center">
-					<div class="text-3xl font-bold text-primary-green font-mono">$2.5M+</div>
-					<div class="text-sm text-text-secondary">Total Volume</div>
-				</div>
-				<div class="text-center">
-					<div class="text-3xl font-bold text-primary-green font-mono">15K+</div>
-					<div class="text-sm text-text-secondary">Active Players</div>
-				</div>
-				<div class="text-center">
-					<div class="text-3xl font-bold text-primary-green font-mono">500+</div>
-					<div class="text-sm text-text-secondary">Tournaments</div>
-				</div>
-				<div class="text-center">
-					<div class="text-3xl font-bold text-primary-green font-mono">24/7</div>
-					<div class="text-sm text-text-secondary">Live Games</div>
-				</div>
 			</div>
 		</div>
 	</section>

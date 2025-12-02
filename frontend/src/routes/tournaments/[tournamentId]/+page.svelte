@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { coinDraftsService, type Tournament } from '$lib/coinDraftsService';
-	import { Trophy, Users, DollarSign, Calendar, Crown, ArrowLeft } from '@lucide/svelte';
+	import { Trophy, Users, DollarSign, Calendar, Crown, ArrowLeft, TrendingUp } from '@lucide/svelte';
 
 	const tournamentId = page.params.tournamentId;
 	
@@ -164,6 +164,28 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- Action Buttons -->
+				{#if tournament.status === 'InProgress' || tournament.status === 'Completed'}
+					<div class="mt-6 flex gap-4">
+						<a 
+							href="/tournaments/{tournamentId}/leaderboard"
+							class="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 no-underline"
+						>
+							<TrendingUp size={20} />
+							View Leaderboard
+						</a>
+						{#if tournament.status === 'InProgress'}
+							<a 
+								href="/tournaments/{tournamentId}/draft"
+								class="flex-1 bg-green-600 hover:bg-green-700 text-black px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 no-underline"
+							>
+								<Trophy size={20} />
+								Draft Portfolio
+							</a>
+						{/if}
+					</div>
+				{/if}
 			</div>
 
 			<!-- Participants Section -->

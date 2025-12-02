@@ -11,7 +11,10 @@ mod state;
 use std::sync::Arc;
 
 use async_graphql::{Context, EmptySubscription, Object, Request, Response, Schema};
-use traditional_leagues::{TraditionalLeaguesAbi, Tournament, TournamentStatus, TournamentType};
+use traditional_leagues::{
+    TraditionalLeaguesAbi, Tournament, TournamentStatus, TournamentType,
+    TournamentPortfolio, PriceSnapshot, LeaderboardEntry, ScoringEngine, PriceData,
+};
 use linera_sdk::{
     linera_base_types::WithServiceAbi,
     views::View,
@@ -163,6 +166,76 @@ impl QueryRoot {
             }
         }
     }
+
+    /// Get player's portfolio for a specific tournament and round
+    async fn player_portfolio(&self, tournament_id: String, round: i32, player_account: String) -> Option<TournamentPortfolio> {
+        let portfolio_key = format!("{}-{}-{}", tournament_id, round, player_account);
+        match self.state.portfolios.get(&portfolio_key).await {
+            Ok(portfolio) => portfolio,
+            Err(e) => {
+                log::error!("Failed to get portfolio for key {}: {}", portfolio_key, e);
+                None
+            }
+        }
+    }
+
+    /// Get tournament leaderboard (calculates live rankings)
+    async fn tournament_leaderboard(&self, tournament_id: String) -> Vec<LeaderboardEntry> {
+        // Get tournament
+        let tournament = match self.state.tournaments.get(&tournament_id).await {
+            Ok(Some(t)) => t,
+            _ => return vec![],
+        };
+
+        // Get participants
+        let participants = match self.state.participants.get(&tournament_id).await {
+            Ok(Some(p)) => p,
+            _ => return vec![],
+        };
+
+        // Collect portfolios
+        let mut portfolios = Vec::new();
+        for participant in participants {
+            let portfolio_key = format!("{}-{}-{}", tournament_id, tournament.current_round, participant);
+            if let Ok(Some(portfolio)) = self.state.portfolios.get(&portfolio_key).await {
+                portfolios.push((participant, portfolio));
+            }
+        }
+
+        if portfolios.is_empty() {
+            return vec![];
+        }
+
+        // Get price data
+        let price_data = match (&tournament.start_prices, &tournament.end_prices) {
+            (Some(start), Some(end)) => {
+                let mut prices = Vec::new();
+                for start_snap in start {
+                    if let Some(end_snap) = end.iter().find(|e| e.crypto_id == start_snap.crypto_id) {
+                        let percentage_change = if start_snap.price_usd > 0 {
+                            let change = (end_snap.price_usd as i64) - (start_snap.price_usd as i64);
+                            ((change * 10000) / (start_snap.price_usd as i64)) as i32
+                        } else {
+                            0
+                        };
+                        
+                        prices.push(PriceData {
+                            symbol: start_snap.crypto_id.clone(),
+                            start_price: start_snap.price_usd,
+                            end_price: end_snap.price_usd,
+                            percentage_change,
+                        });
+                    }
+                }
+                prices
+            },
+            _ => PriceData::get_mock_prices(),
+        };
+
+        let total_prize_pool = tournament.entry_fee_usdc * tournament.current_participants as u64;
+        
+        ScoringEngine::calculate_leaderboard(portfolios, &price_data, total_prize_pool)
+    }
 }
 
 struct MutationRoot {
@@ -179,6 +252,7 @@ impl MutationRoot {
         entry_fee_usdc: String, // String to handle large numbers in GraphQL
         max_participants: i32,
         tournament_type: TournamentType,
+        category: Option<String>,
     ) -> String {
         // Parse entry fee
         let entry_fee = match entry_fee_usdc.parse::<u64>() {
@@ -191,7 +265,7 @@ impl MutationRoot {
             entry_fee_usdc: entry_fee,
             max_participants: max_participants as u32,
             tournament_type,
-            category: "ALL_CATEGORIES".to_string(),
+            category: category.unwrap_or_else(|| "ALL_CATEGORIES".to_string()),
         };
 
         self.runtime.schedule_operation(&operation);
@@ -212,7 +286,124 @@ impl MutationRoot {
         };
 
         self.runtime.schedule_operation(&operation);
-        // For now, return a success message since schedule_operation returns ()
         format!("Registration scheduled for tournament {}", tournament_id)
+    }
+
+    /// Submit portfolio for a tournament round
+    async fn submit_portfolio(
+        &self,
+        _context: &Context<'_>,
+        tournament_id: String,
+        round: i32,
+        crypto_picks: Vec<String>,
+        strategy_notes: Option<String>,
+    ) -> String {
+        let portfolio = traditional_leagues::TournamentPortfolio {
+            crypto_picks,
+            strategy_notes,
+        };
+
+        let operation = traditional_leagues::TraditionalLeaguesOperation::SubmitPortfolio {
+            tournament_id: tournament_id.clone(),
+            round: round as u32,
+            portfolio,
+        };
+
+        self.runtime.schedule_operation(&operation);
+        format!("Portfolio submission scheduled for tournament {}", tournament_id)
+    }
+
+    /// Start tournament with initial price snapshot
+    async fn start_tournament(
+        &self,
+        _context: &Context<'_>,
+        tournament_id: String,
+        start_prices: Vec<String>, // JSON array of {crypto_id, price_usd}
+    ) -> String {
+        // Parse price snapshots from string array
+        let mut snapshots = Vec::new();
+        for price_str in start_prices {
+            if let Ok(parts) = serde_json::from_str::<serde_json::Value>(&price_str) {
+                if let (Some(crypto_id), Some(price)) = (
+                    parts.get("crypto_id").and_then(|v| v.as_str()),
+                    parts.get("price_usd").and_then(|v| v.as_u64()),
+                ) {
+                    snapshots.push(traditional_leagues::PriceSnapshot {
+                        crypto_id: crypto_id.to_string(),
+                        price_usd: price,
+                        timestamp: 0, // Will be set by contract
+                    });
+                }
+            }
+        }
+
+        let operation = traditional_leagues::TraditionalLeaguesOperation::StartTournament {
+            tournament_id: tournament_id.clone(),
+            start_prices: snapshots,
+        };
+
+        self.runtime.schedule_operation(&operation);
+        format!("Tournament {} start scheduled", tournament_id)
+    }
+
+    /// End tournament with final price snapshot
+    async fn end_tournament(
+        &self,
+        _context: &Context<'_>,
+        tournament_id: String,
+        end_prices: Vec<String>, // JSON array of {crypto_id, price_usd}
+    ) -> String {
+        // Parse price snapshots
+        let mut snapshots = Vec::new();
+        for price_str in end_prices {
+            if let Ok(parts) = serde_json::from_str::<serde_json::Value>(&price_str) {
+                if let (Some(crypto_id), Some(price)) = (
+                    parts.get("crypto_id").and_then(|v| v.as_str()),
+                    parts.get("price_usd").and_then(|v| v.as_u64()),
+                ) {
+                    snapshots.push(traditional_leagues::PriceSnapshot {
+                        crypto_id: crypto_id.to_string(),
+                        price_usd: price,
+                        timestamp: 0,
+                    });
+                }
+            }
+        }
+
+        let operation = traditional_leagues::TraditionalLeaguesOperation::EndTournament {
+            tournament_id: tournament_id.clone(),
+            end_prices: snapshots,
+        };
+
+        self.runtime.schedule_operation(&operation);
+        format!("Tournament {} end scheduled", tournament_id)
+    }
+
+    /// Advance to next round
+    async fn advance_round(
+        &self,
+        _context: &Context<'_>,
+        tournament_id: String,
+    ) -> String {
+        let operation = traditional_leagues::TraditionalLeaguesOperation::AdvanceRound {
+            tournament_id: tournament_id.clone(),
+        };
+
+        self.runtime.schedule_operation(&operation);
+        format!("Round advance scheduled for tournament {}", tournament_id)
+    }
+
+    /// Complete tournament and calculate winners
+    async fn complete_tournament(
+        &self,
+        _context: &Context<'_>,
+        tournament_id: String,
+    ) -> String {
+        let operation = traditional_leagues::TraditionalLeaguesOperation::CompleteTournament {
+            tournament_id: tournament_id.clone(),
+        };
+
+        self.runtime.schedule_operation(&operation);
+        format!("Tournament {} completion scheduled", tournament_id)
     }
 }

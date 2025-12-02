@@ -11,6 +11,9 @@ export default defineConfig({
 		},
 		watch: {
 			usePolling: true
+		},
+		hmr: {
+			timeout: 180000
 		}
 	},
 	test: {

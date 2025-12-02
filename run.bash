@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 set -eu
 
 echo "Starting CoinDrafts Linera Application..."
@@ -12,63 +11,61 @@ export LINERA_FAUCET_URL=http://localhost:8080
 linera wallet init --faucet="$LINERA_FAUCET_URL"
 linera wallet request-chain --faucet="$LINERA_FAUCET_URL"
 
-echo "Building and publishing CoinDrafts Core backend..."
+# Build both applications in parallel
+echo "Building applications..."
 cd /build
-cargo build --release --target wasm32-unknown-unknown --package coindrafts-core
+cargo build --release --target wasm32-unknown-unknown --package coindrafts-core --package traditional-leagues
 
+# Deploy CoinDrafts Core
 echo "Deploying CoinDrafts Core..."
-COINDRAFTS_CORE_APP_ID=$(linera publish-and-create target/wasm32-unknown-unknown/release/coindrafts_core_{contract,service}.wasm --json-argument "null" 2>&1 | grep -o '[a-f0-9]\{64\}' | tail -1)
-echo "CoinDrafts Core App ID: $COINDRAFTS_CORE_APP_ID"
+CORE_OUTPUT=$(linera publish-and-create target/wasm32-unknown-unknown/release/coindrafts_core_{contract,service}.wasm --json-argument "null" 2>&1)
+COINDRAFTS_CORE_APP_ID=$(echo "$CORE_OUTPUT" | grep -o '[a-f0-9]\{64\}' | tail -1)
+echo "Core App ID: $COINDRAFTS_CORE_APP_ID"
 
-echo "Building and publishing Traditional Leagues backend..."
-cd /build
-cargo build --release --target wasm32-unknown-unknown --package traditional-leagues
-
+# Deploy Traditional Leagues
 echo "Deploying Traditional Leagues..."
-TRADITIONAL_LEAGUES_APP_ID=$(linera publish-and-create target/wasm32-unknown-unknown/release/traditional_leagues_{contract,service}.wasm --json-argument "null" 2>&1 | grep -o '[a-f0-9]\{64\}' | tail -1)
-echo "Traditional Leagues App ID: $TRADITIONAL_LEAGUES_APP_ID"
+LEAGUES_OUTPUT=$(linera publish-and-create target/wasm32-unknown-unknown/release/traditional_leagues_{contract,service}.wasm --json-argument "null" 2>&1)
+TRADITIONAL_LEAGUES_APP_ID=$(echo "$LEAGUES_OUTPUT" | grep -o '[a-f0-9]\{64\}' | tail -1)
+echo "Leagues App ID: $TRADITIONAL_LEAGUES_APP_ID"
 
-# Get the default chain ID (the second chain ID from wallet show - the one with blocks)
+# Get default chain ID
 DEFAULT_CHAIN_ID=$(linera wallet show 2>&1 | grep -o '[a-f0-9]\{64,66\}' | sed -n '2p')
-echo "Default Chain ID: $DEFAULT_CHAIN_ID"
+echo "Chain ID: $DEFAULT_CHAIN_ID"
 
-echo "Starting GraphQL service on port 8081..."
-linera_spawn linera service --port 8081
+# Start GraphQL service immediately (blobs sync in background)
+echo "Starting GraphQL service..."
+linera service --port 8081 > /tmp/graphql-service.log 2>&1 &
+sleep 2
 
-echo "Building and running SvelteKit frontend..."
+# Setup frontend
 cd /build/frontend
-
-# Install dependencies
 . ~/.nvm/nvm.sh
 nvm use lts/krypton
-npm install
 
-# Update SvelteKit environment variables with deployed application IDs
-export PUBLIC_COINDRAFTS_CORE_APP_ID=$COINDRAFTS_CORE_APP_ID
-export PUBLIC_TRADITIONAL_LEAGUES_APP_ID=$TRADITIONAL_LEAGUES_APP_ID
-export PUBLIC_DEFAULT_CHAIN_ID=$DEFAULT_CHAIN_ID
+# Write .env file
+cat > .env << EOF
+PUBLIC_COINDRAFTS_CORE_APP_ID=$COINDRAFTS_CORE_APP_ID
+PUBLIC_TRADITIONAL_LEAGUES_APP_ID=$TRADITIONAL_LEAGUES_APP_ID
+PUBLIC_DEFAULT_CHAIN_ID=$DEFAULT_CHAIN_ID
+EOF
 
-# Update .env file for SvelteKit
-echo "PUBLIC_COINDRAFTS_CORE_APP_ID=$COINDRAFTS_CORE_APP_ID" > .env
-echo "PUBLIC_TRADITIONAL_LEAGUES_APP_ID=$TRADITIONAL_LEAGUES_APP_ID" >> .env
-echo "PUBLIC_DEFAULT_CHAIN_ID=$DEFAULT_CHAIN_ID" >> .env
+# Install dependencies - skip if already installed and package.json unchanged
+if [ ! -d "node_modules" ] || [ package.json -nt node_modules/.package-lock.json ] 2>/dev/null; then
+  echo "Installing dependencies..."
+  npm ci --prefer-offline --no-audit
+else
+  echo "Dependencies up to date, skipping..."
+fi
 
 echo ""
 echo "===== DEPLOYMENT COMPLETE ====="
-echo "CoinDrafts Core App ID: $COINDRAFTS_CORE_APP_ID"
-echo "Traditional Leagues App ID: $TRADITIONAL_LEAGUES_APP_ID"
-echo "Default Chain ID: $DEFAULT_CHAIN_ID"
+echo "Core: $COINDRAFTS_CORE_APP_ID"
+echo "Leagues: $TRADITIONAL_LEAGUES_APP_ID"
+echo "Chain: $DEFAULT_CHAIN_ID"
+echo "GraphQL: http://localhost:8081"
+echo "Frontend: http://localhost:5173"
 echo "==============================="
 echo ""
 
-# Start SvelteKit development server
-npm run dev -- --host 0.0.0.0 --port 5173
-
-echo "CoinDrafts is running!"
-echo "Frontend: http://localhost:5173"
-echo "GraphQL: http://localhost:8080"
-echo "CoinDrafts Core: $COINDRAFTS_CORE_APP_ID"
-echo "Traditional Leagues: $TRADITIONAL_LEAGUES_APP_ID"
-
-# Keep the container running
-wait
+# Start frontend
+exec npm run dev -- --host 0.0.0.0 --port 5173

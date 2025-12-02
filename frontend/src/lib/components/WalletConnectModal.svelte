@@ -9,32 +9,33 @@
 
 	let { isOpen = $bindable(false), onClose }: Props = $props();
 
-	let chainId = $state('');
+	// Use the default chain ID from deployment
+	const DEFAULT_CHAIN = '3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e';
+	
+	let chainId = $state(DEFAULT_CHAIN);
 	let playerName = $state('');
 	let isConnecting = $state(false);
+	let useCustomChain = $state(false);
 
 	function handleConnect() {
-		if (!chainId.trim()) {
-			showToast('Please enter your chain ID', 'error');
-			return;
-		}
-
-		// Validate chain ID format (should be 66 characters)
-		if (chainId.length !== 66) {
-			showToast('Chain ID must be 66 characters', 'error');
+		const finalChainId = useCustomChain ? chainId.trim() : DEFAULT_CHAIN;
+		
+		if (!finalChainId) {
+			showToast('Chain ID is required', 'error');
 			return;
 		}
 
 		isConnecting = true;
 
 		try {
-			wallet.connect(chainId.trim(), playerName.trim() || undefined);
-			showToast('Wallet connected successfully!', 'success');
-			chainId = '';
+			wallet.connect(finalChainId, playerName.trim() || undefined);
+			showToast('Connected successfully!', 'success');
+			chainId = DEFAULT_CHAIN;
 			playerName = '';
+			useCustomChain = false;
 			onClose();
 		} catch (error) {
-			showToast('Failed to connect wallet', 'error');
+			showToast('Failed to connect', 'error');
 		} finally {
 			isConnecting = false;
 		}
@@ -42,8 +43,9 @@
 
 	function handleClose() {
 		if (!isConnecting) {
-			chainId = '';
+			chainId = DEFAULT_CHAIN;
 			playerName = '';
+			useCustomChain = false;
 			onClose();
 		}
 	}
@@ -56,28 +58,18 @@
 		role="presentation"
 	>
 		<div
-			class="relative w-full max-w-md rounded-lg border border-[#39ff14]/20 bg-zinc-900 p-6 shadow-xl"
+			class="relative w-full max-w-md rounded-lg border bg-zinc-900 p-6 shadow-xl"
+			style="border-color: #22c55e;"
 			onclick={(e) => e.stopPropagation()}
 			role="dialog"
 			aria-modal="true"
 		>
-			<h2 class="mb-4 text-2xl font-bold text-[#39ff14]">Connect Wallet</h2>
+			<h2 class="mb-4 text-2xl font-bold" style="color: #22c55e;">Connect to CoinDrafts</h2>
 
 			<div class="space-y-4">
-				<div>
-					<label for="chainId" class="mb-2 block text-sm font-medium text-white">
-						Chain ID <span class="text-[#39ff14]">*</span>
-					</label>
-					<input
-						type="text"
-						id="chainId"
-						bind:value={chainId}
-						placeholder="Enter your 66-character chain ID"
-						class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-white placeholder-zinc-500 focus:border-[#39ff14] focus:outline-none"
-						disabled={isConnecting}
-					/>
-					<p class="mt-1 text-xs text-zinc-400">
-						Your chain ID is used to identify your wallet on the Linera network
+				<div class="rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
+					<p class="text-sm text-blue-300">
+						🎮 You'll use the default Linera chain. Click Connect to start playing!
 					</p>
 				</div>
 
@@ -90,10 +82,38 @@
 						id="playerName"
 						bind:value={playerName}
 						placeholder="Enter your display name"
-						class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-white placeholder-zinc-500 focus:border-[#39ff14] focus:outline-none"
+						class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-white placeholder-zinc-500 focus:outline-none"
+						style="focus:border-color: #22c55e;"
 						disabled={isConnecting}
 					/>
 				</div>
+
+				<div>
+					<label class="flex items-center gap-2 text-sm text-zinc-400">
+						<input
+							type="checkbox"
+							bind:checked={useCustomChain}
+							class="rounded"
+						/>
+						Use custom chain ID (advanced)
+					</label>
+				</div>
+
+				{#if useCustomChain}
+					<div>
+						<label for="chainId" class="mb-2 block text-sm font-medium text-white">
+							Custom Chain ID
+						</label>
+						<input
+							type="text"
+							id="chainId"
+							bind:value={chainId}
+							placeholder="Enter your chain ID"
+							class="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-white placeholder-zinc-500 focus:outline-none font-mono text-xs"
+							disabled={isConnecting}
+						/>
+					</div>
+				{/if}
 
 				<div class="flex gap-3 pt-4">
 					<button
@@ -105,8 +125,9 @@
 					</button>
 					<button
 						onclick={handleConnect}
-						disabled={isConnecting || !chainId.trim()}
-						class="flex-1 rounded-lg bg-[#39ff14] px-4 py-2 font-medium text-black hover:bg-[#39ff14]/90 disabled:cursor-not-allowed disabled:opacity-50"
+						disabled={isConnecting}
+						class="flex-1 rounded-lg px-4 py-2 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+						style="background-color: #22c55e;"
 					>
 						{isConnecting ? 'Connecting...' : 'Connect'}
 					</button>

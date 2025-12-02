@@ -2,7 +2,8 @@ import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 import { HttpLink } from '@apollo/client/link/http';
 import {
 	PUBLIC_COINDRAFTS_CORE_APP_ID,
-	PUBLIC_TRADITIONAL_LEAGUES_APP_ID
+	PUBLIC_TRADITIONAL_LEAGUES_APP_ID,
+	PUBLIC_DEFAULT_CHAIN_ID
 } from '$env/static/public';
 
 // Types
@@ -26,6 +27,7 @@ interface Tournament {
 	currentRound: number;
 	maxRounds: number;
 	createdAt: number;
+	category?: string;
 }
 
 interface MutationResult {
@@ -92,8 +94,9 @@ interface TournamentResultsQueryResult {
 // Removed fake mutation result interfaces - using direct success checking instead
 
 // Configuration - SvelteKit environment variables
-const LINERA_GRAPHQL_BASE = 'http://localhost:8080';
-const DEFAULT_CHAIN_ID = '3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e';
+const LINERA_GRAPHQL_BASE = 'http://localhost:8081';
+const DEFAULT_CHAIN_ID =
+	PUBLIC_DEFAULT_CHAIN_ID || 'b955f1992f7dbaeb4b6878fcc6d52038c2e317bab277cb1e1e5a99530ea3a527';
 
 // Application IDs - MUST be set via environment variables after deployment
 const COINDRAFTS_CORE_APP_ID = PUBLIC_COINDRAFTS_CORE_APP_ID;

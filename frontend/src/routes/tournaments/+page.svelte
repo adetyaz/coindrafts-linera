@@ -160,7 +160,8 @@
 					name: '',
 					entryFeeUsdc: 10,
 					maxParticipants: 16,
-					tournamentType: 'SINGLE_ELIMINATION'
+					tournamentType: 'SINGLE_ELIMINATION',
+					category: 'ALL_CATEGORIES'
 				};
 			} else {
 				showToast('Failed to create tournament. Please try again.', 'error');

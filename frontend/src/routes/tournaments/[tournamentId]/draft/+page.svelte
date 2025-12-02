@@ -38,17 +38,17 @@
 	let isComplete = $derived(draftPicks.every((pick) => pick !== null));
 	let remainingPicks = $derived(draftPicks.filter((pick) => pick === null).length);
 
+	// Load tournament data on mount
 	$effect(() => {
+		loadTournamentData();
+	});
+
+	async function loadTournamentData() {
 		if (!$wallet.isConnected) {
 			addToast('Please connect your wallet to draft a portfolio', 'info');
 			goto(`/tournaments/${tournamentId}`);
 			return;
 		}
-
-		loadTournamentData();
-	});
-
-	async function loadTournamentData() {
 		try {
 			loadingTournament = true;
 			
@@ -284,6 +284,7 @@
 			{:else}
 				<div
 					class="grid grid-cols-2 gap-3"
+					role="list"
 					ondrop={(e) => {
 						e.preventDefault();
 						handleDropOnAvailable();
@@ -296,6 +297,7 @@
 
 						<div
 							draggable="true"
+							role="listitem"
 							ondragstart={() => handleDragStart(crypto.id)}
 							class="crypto-card p-4 rounded-lg border transition-all cursor-move"
 							class:opacity-50={isSelected}
@@ -358,6 +360,8 @@
 
 					<div
 						class="draft-position p-4 rounded-lg border-2 border-dashed transition-all"
+						role="region"
+						aria-label="Position {position}"
 						class:border-gray-700={!pick}
 						class:empty-position={!pick}
 						class:border-transparent={pick}
@@ -396,6 +400,9 @@
 						{#if crypto}
 							<div
 								draggable="true"
+								role="button"
+								tabindex="0"
+								aria-label="Drag to reorder {crypto.name}"
 								ondragstart={() => handleDragStartFromPosition(index)}
 								class="mt-3 p-3 bg-gray-900/50 rounded border border-gray-700 cursor-move"
 							>

@@ -44,10 +44,14 @@
 
 <nav class="bg-bg-dark/95 backdrop-blur-sm border-b border-border-color sticky top-0 z-50">
 	<!-- Click outside handler -->
-	<div 
-		class="fixed inset-0 z-40 {userMenuOpen || mobileMenuOpen ? 'block' : 'hidden'}" 
-		onclick={handleClickOutside}
-	></div>
+	{#if userMenuOpen || mobileMenuOpen}
+		<button
+			type="button"
+			class="fixed inset-0 z-40 bg-transparent cursor-default"
+			onclick={handleClickOutside}
+			aria-label="Close menu"
+		></button>
+	{/if}
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex justify-between items-center h-16">
 			<!-- Logo -->
@@ -77,45 +81,47 @@
 
 			<!-- Right Side Actions -->
 			<div class="flex items-center space-x-4">
-				<!-- Profile and Wallet -->
-				<div class="hidden md:flex items-center space-x-3">
-					{#if walletState.isConnected}
-						<!-- Profile Link -->
-						<a 
-							href="/profile" 
-							class="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-								{page.url.pathname === '/profile' 
-									? 'text-primary-green bg-primary-green/10 border border-primary-green/30' 
-									: 'text-text-secondary hover:text-text-primary hover:bg-bg-accent'}"
-						>
-							<User class="w-4 h-4" />
-							<span>Profile</span>
-						</a>
-						
-						<!-- Wallet Display -->
-						<div class="flex items-center space-x-2 px-3 py-2 rounded-lg bg-primary-green/10 border border-primary-green/20">
-							<div class="w-2 h-2 rounded-full bg-primary-green animate-pulse"></div>
-							<span class="text-sm font-mono text-primary-green">
-								{truncateChainId(walletState.chainId || '')}
-							</span>
-							<button
-								onclick={handleDisconnect}
-								class="p-1.5 rounded hover:bg-primary-green/20 text-primary-green ml-2"
-								aria-label="Disconnect wallet"
-							>
-								<LogOut class="w-4 h-4" />
-							</button>
-						</div>
-					{:else}
-						<!-- Connect Wallet Button -->
+				<!-- Wallet Button - Always Visible -->
+				{#if walletState.isConnected}
+					<!-- Connected Wallet Display -->
+					<div class="flex items-center space-x-2 px-3 py-2 rounded-lg" style="background-color: rgba(34, 197, 94, 0.2); border: 1px solid rgb(34, 197, 94);">
+						<div class="w-2 h-2 rounded-full animate-pulse" style="background-color: rgb(34, 197, 94);"></div>
+						<span class="text-xs sm:text-sm font-mono" style="color: rgb(34, 197, 94);">
+							{truncateChainId(walletState.chainId || '')}
+						</span>
 						<button
-							onclick={() => walletModalOpen = true}
-							class="px-4 py-2 rounded-lg bg-primary-green text-black font-medium hover:bg-primary-green/90 transition-colors"
+							onclick={handleDisconnect}
+							class="p-1.5 rounded"
+							style="color: rgb(34, 197, 94);"
+							aria-label="Disconnect wallet"
 						>
-							Connect Wallet
+							<LogOut class="w-4 h-4" />
 						</button>
-					{/if}
-				</div>
+					</div>
+				{:else}
+					<!-- Connect Wallet Button - BRIGHT GREEN ALWAYS VISIBLE -->
+					<button
+						onclick={() => walletModalOpen = true}
+						class="px-4 py-2 rounded-lg font-bold text-sm whitespace-nowrap"
+						style="background-color: #22c55e; color: white;"
+					>
+						Connect Wallet
+					</button>
+				{/if}
+				
+				<!-- Profile Link - Desktop Only -->
+				{#if walletState.isConnected}
+					<a 
+						href="/profile" 
+						class="hidden md:flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+							{page.url.pathname === '/profile' 
+								? 'text-primary-green bg-primary-green/10 border border-primary-green/30' 
+								: 'text-text-secondary hover:text-text-primary hover:bg-bg-accent'}"
+					>
+						<User class="w-4 h-4" />
+						<span>Profile</span>
+					</a>
+				{/if}
 				
 				<!-- Mobile Menu Button -->
 				<button

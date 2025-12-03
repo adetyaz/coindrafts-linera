@@ -39,13 +39,13 @@
 			
 			// Use fetched player or create default empty profile
 			player = playerProfile || {
-				playerId: walletState.chainId,
-				playerName: walletState.playerName || 'Anonymous Player',
+				account: walletState.chainId,
+				name: walletState.playerName || 'Anonymous Player',
 				stats: {
 					gamesPlayed: 0,
-					gamesWon: 0,
-					totalEarnings: 0
+					gamesWon: 0
 				},
+				totalEarningsUsdc: 0,
 				tier: 'ROOKIE'
 			};
 			
@@ -113,7 +113,7 @@
 				
 				<!-- Player Info -->
 				<div class="text-center md:text-left">
-					<h1 class="text-3xl font-bold text-white mb-2">{player.playerName}</h1>
+					<h1 class="text-3xl font-bold text-white mb-2">{player.name}</h1>
 					<div class="flex items-center justify-center md:justify-start gap-2 mb-4">
 						<span class="text-lg {getTierColor(player.tier)} font-semibold">{player.tier} Tier</span>
 					</div>
@@ -133,7 +133,7 @@
 						<div class="text-sm text-text-secondary">Games Won</div>
 					</div>
 					<div class="text-center">
-						<div class="text-2xl font-bold text-primary-green">${player.stats.totalEarnings}</div>
+						<div class="text-2xl font-bold text-primary-green">${player.totalEarningsUsdc || 0}</div>
 						<div class="text-sm text-text-secondary">Total Earnings</div>
 					</div>
 				</div>
@@ -162,7 +162,7 @@
 				<div class="flex justify-center mb-2">
 					<DollarSign class="w-8 h-8 text-primary-green" />
 				</div>
-				<div class="text-2xl font-bold text-primary-green">${player.stats.totalEarnings}</div>
+				<div class="text-2xl font-bold text-primary-green">${player.totalEarningsUsdc || 0}</div>
 				<div class="text-sm text-text-secondary">Earnings</div>
 			</div>
 			
@@ -317,7 +317,7 @@
 					</div>
 				{/if}
 				
-				{#if player.stats.totalEarnings >= 100}
+				{#if (player.totalEarningsUsdc || 0) >= 100}
 					<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-primary-green/30 text-center">
 						<div class="flex justify-center mb-2">
 							<DollarSign class="w-6 h-6 text-primary-green" />

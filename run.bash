@@ -33,12 +33,14 @@ DEFAULT_CHAIN_ID=$(linera wallet show 2>&1 | grep -o '[a-f0-9]\{64,66\}' | sed -
 echo "Chain ID: $DEFAULT_CHAIN_ID"
 
 # Wait for blob synchronization
-sleep 20
+echo "Waiting for blob synchronization..."
+sleep 30
 
 # Start GraphQL service
 echo "Starting GraphQL service..."
 linera service --port 8081 > /tmp/graphql-service.log 2>&1 &
-sleep 2
+echo "Waiting for GraphQL service to start..."
+sleep 5
 
 # Setup frontend
 cd /build/frontend
@@ -61,6 +63,11 @@ echo ""
 echo "🌱 Running auto-seed script..."
 cd /build
 node seed-data.js
+
+echo ""
+echo "🎮 Pre-seeding leaderboard..."
+cd /build
+node scripts/preseed-leaderboard.js
 
 echo ""
 echo "===== DEPLOYMENT COMPLETE ====="

@@ -51,7 +51,7 @@
 		// Sort
 		filtered = [...filtered].sort((a, b) => {
 			if (sortBy === 'earnings') {
-				return b.stats.totalEarnings - a.stats.totalEarnings;
+				return (b.totalEarningsUsdc || 0) - (a.totalEarningsUsdc || 0);
 			} else if (sortBy === 'wins') {
 				return b.stats.gamesWon - a.stats.gamesWon;
 			} else if (sortBy === 'winRate') {
@@ -88,8 +88,8 @@
 		return 'text-text-secondary';
 	}
 
-	function isCurrentPlayer(playerId: string): boolean {
-		return walletState.chainId === playerId;
+	function isCurrentPlayer(account: string): boolean {
+		return walletState.chainId === account;
 	}
 
 	$effect(() => {
@@ -182,11 +182,11 @@
 						<div class="w-16 h-16 rounded-full bg-gray-400/10 border-2 border-gray-400 flex items-center justify-center mx-auto mb-3">
 							<User class="w-8 h-8 text-gray-400" />
 						</div>
-						<h3 class="text-lg font-bold text-white mb-1">{filteredPlayers[1].playerName}</h3>
+						<h3 class="text-lg font-bold text-white mb-1">{filteredPlayers[1].name}</h3>
 						<div class="inline-flex items-center gap-1 px-2 py-1 rounded-full {getTierInfo(filteredPlayers[1].tier).bgColor} mb-2">
 							<span class="text-xs {getTierInfo(filteredPlayers[1].tier).color}">{filteredPlayers[1].tier}</span>
 						</div>
-						<p class="text-2xl font-bold text-primary-green">${filteredPlayers[1].stats.totalEarnings.toFixed(2)}</p>
+						<p class="text-2xl font-bold text-primary-green">${(filteredPlayers[1].totalEarningsUsdc || 0).toFixed(2)}</p>
 						<p class="text-sm text-text-secondary">{filteredPlayers[1].stats.gamesWon} wins</p>
 					</div>
 				</div>
@@ -198,11 +198,11 @@
 						<div class="w-20 h-20 rounded-full bg-yellow-500/10 border-2 border-yellow-500 flex items-center justify-center mx-auto mb-3">
 							<Crown class="w-10 h-10 text-yellow-500" />
 						</div>
-						<h3 class="text-xl font-bold text-white mb-1">{filteredPlayers[0].playerName}</h3>
+						<h3 class="text-xl font-bold text-white mb-1">{filteredPlayers[0].name}</h3>
 						<div class="inline-flex items-center gap-1 px-2 py-1 rounded-full {getTierInfo(filteredPlayers[0].tier).bgColor} mb-2">
 							<span class="text-xs {getTierInfo(filteredPlayers[0].tier).color}">{filteredPlayers[0].tier}</span>
 						</div>
-						<p class="text-3xl font-bold text-primary-green">${filteredPlayers[0].stats.totalEarnings.toFixed(2)}</p>
+						<p class="text-3xl font-bold text-primary-green">${(filteredPlayers[0].totalEarningsUsdc || 0).toFixed(2)}</p>
 						<p class="text-sm text-text-secondary">{filteredPlayers[0].stats.gamesWon} wins</p>
 					</div>
 				</div>
@@ -214,11 +214,11 @@
 						<div class="w-16 h-16 rounded-full bg-orange-600/10 border-2 border-orange-600 flex items-center justify-center mx-auto mb-3">
 							<User class="w-8 h-8 text-orange-600" />
 						</div>
-						<h3 class="text-lg font-bold text-white mb-1">{filteredPlayers[2].playerName}</h3>
+						<h3 class="text-lg font-bold text-white mb-1">{filteredPlayers[2].name}</h3>
 						<div class="inline-flex items-center gap-1 px-2 py-1 rounded-full {getTierInfo(filteredPlayers[2].tier).bgColor} mb-2">
 							<span class="text-xs {getTierInfo(filteredPlayers[2].tier).color}">{filteredPlayers[2].tier}</span>
 						</div>
-						<p class="text-2xl font-bold text-primary-green">${filteredPlayers[2].stats.totalEarnings.toFixed(2)}</p>
+						<p class="text-2xl font-bold text-primary-green">${(filteredPlayers[2].totalEarningsUsdc || 0).toFixed(2)}</p>
 						<p class="text-sm text-text-secondary">{filteredPlayers[2].stats.gamesWon} wins</p>
 					</div>
 				</div>
@@ -242,7 +242,7 @@
 					</thead>
 					<tbody class="divide-y divide-border-color">
 						{#each filteredPlayers as player, index}
-							<tr class="hover:bg-zinc-800/50 transition-colors {isCurrentPlayer(player.playerId) ? 'bg-primary-green/5 border-l-4 border-primary-green' : ''}">
+							<tr class="hover:bg-zinc-800/50 transition-colors {isCurrentPlayer(player.account) ? 'bg-primary-green/5 border-l-4 border-primary-green' : ''}">
 								<td class="px-6 py-4 whitespace-nowrap">
 									<span class="text-xl font-bold {getRankColor(index + 1)}">
 										{getRankIcon(index + 1)}
@@ -255,13 +255,13 @@
 										</div>
 										<div>
 											<div class="text-white font-medium flex items-center gap-2">
-												{player.playerName}
-												{#if isCurrentPlayer(player.playerId)}
+												{player.name}
+												{#if isCurrentPlayer(player.account)}
 													<span class="text-xs px-2 py-0.5 rounded-full bg-primary-green/20 text-primary-green">You</span>
 												{/if}
 											</div>
 											<div class="text-text-secondary text-xs font-mono">
-												{player.playerId.slice(0, 6)}...{player.playerId.slice(-4)}
+												{player.account.slice(0, 6)}...{player.account.slice(-4)}
 											</div>
 										</div>
 									</div>
@@ -282,7 +282,7 @@
 									<span class="text-white font-medium">{calculateWinRate(player).toFixed(1)}%</span>
 								</td>
 								<td class="px-6 py-4 text-right">
-									<span class="text-primary-green font-bold text-lg">${player.stats.totalEarnings.toFixed(2)}</span>
+									<span class="text-primary-green font-bold text-lg">${(player.totalEarningsUsdc || 0).toFixed(2)}</span>
 								</td>
 							</tr>
 						{/each}
@@ -308,7 +308,7 @@
 			<div class="bg-bg-accent border border-border-color rounded-lg p-6 text-center">
 				<Medal class="w-8 h-8 text-primary-green mx-auto mb-2" />
 				<p class="text-2xl font-bold text-primary-green">
-					${filteredPlayers.reduce((sum, p) => sum + p.stats.totalEarnings, 0).toFixed(2)}
+					${filteredPlayers.reduce((sum, p) => sum + (p.totalEarningsUsdc || 0), 0).toFixed(2)}
 				</p>
 				<p class="text-sm text-text-secondary">Total Prizes Awarded</p>
 			</div>

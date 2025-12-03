@@ -292,14 +292,14 @@
 				
 				{#if players.length > 0}
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-						{#each players as player, index}
-							<div class="bg-black/30 rounded-lg p-3 flex items-center gap-3">
-								<div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-black font-bold">
-									{index + 1}
-								</div>
-								<div class="truncate">{player.playerName}</div>
+					{#each players as player, index}
+						<div class="bg-black/30 rounded-lg p-3 flex items-center gap-3">
+							<div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-black font-bold">
+								{index + 1}
 							</div>
-						{/each}
+							<div class="truncate">{player.name}</div>
+						</div>
+					{/each}
 					</div>
 				{:else}
 					<div class="text-center py-8 text-gray-400">

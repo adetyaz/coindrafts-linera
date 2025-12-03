@@ -36,13 +36,13 @@ export interface MutationResult {
 
 // Player and Portfolio types
 export interface PlayerProfile {
-	playerId: string;
-	playerName: string;
+	account: string;
+	name: string;
 	stats: {
 		gamesPlayed: number;
 		gamesWon: number;
-		totalEarnings: number;
 	};
+	totalEarningsUsdc: number;
 	tier: string;
 }
 
@@ -191,13 +191,13 @@ const GET_PORTFOLIOS = gql`
 const GET_PLAYERS = gql`
 	query GetPlayers {
 		players {
-			playerId
-			playerName
+			account
+			name
 			stats {
 				gamesPlayed
 				gamesWon
-				totalEarnings
 			}
+			totalEarningsUsdc
 			tier
 		}
 	}
@@ -349,7 +349,7 @@ class CoinDraftsService {
 	// Helper method to find a specific player by account/chain ID
 	async fetchPlayerProfile(playerId: string): Promise<PlayerProfile | null> {
 		const players = await this.fetchPlayers();
-		return players.find((p) => p.playerId === playerId) || null;
+		return players.find((p) => p.account === playerId) || null;
 	}
 
 	// Helper method to get games where a specific player is registered

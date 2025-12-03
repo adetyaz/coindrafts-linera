@@ -41,6 +41,12 @@
 		try {
 			loading = true;
 			tournaments = await coinDraftsService.fetchTournaments();
+			// Sort by creation date (latest first)
+			tournaments.sort((a, b) => {
+				const aTime = new Date(a.createdAt || 0).getTime();
+				const bTime = new Date(b.createdAt || 0).getTime();
+				return bTime - aTime;
+			});
 			applyFilters();
 		} catch (error) {
 			console.error('Error loading tournaments:', error);
@@ -66,6 +72,8 @@
 		// Just redirect to draft page - registration happens when portfolio is submitted
 		if (walletState.isConnected) {
 			window.location.href = `/tournaments/${tournamentId}/draft`;
+			// Refresh tournaments after join to show updated count
+			setTimeout(() => loadTournaments(), 2000);
 		} else {
 			showToast('Please connect your wallet first', 'error');
 		}
@@ -141,8 +149,7 @@
 		</div>
 		<button 
 			onclick={() => showCreateModal = true}
-			class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 border-2 border-primary-green"
-			style="background-color: #39ff14 !important; color: black !important; display: flex !important; visibility: visible !important;"
+			class="font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 bg-[#39ff14] hover:bg-[#0bd10b] text-black"
 		>
 			<Plus class="w-5 h-5" />
 			Create Tournament
@@ -206,7 +213,7 @@
 			<p class="text-text-secondary mb-6">Be the first to create a tournament!</p>
 			<button
 				onclick={() => showCreateModal = true}
-				class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full cursor-pointer flex items-center gap-2 mx-auto"
+				class="bg-[#39ff14] hover:bg-[#0bd10b] text-black font-bold py-3 px-6 rounded-full cursor-pointer flex items-center gap-2 mx-auto"
 			>
 				Create Tournament
 			</button>
@@ -276,13 +283,13 @@
 					<div class="flex gap-2">
 						<button 
 							onclick={() => joinTournament(tournament.id)}
-							class="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
+							class="flex-1 bg-[#39ff14] hover:bg-[#0bd10b] text-black text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
 						>
 							Join Tournament
 						</button>
 						<a 
 							href="/tournaments/{tournament.id}"
-							class="flex-1 bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
+							class="flex-1 bg-transparent border-2 border-white text-white text-center py-2 rounded-full transition-colors font-medium cursor-pointer hover:bg-white/10"
 						>
 							View Details
 						</a>
@@ -373,7 +380,7 @@
 						class="flex-1 py-2 rounded-full transition-colors font-bold {
 							creating 
 								? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
-								: 'bg-primary-green hover:bg-dark-green text-black cursor-pointer'
+								: 'bg-[#39ff14] hover:bg-[#0bd10b] text-black cursor-pointer'
 						}"
 					>
 						{creating ? 'Creating...' : 'Create Tournament'}

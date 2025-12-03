@@ -27,6 +27,7 @@ docker compose up --force-recreate
 #    • Build Rust backend applications
 #    • Deploy to local Linera network
 #    • Generate unique application IDs
+#    • Pre-seed tournaments and leaderboard
 #    • Start frontend with proper configuration
 
 # Access the application
@@ -34,11 +35,15 @@ docker compose up --force-recreate
 # GraphQL: http://localhost:8080
 ```
 
-## ⚠️ Important Notes
+## Important Notes
 
 - **Wallet Connection Required**: You must connect a wallet (any Ethereum address) before creating or joining games
-- **Pre-seeded Tournaments**: Traditional league tournaments are pre-populated with test data for demonstration
+- **Pre-seeded Data**: Both tournaments and the global leaderboard are pre-populated with sample data for immediate demonstration
+  - **Why?** Real games take time to complete due to game durations (5-60 minutes), and stats only update after games finish
+  - **Benefit**: You can immediately see leaderboard rankings and tournament brackets without waiting
+  - **Note**: Pre-seeded stats will be replaced as real players complete actual games
 - **Local Development Only**: Each developer gets unique application IDs - deployments cannot be shared
+- **Blob Synchronization**: First-time startup may show blob sync warnings - this is normal. The startup script waits 30 seconds for blob propagation across the Linera network before starting services. If startup fails with blob errors, retry with `docker compose down -v && docker compose up --force-recreate`
 
 ## How to Use the App
 
@@ -58,11 +63,21 @@ docker compose up --force-recreate
 4. **Register**: Click "Register for Tournament" on pending tournaments
 5. **Draft Phase**: Select your cryptocurrencies when the tournament enters draft phase
 
+### Global Leaderboard
+
+- **Pre-populated Rankings**: The leaderboard is pre-seeded with 15 sample players showing diverse stats
+- **Real-time Updates**: Stats update automatically as players complete games
+- **View Profiles**: Click on any player to see detailed statistics and achievements
+- **Filter & Sort**: Use tier filters and sort by earnings, games played, or win rate
+
+**Why Pre-seed?** Games have time-based durations (5-60 minutes), and player stats only update after game completion. Pre-seeding allows immediate demonstration of leaderboard functionality without waiting for games to finish.
+
 ### Key Features
 
 - **Real-time Updates**: Game pages refresh automatically when players join
 - **Portfolio Tracking**: View all submitted portfolios and player statistics
 - **Tournament Brackets**: Pre-seeded tournaments show realistic competition scenarios
+- **Dynamic Leaderboard**: Rankings update as players complete games and earn rewards
 
 ## Development Setup
 

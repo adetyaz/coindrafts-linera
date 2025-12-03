@@ -140,18 +140,24 @@ async function seedTournaments() {
     // Wait for GraphQL to be ready
     console.log("⏳ Waiting for GraphQL service...");
     let ready = false;
-    for (let i = 0; i < 10; i++) {
+    let lastError = null;
+    for (let i = 0; i < 15; i++) {
       try {
         await graphql("{ tournaments { id } }", {}, endpoint);
         ready = true;
         break;
       } catch (e) {
+        lastError = e.message;
+        process.stdout.write(".");
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
+    console.log("");
 
     if (!ready) {
-      console.error("❌ GraphQL service not ready after 20 seconds");
+      console.error("❌ GraphQL service not ready after 30 seconds");
+      console.error("   Last error:", lastError);
+      console.log("   Tip: Check /tmp/graphql-service.log for details");
       process.exit(1);
     }
 

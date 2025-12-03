@@ -255,12 +255,18 @@ impl TraditionalLeaguesContract {
     ) -> TraditionalLeaguesResponse {
         // Check if tournament exists and is accepting registrations
         match self.state.tournaments.get(&tournament_id).await {
-            Ok(Some(tournament)) if tournament.status == TournamentStatus::Registration => {
+            Ok(Some(mut tournament)) if tournament.status == TournamentStatus::Registration => {
                 // Check if tournament is full
                 match self.state.is_tournament_full(&tournament_id).await {
                     Ok(false) => {
                         // Add participant
                         if let Err(_e) = self.state.add_participant(&tournament_id, player_account).await {
+                            return TraditionalLeaguesResponse::PlayerRegistered { success: false };
+                        }
+                        
+                        // Update tournament current_participants count
+                        tournament.current_participants += 1;
+                        if let Err(_e) = self.state.tournaments.insert(&tournament_id, tournament.clone()) {
                             return TraditionalLeaguesResponse::PlayerRegistered { success: false };
                         }
                         

@@ -1,13 +1,16 @@
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 import { HttpLink } from '@apollo/client/link/http';
+import {
+	PUBLIC_COINDRAFTS_CORE_APP_ID,
+	PUBLIC_TRADITIONAL_LEAGUES_APP_ID,
+	PUBLIC_DEFAULT_CHAIN_ID
+} from '$env/static/public';
 
-// CoinDrafts Core application endpoint
-const COINDRAFTS_CORE_URI =
-	'http://localhost:8080/chains/3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e/applications/291a8797a591dee08a8cad1420a740520577f88d611548ff697df2eb14ed73e8';
+// CoinDrafts Core application endpoint - PORT 8081 for GraphQL!
+const COINDRAFTS_CORE_URI = `http://localhost:8081/chains/${PUBLIC_DEFAULT_CHAIN_ID}/applications/${PUBLIC_COINDRAFTS_CORE_APP_ID}`;
 
 // Traditional Leagues application endpoint
-const TRADITIONAL_LEAGUES_URI =
-	'http://localhost:8080/chains/3b7dc35ad9989e5a049084fe4b0a995905ab65bd98a60e89f9b3576fb2ce125e/applications/39d51c08f0cc40daabcdda83e974c3e9ddfc3656c7298161a2069a4f856ae0f2';
+const TRADITIONAL_LEAGUES_URI = `http://localhost:8081/chains/${PUBLIC_DEFAULT_CHAIN_ID}/applications/${PUBLIC_TRADITIONAL_LEAGUES_APP_ID}`;
 
 // CoinDrafts Core client
 export const coinDraftsClient = new ApolloClient({
@@ -69,19 +72,19 @@ export const GET_GAMES = gql`
 
 export const CREATE_GAME = gql`
 	mutation CreateGame($mode: String!) {
-		operation(input: { CreateGame: { mode: $mode } })
+		createGame(mode: $mode)
 	}
 `;
 
 export const REGISTER_PLAYER = gql`
 	mutation RegisterPlayer($gameId: String!, $playerName: String!) {
-		operation(input: { RegisterPlayer: { game_id: $gameId, player_name: $playerName } })
+		registerPlayer(gameId: $gameId, playerName: $playerName)
 	}
 `;
 
 export const SUBMIT_PORTFOLIO = gql`
 	mutation SubmitPortfolio($gameId: String!, $cryptocurrencies: [String!]!) {
-		operation(input: { SubmitPortfolio: { game_id: $gameId, cryptocurrencies: $cryptocurrencies } })
+		submitPortfolio(gameId: $gameId, cryptocurrencies: $cryptocurrencies)
 	}
 `;
 
@@ -119,30 +122,24 @@ export const GET_TOURNAMENTS = gql`
 export const CREATE_TOURNAMENT = gql`
 	mutation CreateTournament(
 		$name: String!
-		$entryFeeUsdc: Int!
+		$entryFeeUsdc: String!
 		$maxParticipants: Int!
-		$tournamentType: String!
+		$tournamentType: TournamentType!
+		$category: String!
 	) {
-		operation(
-			input: {
-				CreateTournament: {
-					name: $name
-					entry_fee_usdc: $entryFeeUsdc
-					max_participants: $maxParticipants
-					tournament_type: $tournamentType
-				}
-			}
+		createTournament(
+			name: $name
+			entryFeeUsdc: $entryFeeUsdc
+			maxParticipants: $maxParticipants
+			tournamentType: $tournamentType
+			category: $category
 		)
 	}
 `;
 
 export const REGISTER_FOR_TOURNAMENT = gql`
 	mutation RegisterForTournament($tournamentId: String!, $playerAccount: String!) {
-		operation(
-			input: {
-				RegisterForTournament: { tournament_id: $tournamentId, player_account: $playerAccount }
-			}
-		)
+		registerForTournament(tournamentId: $tournamentId, playerAccount: $playerAccount)
 	}
 `;
 
@@ -164,12 +161,12 @@ export const SUBMIT_TOURNAMENT_PORTFOLIO = gql`
 
 export const ADVANCE_ROUND = gql`
 	mutation AdvanceRound($tournamentId: String!) {
-		operation(input: { AdvanceRound: { tournament_id: $tournamentId } })
+		advanceRound(tournamentId: $tournamentId)
 	}
 `;
 
 export const COMPLETE_TOURNAMENT = gql`
 	mutation CompleteTournament($tournamentId: String!) {
-		operation(input: { CompleteTournament: { tournament_id: $tournamentId } })
+		completeTournament(tournamentId: $tournamentId)
 	}
 `;

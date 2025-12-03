@@ -32,7 +32,10 @@ echo "Leagues App ID: $TRADITIONAL_LEAGUES_APP_ID"
 DEFAULT_CHAIN_ID=$(linera wallet show 2>&1 | grep -o '[a-f0-9]\{64,66\}' | sed -n '2p')
 echo "Chain ID: $DEFAULT_CHAIN_ID"
 
-# Start GraphQL service immediately (blobs sync in background)
+# Wait for blob synchronization
+sleep 20
+
+# Start GraphQL service
 echo "Starting GraphQL service..."
 linera service --port 8081 > /tmp/graphql-service.log 2>&1 &
 sleep 2
@@ -49,13 +52,15 @@ PUBLIC_TRADITIONAL_LEAGUES_APP_ID=$TRADITIONAL_LEAGUES_APP_ID
 PUBLIC_DEFAULT_CHAIN_ID=$DEFAULT_CHAIN_ID
 EOF
 
-# Install dependencies - skip if already installed and package.json unchanged
-if [ ! -d "node_modules" ] || [ package.json -nt node_modules/.package-lock.json ] 2>/dev/null; then
-  echo "Installing dependencies..."
-  npm ci --prefer-offline --no-audit
-else
-  echo "Dependencies up to date, skipping..."
-fi
+# Install dependencies
+echo "Installing dependencies..."
+npm install
+
+# Run auto-seed script
+echo ""
+echo "🌱 Running auto-seed script..."
+cd /build
+node seed-data.js
 
 echo ""
 echo "===== DEPLOYMENT COMPLETE ====="
@@ -68,4 +73,5 @@ echo "==============================="
 echo ""
 
 # Start frontend
+cd /build/frontend
 exec npm run dev -- --host 0.0.0.0 --port 5173

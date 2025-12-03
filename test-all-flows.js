@@ -13,13 +13,13 @@
 
 const GRAPHQL_BASE = "http://localhost:8081";
 const DEFAULT_CHAIN_ID =
-  "4d19e399321e4b71ad404fda1654cfd111b728956421c45b42e77d4b3440ef9f";
+  "80c593711d43d85cb63afbc0a29231cf2c3ddef5d6fb3bbf0709bd73cec05acd";
 
 // Application IDs - from latest Docker deployment
 const COINDRAFTS_CORE_APP_ID =
-  "283ea44a8db8774342521079a78ca2e228b2595efea22384db7c20cdfae1db6a";
+  "cc4e4f7fb3fc0bad2cd91f00c7d876201d8c3965a418c9c5a764947b95212763";
 const TRADITIONAL_LEAGUES_APP_ID =
-  "bc6d33fd6b09e70740c5dd69faa125487cb65032ee659cfb9696a0ca8e292586";
+  "b4367ef5d1fcc46b2d09af5e79807adc5e40634948c0e4ca6e9b0b3cddc4367a";
 
 // GraphQL Endpoints
 const CORE_ENDPOINT = `${GRAPHQL_BASE}/chains/${DEFAULT_CHAIN_ID}/applications/${COINDRAFTS_CORE_APP_ID}`;
@@ -65,8 +65,8 @@ async function graphql(
 // Mock price snapshot generator
 function generatePriceSnapshot(cryptoIds) {
   return cryptoIds.map((id) => ({
-    crypto_id: id,
-    price_usd: Math.floor(Math.random() * 10000000) + 1000000, // Random price between $1-$10
+    cryptoId: id,
+    priceUsd: Math.floor(Math.random() * 10000000) + 1000000, // Random price between $1-$10
     timestamp: Date.now(),
   }));
 }
@@ -78,7 +78,8 @@ async function test_Core_CreateGame() {
   log("=".repeat(80), "magenta");
 
   try {
-    const data = await graphql(
+    // Execute mutation (returns transaction ID)
+    await graphql(
       `
         mutation CreateGame($mode: String!) {
           createGame(mode: $mode)
@@ -88,7 +89,25 @@ async function test_Core_CreateGame() {
       CORE_ENDPOINT
     );
 
-    const gameId = data.createGame;
+    // Query to get the latest game ID
+    const gamesData = await graphql(
+      `
+        query GetGames {
+          games {
+            gameId
+            mode
+            status
+          }
+        }
+      `,
+      {},
+      CORE_ENDPOINT
+    );
+
+    const games = gamesData.games || [];
+    const latestGame = games[games.length - 1];
+    const gameId = latestGame?.gameId;
+
     log(`  ✅ Game created: ${gameId}`, "green");
     return gameId;
   } catch (error) {
@@ -279,13 +298,13 @@ async function test_Core_QueriesGamesAndPlayers() {
       `
         query GetPlayers {
           players {
-            playerId
-            playerName
+            account
+            name
             stats {
               gamesPlayed
               gamesWon
-              totalEarnings
             }
+            totalEarningsUsdc
           }
         }
       `,

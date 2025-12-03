@@ -13,7 +13,7 @@ use std::sync::Arc;
 use async_graphql::{Context, EmptySubscription, Object, Request, Response, Schema};
 use traditional_leagues::{
     TraditionalLeaguesAbi, Tournament, TournamentStatus, TournamentType,
-    TournamentPortfolio, PriceSnapshot, LeaderboardEntry, ScoringEngine, PriceData,
+    TournamentPortfolio, LeaderboardEntry, ScoringEngine, PriceData,
 };
 use linera_sdk::{
     linera_base_types::WithServiceAbi,

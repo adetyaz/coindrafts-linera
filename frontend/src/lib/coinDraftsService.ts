@@ -16,7 +16,7 @@ export interface Game {
 	maxPlayers: number;
 }
 
-interface Tournament {
+export interface Tournament {
 	id: string;
 	name: string;
 	tournamentType: string;
@@ -555,4 +555,4 @@ class CoinDraftsService {
 }
 
 export const coinDraftsService = new CoinDraftsService();
-export type { Game, Tournament, MutationResult, PlayerProfile, Portfolio };
+export default coinDraftsService;

@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import coinDraftsService from '$lib/coinDraftsService';
 	import type { LeaderboardEntry } from '$lib/coinDraftsService';
 
-	const tournamentId = $page.params.tournamentId;
+	const tournamentId = page.params.tournamentId;
 	
 	let leaderboard: LeaderboardEntry[] = [];
 	let loading = true;
@@ -40,6 +40,10 @@
 		try {
 			loading = true;
 			error = '';
+			if (!tournamentId) {
+				error = 'Tournament ID is missing';
+				return;
+			}
 			leaderboard = await coinDraftsService.fetchLeaderboard(tournamentId);
 			
 			if (leaderboard.length === 0) {

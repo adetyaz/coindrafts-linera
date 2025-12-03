@@ -38,14 +38,7 @@ if (browser) {
 			email: false,
 			socials: []
 		},
-		themeMode: 'dark',
-		themeVariables: {
-			'--w3m-color-mix': '#000000',
-			'--w3m-color-mix-strength': 100,
-			'--w3m-accent': '#22c55e',
-			'--w3m-border-radius-master': '8px',
-			'--w3m-z-index': 1000
-		}
+		
 	});
 
 	// Sync AppKit wallet state to our wallet store

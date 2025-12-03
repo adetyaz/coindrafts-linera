@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { coinDraftsService, type Game, type PlayerProfile, type Portfolio } from '$lib/coinDraftsService';
 	import { Trophy, Users, DollarSign, Calendar, Gamepad2, ArrowLeft, Target } from '@lucide/svelte';
+	import { wallet } from '$lib/stores/wallet';
+	import { showToast } from '$lib/stores/toasts';
 
 	const gameId = page.params.gameId;
 	
@@ -11,6 +13,30 @@
 	let portfolios = $state<Portfolio[]>([]);
 	let loading = $state(true);
 	let error = $state('');
+	let showPortfolioModal = $state(false);
+	let portfolioCryptos = $state<string[]>([]);
+	let submitting = $state(false);
+	
+	const walletState = $derived($wallet);
+
+	const availableCryptos = [
+		{ name: 'Bitcoin', id: 'bitcoin' },
+		{ name: 'Ethereum', id: 'ethereum' },
+		{ name: 'Cardano', id: 'cardano' },
+		{ name: 'Solana', id: 'solana' },
+		{ name: 'Polkadot', id: 'polkadot' },
+		{ name: 'Chainlink', id: 'chainlink' },
+		{ name: 'Polygon', id: 'polygon' },
+		{ name: 'Avalanche', id: 'avalanche' },
+		{ name: 'Cosmos', id: 'cosmos' },
+		{ name: 'Near Protocol', id: 'near' },
+		{ name: 'Algorand', id: 'algorand' },
+		{ name: 'Fantom', id: 'fantom' },
+		{ name: 'Hedera', id: 'hedera' },
+		{ name: 'Internet Computer', id: 'internet-computer' },
+		{ name: 'VeChain', id: 'vechain' },
+		{ name: 'Tezos', id: 'tezos' }
+	];
 
 	onMount(async () => {
 		await loadGameDetails();
@@ -47,37 +73,91 @@
 	}
 
 	async function joinGame() {
+		portfolioCryptos = [];
+		showPortfolioModal = true;
+	}
+
+	function togglePortfolioCrypto(cryptoId: string) {
+		if (portfolioCryptos.includes(cryptoId)) {
+			portfolioCryptos = portfolioCryptos.filter(c => c !== cryptoId);
+		} else if (portfolioCryptos.length < 5) {
+			portfolioCryptos = [...portfolioCryptos, cryptoId];
+		}
+	}
+
+	async function submitGamePortfolio() {
+		if (portfolioCryptos.length !== 5) {
+			showToast('Please select exactly 5 cryptocurrencies', 'error');
+			return;
+		}
+
+		if (!walletState.chainId) {
+			showToast('Please connect your wallet first', 'error');
+			return;
+		}
+
+		if (!gameId) {
+			showToast('Invalid game ID', 'error');
+			return;
+		}
+
 		try {
-			if (!gameId) {
-				error = 'Invalid game ID';
+			submitting = true;
+
+			const registerResult = await coinDraftsService.registerPlayer(gameId, walletState.chainId);
+
+			if (!registerResult.success) {
+				showToast('Failed to register for game', 'error');
 				return;
 			}
-			const result = await coinDraftsService.registerPlayer(gameId, 'current-user');
-			if (result.success) {
-				await loadGameDetails(); // Refresh data
+
+			const portfolioResult = await coinDraftsService.submitPortfolio(gameId, portfolioCryptos);
+
+			if (portfolioResult.success) {
+				showToast('Successfully joined game and submitted portfolio!', 'success');
+				showPortfolioModal = false;
+				portfolioCryptos = [];
+				// Reload game details immediately to show updates
+				await loadGameDetails();
 			} else {
-				error = 'Failed to join game';
+				showToast('Registered but portfolio submission failed', 'error');
 			}
-		} catch (err) {
-			console.error('Failed to join game:', err);
-			error = 'Failed to join game';
+		} catch (error) {
+			console.error('Error submitting portfolio:', error);
+			showToast('Error submitting portfolio. Please try again.', 'error');
+		} finally {
+			submitting = false;
 		}
 	}
 
 	function getStatusColor(status: string): string {
 		switch (status) {
-			case 'WaitingForPlayers': return 'text-green-400';
-			case 'Active': return 'text-yellow-400';
-			case 'Completed': return 'text-blue-400';
+			case 'WAITING_FOR_PLAYERS':
+			case 'WaitingForPlayers': 
+			case 'PENDING': 
+				return 'text-green-400';
+			case 'ACTIVE':
+			case 'Active': 
+				return 'text-yellow-400';
+			case 'COMPLETED':
+			case 'Completed': 
+				return 'text-blue-400';
 			default: return 'text-gray-400';
 		}
 	}
 
 	function getStatusIcon(status: string) {
 		switch (status) {
-			case 'WaitingForPlayers': return Users;
-			case 'Active': return Target;
-			case 'Completed': return Trophy;
+			case 'WAITING_FOR_PLAYERS':
+			case 'WaitingForPlayers': 
+			case 'PENDING':
+				return Users;
+			case 'ACTIVE':
+			case 'Active': 
+				return Target;
+			case 'COMPLETED':
+			case 'Completed': 
+				return Trophy;
 			default: return Calendar;
 		}
 	}
@@ -136,10 +216,10 @@
 						</div>
 					</div>
 					
-					{#if game.status === 'WaitingForPlayers'}
+					{#if game.status === 'WAITING_FOR_PLAYERS' || game.status === 'WaitingForPlayers' || game.status === 'PENDING'}
 						<button 
 							onclick={joinGame}
-							class="bg-green-600 hover:bg-green-700 text-black px-6 py-3 rounded-full font-semibold transition-colors cursor-pointer flex items-center gap-2"
+							class="bg-[#39ff14] hover:bg-[#0bd10b] text-black px-6 py-3 rounded-full font-semibold transition-colors cursor-pointer flex items-center gap-2"
 						>
 							<Users size={20} />
 							Join Game
@@ -270,3 +350,72 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Portfolio Selection Modal -->
+{#if showPortfolioModal}
+	<div 
+		class="fixed inset-0 bg-black/70 flex items-start justify-center z-50 overflow-y-auto"
+		onclick={(e) => { if (e.target === e.currentTarget) { showPortfolioModal = false; portfolioCryptos = []; } }}
+	>
+		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-[#39ff14]/30 max-w-md w-full my-8">
+			<h2 class="text-2xl font-bold text-white mb-6">Select Your Portfolio</h2>
+			
+			<div class="space-y-4 mb-6">
+				<p class="text-gray-300 text-sm">
+					Choose exactly 5 cryptocurrencies for this game. Your portfolio performance will determine your ranking!
+				</p>
+				
+				<div>
+					<label class="block text-sm font-medium text-gray-300 mb-3">
+						Select Cryptocurrencies ({portfolioCryptos.length}/5)
+					</label>
+					<div class="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto bg-white/5 rounded-lg p-3 border border-white/20">
+						{#each availableCryptos as crypto}
+						<button
+							type="button"
+							onclick={() => togglePortfolioCrypto(crypto.id)}
+							class="text-left p-2 rounded-lg text-sm transition-all cursor-pointer {
+								portfolioCryptos.includes(crypto.id) 
+									? 'bg-[#39ff14] text-black font-medium' 
+									: 'bg-white/10 text-white hover:bg-white/20'
+							} {portfolioCryptos.length >= 5 && !portfolioCryptos.includes(crypto.id) ? 'opacity-50 cursor-not-allowed' : ''}"
+							disabled={portfolioCryptos.length >= 5 && !portfolioCryptos.includes(crypto.id)}
+						>
+							{crypto.name}
+						</button>
+						{/each}
+					</div>
+				</div>
+				
+				{#if !walletState.isConnected}
+					<div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3">
+						<p class="text-xs text-yellow-200">
+							Please connect your wallet to join this game
+						</p>
+					</div>
+				{/if}
+			</div>
+			
+			<div class="flex gap-4">
+				<button 
+					type="button"
+					onclick={() => { showPortfolioModal = false; portfolioCryptos = []; }}
+					class="flex-1 border border-white/30 text-white hover:bg-white/10 py-3 rounded-full transition-colors cursor-pointer"
+				>
+					Cancel
+				</button>
+				<button 
+					onclick={submitGamePortfolio}
+					disabled={submitting || portfolioCryptos.length !== 5 || !walletState.isConnected}
+					class="flex-1 py-3 rounded-full transition-colors font-bold {
+						(submitting || portfolioCryptos.length !== 5 || !walletState.isConnected)
+							? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
+							: 'bg-[#39ff14] hover:bg-[#0bd10b] text-black cursor-pointer'
+					}"
+				>
+					{submitting ? 'Submitting...' : 'Join & Submit'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

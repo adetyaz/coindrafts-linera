@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { coinDraftsService, type Tournament } from '$lib/coinDraftsService';
+	import { coinDraftsService } from '$lib/coinDraftsService';
+	import type { Tournament } from '$lib/coinDraftsService';
 	import { Trophy, Users, DollarSign, Calendar, Crown, ArrowLeft, TrendingUp } from '@lucide/svelte';
 
 	const tournamentId = page.params.tournamentId;

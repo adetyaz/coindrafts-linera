@@ -63,7 +63,7 @@
 
 			<!-- Right Side Actions -->
 			<div class="flex items-center space-x-4">
-				<!-- Real Wallet Button (Reown AppKit) -->
+				<!-- AppKit Wallet Button -->
 				<appkit-button />
 				
 				<!-- Mobile Menu Button -->
@@ -96,7 +96,7 @@
 						</a>
 					{/each}
 					
-					<!-- Mobile Wallet Button -->
+					<!-- Mobile AppKit Button -->
 					<div class="pt-2">
 						<appkit-button />
 					</div>

@@ -3,6 +3,7 @@ services:
     build: .
     volumes:
       - .:/build
+      - /build/frontend/node_modules
     ports:
       - "5173:5173" # Frontend
       - "8080:8080" # Linera faucet

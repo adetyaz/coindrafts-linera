@@ -7,6 +7,7 @@
 	import { tradLeaguesClient, SUBMIT_TOURNAMENT_PORTFOLIO } from '$lib/coinDraftsClient';
 	import { getCryptosForCategory, type CryptoInfo } from '$lib/data/cryptoCategories';
 	import { coinDraftsService, type Tournament } from '$lib/coinDraftsService';
+	import { gql } from '@apollo/client/core';
 
 	// Tournament ID from URL
 	let tournamentId = $derived(page.params.tournamentId);
@@ -185,22 +186,47 @@
 		try {
 			submitting = true;
 
-			// Extract crypto symbols for backend
+			console.log('🔍 Step 1: Registering for tournament...');
+			console.log('Player account:', $wallet.chainId);
+			
+			// STEP 1: Register for tournament (like test script)
+			const registrationResult = await tradLeaguesClient.mutate({
+				mutation: gql`
+					mutation RegisterForTournament($tournamentId: String!, $playerAccount: String!) {
+						registerForTournament(tournamentId: $tournamentId, playerAccount: $playerAccount)
+					}
+				`,
+				variables: {
+					tournamentId,
+					playerAccount: $wallet.chainId
+				}
+			});
+			
+			console.log('✅ Registration result:', registrationResult);
+			
+			if (!registrationResult.data) {
+				throw new Error('Registration failed - no transaction ID returned');
+			}
+
+			// STEP 2: Extract crypto IDs (NOT symbols!) for backend
+			// Backend expects lowercase full names like "bitcoin", "ethereum" (the ID, not the symbol)
 			const cryptoPicks = draftPicks
 				.filter((pick) => pick !== null)
 				.map((pick) => {
 					const crypto = availableCryptos.find((c) => c.id === pick);
-					return crypto?.symbol || '';
+					return crypto?.id || ''; // Use ID (bitcoin, ethereum), NOT symbol (BTC, ETH)
 				})
-				.filter((symbol) => symbol !== '');
+				.filter((id) => id !== '');
 
-			console.log('Submitting portfolio:', {
+			console.log('🔍 Step 2: Submitting portfolio...');
+			console.log('Crypto picks (using IDs):', cryptoPicks);
+			console.log('Portfolio data:', {
 				tournamentId,
 				round: 1,
 				cryptoPicks
 			});
 
-			// Call backend mutation
+			// STEP 3: Submit portfolio
 			const result = await tradLeaguesClient.mutate({
 				mutation: SUBMIT_TOURNAMENT_PORTFOLIO,
 				variables: {
@@ -211,10 +237,10 @@
 				}
 			});
 
-			console.log('Portfolio submission result:', result);
+			console.log(' Portfolio submission result:', result);
 
 			if (result.data) {
-				addToast('Portfolio submitted successfully!', 'success');
+				addToast('Registered and portfolio submitted successfully!', 'success');
 				goto(`/tournaments/${tournamentId}`);
 			} else {
 				throw new Error('No data returned from mutation');

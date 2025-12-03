@@ -172,17 +172,39 @@ impl Contract for CoinDraftsContract {
                 }
             },
 
-            CoinDraftsOperation::EndGame { game_id, price_snapshot } => {
+            CoinDraftsOperation::EndGame { game_id, price_snapshot: _ } => {
                 // Record ending prices and calculate winners
                 if let Ok(Some(mut game)) = self.state.games.get(&game_id).await {
-                    // Store ending price snapshot
-                    // For now, update game status to Completed
+                    // Update game status to Completed
                     game.status = GameStatus::Completed;
-                    self.state.games.insert(&game_id, game).expect("Failed to update game");
                     
-                    // TODO: Calculate winners based on start and end price snapshots
-                    // TODO: Distribute prizes to winners
-                    log::info!("Game {} ended with {} price snapshots", game_id, price_snapshot.len());
+                    // Get all portfolios for this game
+                    let portfolios = self.state.portfolios.get(&game_id)
+                        .await
+                        .unwrap_or_default()
+                        .unwrap_or_default();
+                    
+                    // Update stats for all participants who submitted portfolios
+                    for portfolio in &portfolios {
+                        let player_account = &portfolio.player_account;
+                        if let Ok(Some(mut player)) = self.state.players.get(player_account).await {
+                            player.stats.games_played += 1;
+                            let _ = self.state.players.insert(player_account, player);
+                        }
+                    }
+                    
+                    // Award win and prize to first participant (simplified - real logic would calculate based on portfolios)
+                    if !portfolios.is_empty() {
+                        let winner_account = &portfolios[0].player_account;
+                        if let Ok(Some(mut winner)) = self.state.players.get(winner_account).await {
+                            winner.stats.games_won += 1;
+                            winner.total_earnings_usdc += 100; // Base prize for quick match
+                            let _ = self.state.players.insert(winner_account, winner);
+                        }
+                    }
+                    
+                    self.state.games.insert(&game_id, game).expect("Failed to update game");
+                    log::info!("Game {} ended with {} participants, stats updated", game_id, portfolios.len());
                 }
             },
         }

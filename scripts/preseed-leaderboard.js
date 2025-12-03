@@ -76,47 +76,113 @@ const SAMPLE_PLAYERS = [
   { name: "ChainChampion", gamesPlayed: 5, gamesWon: 1, earnings: 100 },
 ];
 
-async function createGameAndRegister(playerName) {
-  // Create a game
-  await graphql(
-    `
-      mutation CreateGame($mode: String!) {
-        createGame(mode: $mode)
+const CRYPTOCURRENCIES = [
+  "bitcoin",
+  "ethereum",
+  "solana",
+  "cardano",
+  "polkadot",
+];
+
+function generatePriceSnapshot() {
+  return CRYPTOCURRENCIES.map((id) => ({
+    cryptoId: id,
+    priceUsd: Math.floor(Math.random() * 10000000) + 1000000,
+    timestamp: Date.now(),
+  }));
+}
+
+async function createCompleteGame(playerName) {
+  try {
+    // 1. Create a game
+    await graphql(
+      `
+        mutation CreateGame($mode: String!) {
+          createGame(mode: $mode)
+        }
+      `,
+      { mode: "QUICK_MATCH" }
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // 2. Get the latest game
+    const gamesData = await graphql(`
+      query GetGames {
+        games {
+          gameId
+        }
       }
-    `,
-    { mode: "QUICK_MATCH" }
-  );
+    `);
 
-  // Wait for game creation
-  await new Promise((resolve) => setTimeout(resolve, 800));
+    const games = gamesData.games || [];
+    const latestGame = games[games.length - 1];
+    if (!latestGame) return false;
 
-  // Get latest game
-  const gamesData = await graphql(`
-    query GetGames {
-      games {
-        gameId
-      }
-    }
-  `);
+    const gameId = latestGame.gameId;
 
-  const games = gamesData.games || [];
-  const latestGame = games[games.length - 1];
-
-  if (latestGame) {
-    // Register player
+    // 3. Register player
     await graphql(
       `
         mutation RegisterPlayer($gameId: String!, $playerName: String!) {
           registerPlayer(gameId: $gameId, playerName: $playerName)
         }
       `,
-      { gameId: latestGame.gameId, playerName }
+      { gameId, playerName }
     );
 
-    return latestGame.gameId;
-  }
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
-  return null;
+    // 4. Submit portfolio
+    await graphql(
+      `
+        mutation SubmitPortfolio(
+          $gameId: String!
+          $cryptocurrencies: [String!]!
+        ) {
+          submitPortfolio(gameId: $gameId, cryptocurrencies: $cryptocurrencies)
+        }
+      `,
+      { gameId, cryptocurrencies: CRYPTOCURRENCIES }
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // 5. Start game with price snapshot
+    const startSnapshot = generatePriceSnapshot();
+    await graphql(
+      `
+        mutation StartGame(
+          $gameId: String!
+          $priceSnapshot: [PriceSnapshotInput!]!
+        ) {
+          startGame(gameId: $gameId, priceSnapshot: $priceSnapshot)
+        }
+      `,
+      { gameId, priceSnapshot: startSnapshot }
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // 6. End game with final price snapshot
+    const endSnapshot = generatePriceSnapshot();
+    await graphql(
+      `
+        mutation EndGame(
+          $gameId: String!
+          $priceSnapshot: [PriceSnapshotInput!]!
+        ) {
+          endGame(gameId: $gameId, priceSnapshot: $priceSnapshot)
+        }
+      `,
+      { gameId, priceSnapshot: endSnapshot }
+    );
+
+    return true;
+  } catch (error) {
+    log(`    ✗ Error: ${error.message}`, "yellow");
+    return false;
+  }
 }
 
 async function main() {
@@ -147,20 +213,28 @@ async function main() {
 
     log("Creating sample player profiles...\n", "yellow");
 
+    let created = 0;
     for (const player of SAMPLE_PLAYERS) {
       log(
-        `  → Creating ${player.name} (${player.gamesPlayed} games, ${player.gamesWon} wins, $${player.earnings})`,
+        `  → Creating ${player.name} (target: ${player.gamesPlayed} games, ${player.gamesWon} wins, $${player.earnings})`,
         "blue"
       );
 
-      await createGameAndRegister(player.name);
+      // Create a complete game (with portfolio submission and completion)
+      const success = await createCompleteGame(player.name);
+      if (success) {
+        created++;
+      }
 
       // Small delay between players
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 800));
     }
 
     log("\n✓ Leaderboard pre-seeding complete!", "green");
-    log(`  Created ${SAMPLE_PLAYERS.length} sample players`, "green");
+    log(
+      `  Created ${created}/${SAMPLE_PLAYERS.length} players with game stats`,
+      "green"
+    );
     log(
       "\n📊 Players will appear in the leaderboard with initial stats",
       "cyan"

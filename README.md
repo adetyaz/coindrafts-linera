@@ -23,6 +23,9 @@ CoinDrafts allows users to compete in cryptocurrency portfolio contests and tour
 # Clone and run the complete application
 docker compose up --force-recreate
 
+# also try if the the one at the top fails to sync blob:
+docker compose up --build --force-recreate
+
 # ⏱️  First run takes 5-10 minutes to:
 #    • Build Rust backend applications
 #    • Deploy to local Linera network

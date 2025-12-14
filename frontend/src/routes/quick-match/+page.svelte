@@ -74,11 +74,6 @@
 	}
 
 	async function createGame() {
-		if (selectedCryptos.length === 0) {
-			showToast('Please select at least 1 cryptocurrency', 'error');
-			return;
-		}
-		
 		try {
 			creating = true;
 			const result = await coinDraftsService.createGame(selectedMode);
@@ -86,13 +81,13 @@
 			if (result.success) {
 				showToast('Game created! Redirecting...', 'success');
 				showCreateModal = false;
-				selectedCryptos = [];
 				// Get the latest games to find the newly created one
 				const allGames = await coinDraftsService.fetchGames();
 				const quickMatchGames = allGames.filter(game => game.mode === 'QUICK_MATCH');
 				if (quickMatchGames.length > 0) {
-					// Get the most recent game (last in array)
-					const latestGame = quickMatchGames[quickMatchGames.length - 1];
+					// Sort by createdAt to get the most recent game
+					quickMatchGames.sort((a, b) => b.createdAt - a.createdAt);
+					const latestGame = quickMatchGames[0];
 					await goto(`/games/${latestGame.gameId}`);
 				} else {
 					await loadGames();
@@ -141,8 +136,12 @@
 				showToast('Successfully joined game and submitted portfolio!', 'success');
 				showPortfolioModal = false;
 				portfolioCryptos = [];
-				// Redirect to game page to see updated state
-				await goto(`/games/${joiningGameId}`);
+				
+				// Wait for blockchain propagation then reload games
+				await new Promise((resolve) => setTimeout(resolve, 2000));
+				await loadGames();
+				
+				showToast('Game list updated with your participation!', 'success');
 			} else {
 				showToast('Registered but portfolio submission failed', 'error');
 			}
@@ -324,41 +323,21 @@
 					</div>
 				</div>
 
-				<div>
-					<label class="block text-sm font-medium text-text-secondary mb-3">
-						Select Cryptocurrencies ({selectedCryptos.length}/5)
-					</label>
-					<div class="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto bg-white/5 rounded-lg p-3 border border-white/20">
-						{#each availableCryptos as crypto}
-						<button
-							type="button"
-							onclick={() => toggleCrypto(crypto.id)}
-							class="text-left p-2 rounded-lg text-sm transition-all cursor-pointer {
-								selectedCryptos.includes(crypto.id) 
-									? 'bg-[#39ff14] text-black font-medium' 
-									: 'bg-white/10 text-white hover:bg-white/20'
-							} {selectedCryptos.length >= 5 && !selectedCryptos.includes(crypto.id) ? 'opacity-50 cursor-not-allowed' : ''}"
-							disabled={selectedCryptos.length >= 5 && !selectedCryptos.includes(crypto.id)}
-						>
-							{crypto.name}
-						</button>
-						{/each}
-					</div>
-				</div>
+
 			</div>
 			
 			<div class="flex gap-4 mt-6">
 				<button 
-					onclick={() => { showCreateModal = false; selectedCryptos = []; }}
+					onclick={() => { showCreateModal = false; }}
 					class="flex-1 border border-white/30 text-white hover:bg-white/10 py-3 rounded-full transition-colors cursor-pointer"
 				>
 					Cancel
 				</button>
 				<button 
 					onclick={createGame}
-					disabled={creating || selectedCryptos.length === 0}
+					disabled={creating}
 					class="flex-1 py-3 rounded-full transition-colors font-bold {
-						(creating || selectedCryptos.length === 0)
+						creating
 							? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
 							: 'bg-[#39ff14] hover:bg-[#0bd10b] text-black cursor-pointer'
 					}"

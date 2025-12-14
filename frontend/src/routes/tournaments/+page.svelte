@@ -106,8 +106,8 @@
 			
 			if (result.success) {
 				showToast('Tournament created successfully!', 'success');
-				showCreateModal = false;
-				await loadTournaments();
+				showCreateModal = false;			// Wait for blockchain to persist new tournament
+			await new Promise(resolve => setTimeout(resolve, 2000));				await loadTournaments();
 				// Reset form
 				newTournament = {
 					name: '',
@@ -183,9 +183,6 @@
 				<select bind:value={typeFilter} class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white">
 					<option value="all">All Types</option>
 					<option value="SINGLE_ELIMINATION">Single Elimination</option>
-					<option value="DOUBLE_ELIMINATION">Double Elimination</option>
-					<option value="ROUND_ROBIN">Round Robin</option>
-					<option value="SWISS">Swiss System</option>
 				</select>
 			</div>
 			<div>
@@ -259,34 +256,32 @@
 							<span class="text-text-secondary">Players:</span>
 							<span class="text-white font-medium">{tournament.currentParticipants}/{tournament.maxParticipants}</span>
 						</div>
-						<div class="flex justify-between text-sm">
-							<span class="text-text-secondary">Round:</span>
-							<span class="text-white font-medium">{tournament.currentRound}/{tournament.maxRounds}</span>
-						</div>
 					</div>
 
-					<!-- Progress Bar -->
-					<div class="mb-6">
-						<div class="flex justify-between text-xs text-text-secondary mb-1">
-							<span>Participants</span>
-							<span>{Math.round((tournament.currentParticipants / tournament.maxParticipants) * 100)}%</span>
-						</div>
-						<div class="w-full bg-white/20 rounded-full h-2">
-							<div 
-								class="h-2 rounded-full transition-all duration-300"
-								style="background: linear-gradient(to right, #8b5cf6, #3b82f6); width: {(tournament.currentParticipants / tournament.maxParticipants) * 100}%"
-							></div>
-						</div>
+				<!-- Progress Bar -->
+				<div class="mb-6">
+					<div class="flex justify-between text-xs text-text-secondary mb-1">
+						<span>Participants</span>
+						<span>{Math.round((tournament.currentParticipants / tournament.maxParticipants) * 100)}%</span>
 					</div>
+					<div class="w-full bg-white/20 rounded-full h-2">
+						<div 
+							class="h-2 rounded-full transition-all duration-300"
+							style="background: linear-gradient(to right, #8b5cf6, #3b82f6); width: {(tournament.currentParticipants / tournament.maxParticipants) * 100}%"
+					></div>
+				</div>
+			</div>
 
-					<!-- Actions -->
+			<!-- Actions -->
 					<div class="flex gap-2">
-						<button 
-							onclick={() => joinTournament(tournament.id)}
-							class="flex-1 bg-[#39ff14] hover:bg-[#0bd10b] text-black text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
-						>
-							Join Tournament
-						</button>
+						{#if tournament.status === 'Registration'}
+							<button 
+								onclick={() => joinTournament(tournament.id)}
+								class="flex-1 bg-[#39ff14] hover:bg-[#0bd10b] text-black text-center py-2 rounded-full transition-colors font-medium cursor-pointer"
+							>
+								Join Tournament
+							</button>
+						{/if}
 						<a 
 							href="/tournaments/{tournament.id}"
 							class="flex-1 bg-transparent border-2 border-white text-white text-center py-2 rounded-full transition-colors font-medium cursor-pointer hover:bg-white/10"
@@ -347,9 +342,6 @@
 						<label for="tournament-type" class="block text-sm font-medium text-text-secondary mb-2">Tournament Type</label>
 						<select id="tournament-type" bind:value={newTournament.tournamentType} class="w-full bg-white/20 border border-white/30 rounded-lg px-3 py-2 text-white">
 							<option value="SINGLE_ELIMINATION">Single Elimination</option>
-							<option value="DOUBLE_ELIMINATION">Double Elimination</option>
-							<option value="ROUND_ROBIN">Round Robin</option>
-							<option value="SWISS">Swiss System</option>
 						</select>
 					</div>
 					

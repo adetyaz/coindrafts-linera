@@ -46,7 +46,9 @@ impl ServiceAbi for CoinDraftsAbi {
 pub enum CoinDraftsOperation {
     CreateGame { mode: GameMode },
     RegisterPlayer { game_id: String, player_name: String },
+    RegisterPlayerWithAccount { game_id: String, player_name: String, player_account: String },
     SubmitPortfolio { game_id: String, cryptocurrencies: Vec<String> },
+    SubmitPortfolioForAccount { game_id: String, player_account: String, cryptocurrencies: Vec<String> },
     StartGame { game_id: String, price_snapshot: Vec<PriceSnapshot> },
     EndGame { game_id: String, price_snapshot: Vec<PriceSnapshot> },
 }
@@ -68,6 +70,9 @@ pub struct Game {
     pub created_at: u64,
     pub player_count: u32,
     pub max_players: u32,
+    pub entry_fee_usdc: u64,
+    pub start_prices: Option<Vec<PriceSnapshot>>,
+    pub winners: Vec<String>,
 }
 
 /// Cross-chain messages for coordinating with game mode applications

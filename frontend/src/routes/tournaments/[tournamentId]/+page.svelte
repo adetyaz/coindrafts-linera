@@ -1,17 +1,24 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { coinDraftsService } from '$lib/coinDraftsService';
+	import { coinDraftsService, type PriceSnapshotInput } from '$lib/coinDraftsService';
 	import type { Tournament } from '$lib/coinDraftsService';
-	import { Trophy, Users, DollarSign, Calendar, Crown, ArrowLeft, TrendingUp } from '@lucide/svelte';
+	import { Trophy, Users, DollarSign, Calendar, Crown, ArrowLeft, TrendingUp, Play, StopCircle } from '@lucide/svelte';
+	import { showToast } from '$lib/stores/toasts';
+	import { getPriceSnapshot } from '$lib/services/priceService';
+	import TournamentChart from '$lib/components/TournamentChart.svelte';
 
 	const tournamentId = page.params.tournamentId;
 	
 	let tournament = $state<Tournament | null>(null);
 	let participants = $state<string[]>([]);
 	let results = $state<string[]>([]);
+	let portfolios = $state<Map<string, any>>(new Map());
 	let loading = $state(true);
 	let error = $state('');
+	let startingTournament = $state(false);
+	let endingTournament = $state(false);
 
 	onMount(async () => {
 		await loadTournamentDetails();
@@ -19,7 +26,10 @@
 
 	async function loadTournamentDetails() {
 		try {
-			loading = true;
+			const isInitialLoad = loading;
+			if (isInitialLoad) {
+				loading = true;
+			}
 			error = '';
 			
 			if (!tournamentId) {
@@ -39,6 +49,25 @@
 			participants = await coinDraftsService.fetchTournamentParticipants(tournamentId);
 			results = await coinDraftsService.fetchTournamentResults(tournamentId);
 			
+			// Load portfolios for all participants
+			if (participants.length > 0) {
+				const newPortfolios = new Map();
+				for (const participant of participants) {
+					try {
+						const portfolio = await coinDraftsService.fetchPlayerPortfolio(
+							tournamentId,
+							participant
+						);
+						if (portfolio) {
+							newPortfolios.set(participant, portfolio);
+						}
+					} catch (err) {
+						console.error(`Failed to load portfolio for ${participant}:`, err);
+					}
+				}
+				portfolios = newPortfolios;
+			}
+			
 		} catch (err) {
 			console.error('Failed to load tournament details:', err);
 			error = 'Failed to load tournament details';
@@ -48,21 +77,12 @@
 	}
 
 	async function joinTournament() {
-		try {
-			if (!tournamentId) {
-				error = 'Invalid tournament ID';
-				return;
-			}
-			const result = await coinDraftsService.registerForTournament(tournamentId, 'current-user');
-			if (result.success) {
-				await loadTournamentDetails(); // Refresh data
-			} else {
-				error = 'Failed to join tournament';
-			}
-		} catch (err) {
-			console.error('Failed to join tournament:', err);
-			error = 'Failed to join tournament';
+		// Redirect to draft page - registration happens when portfolio is submitted
+		if (!tournamentId) {
+			showToast('Invalid tournament ID', 'error');
+			return;
 		}
+		goto(`/tournaments/${tournamentId}/draft`);
 	}
 
 	function getStatusColor(status: string): string {
@@ -80,6 +100,84 @@
 			case 'InProgress': return Trophy;
 			case 'Completed': return Crown;
 			default: return Calendar;
+		}
+	}
+
+	async function handleStartTournament() {
+		if (!tournamentId) {
+			showToast('Invalid tournament ID', 'error');
+			return;
+		}
+
+		try {
+			startingTournament = true;
+			
+			// Get real-time prices for all cryptos
+			const cryptoIds = ['bitcoin', 'ethereum', 'solana', 'cardano', 'polkadot', 
+				'chainlink', 'polygon', 'avalanche', 'cosmos', 'near', 
+				'algorand', 'fantom', 'hedera', 'internet-computer', 'vechain', 'tezos'];
+			
+			const snapshot = await getPriceSnapshot(cryptoIds);
+			
+			// Convert to backend format (micro-USDC)
+			const priceSnapshot: PriceSnapshotInput[] = Object.entries(snapshot.prices).map(([cryptoId, priceUsd]) => ({
+				cryptoId,
+				priceUsd: Math.floor(priceUsd * 1_000_000), // Convert to micro-USDC
+				timestamp: snapshot.timestamp
+			}));
+
+			const result = await coinDraftsService.startTournament(tournamentId, priceSnapshot);
+
+			if (result.success) {
+				showToast('Tournament started successfully!', 'success');
+				await loadTournamentDetails();
+			} else {
+				showToast('Failed to start tournament', 'error');
+			}
+		} catch (error) {
+			console.error('Error starting tournament:', error);
+			showToast('Error starting tournament. Please try again.', 'error');
+		} finally {
+			startingTournament = false;
+		}
+	}
+
+	async function handleEndTournament() {
+		if (!tournamentId) {
+			showToast('Invalid tournament ID', 'error');
+			return;
+		}
+
+		try {
+			endingTournament = true;
+			
+			// Get real-time prices for all cryptos
+			const cryptoIds = ['bitcoin', 'ethereum', 'solana', 'cardano', 'polkadot', 
+				'chainlink', 'polygon', 'avalanche', 'cosmos', 'near', 
+				'algorand', 'fantom', 'hedera', 'internet-computer', 'vechain', 'tezos'];
+			
+			const snapshot = await getPriceSnapshot(cryptoIds);
+			
+			// Convert to backend format (micro-USDC)
+			const priceSnapshot: PriceSnapshotInput[] = Object.entries(snapshot.prices).map(([cryptoId, priceUsd]) => ({
+				cryptoId,
+				priceUsd: Math.floor(priceUsd * 1_000_000), // Convert to micro-USDC
+				timestamp: snapshot.timestamp
+			}));
+
+			const result = await coinDraftsService.endTournament(tournamentId, priceSnapshot);
+
+			if (result.success) {
+				showToast('Tournament ended successfully!', 'success');
+				await loadTournamentDetails();
+			} else {
+				showToast('Failed to end tournament', 'error');
+			}
+		} catch (error) {
+			console.error('Error ending tournament:', error);
+			showToast('Error ending tournament. Please try again.', 'error');
+		} finally {
+			endingTournament = false;
 		}
 	}
 </script>
@@ -128,15 +226,37 @@
 						</div>
 					</div>
 					
-					{#if tournament.status === 'Registration'}
-						<button 
-							onclick={joinTournament}
-							class="bg-green-600 hover:bg-green-700 text-black px-6 py-3 rounded-full font-semibold transition-colors cursor-pointer flex items-center gap-2"
-						>
-							<Users size={20} />
-							Join Tournament
-						</button>
-					{/if}
+					<div class="flex gap-3">
+						{#if tournament.status.toLowerCase().includes('registration') || tournament.status === 'PENDING'}
+							<button 
+								onclick={joinTournament}
+								class="bg-[#39ff14] hover:bg-[#0bd10b] text-black px-6 py-3 rounded-full font-semibold transition-colors cursor-pointer flex items-center gap-2"
+							>
+								<Users size={20} />
+								Join Tournament
+							</button>
+							<button 
+								onclick={handleStartTournament}
+							disabled={startingTournament || participants.length < 2}
+							class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-semibold transition-colors cursor-pointer flex items-center gap-2"
+							title={participants.length < 2 ? 'Need at least 2 players to start' : ''}
+							>
+								<Play size={20} />
+								{startingTournament ? 'Starting...' : 'Start Tournament'}
+							</button>
+						{:else if tournament.status.toLowerCase().includes('progress') || tournament.status.toLowerCase() === 'active'}
+							<button 
+								onclick={handleEndTournament}
+								disabled={endingTournament}
+								class="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-6 py-3 rounded-full font-semibold transition-colors cursor-pointer flex items-center gap-2"
+							>
+								<StopCircle size={20} />
+								{endingTournament ? 'Ending...' : 'End Tournament'}
+							</button>
+						{:else if tournament.status.toLowerCase().includes('completed')}
+							<div class="text-green-400 font-semibold text-lg">Tournament Completed</div>
+						{/if}
+					</div>
 				</div>
 
 				<!-- Tournament Details Grid -->
@@ -158,10 +278,10 @@
 					</div>
 
 					<div class="flex items-center gap-3 bg-black/30 rounded-lg p-4">
-						<Trophy size={24} class="text-green-400" />
+						<Calendar size={24} class="text-green-400" />
 						<div>
-							<div class="text-sm text-gray-400">Format</div>
-							<div class="text-lg font-semibold">{tournament.tournamentType.replace('_', ' ')}</div>
+							<div class="text-sm text-gray-400">Duration</div>
+							<div class="text-lg font-semibold">7 Days</div>
 						</div>
 					</div>
 				</div>
@@ -189,6 +309,20 @@
 				{/if}
 			</div>
 
+			<!-- Chart Section (if tournament is in progress) -->
+			{#if tournament.status === 'InProgress' && portfolios.size > 0}
+				{@const allCryptoIds = Array.from(portfolios.values()).flatMap(p => p.cryptoPicks).filter((v, i, a) => a.indexOf(v) === i)}
+				{#if allCryptoIds.length > 0}
+					<div class="bg-gray-900 rounded-lg p-6 mb-8 border border-green-500/20">
+						<h2 class="text-2xl font-bold text-green-400 mb-4 flex items-center gap-2">
+							<TrendingUp size={24} />
+							Live Competition
+						</h2>
+						<TournamentChart cryptoIds={allCryptoIds} />
+					</div>
+				{/if}
+			{/if}
+
 			<!-- Participants Section -->
 			<div class="bg-gray-900 rounded-lg p-6 mb-8 border border-green-500/20">
 				<h2 class="text-2xl font-bold text-green-400 mb-4 flex items-center gap-2">
@@ -197,13 +331,31 @@
 				</h2>
 				
 				{#if participants.length > 0}
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+					<div class="space-y-4">
 						{#each participants as participant, index}
-							<div class="bg-black/30 rounded-lg p-3 flex items-center gap-3">
-								<div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-black font-bold">
-									{index + 1}
+							<div class="bg-black/30 rounded-lg p-4">
+								<div class="flex items-center gap-3 mb-3">
+									<div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-black font-bold">
+										{index + 1}
+									</div>
+									<div class="truncate font-semibold">{participant}</div>
 								</div>
-								<div class="truncate">{participant}</div>
+								{#if portfolios.has(participant)}
+									{@const portfolio = portfolios.get(participant)}
+									<div class="ml-11 text-sm">
+										<div class="text-gray-400 mb-1">Portfolio:</div>
+										<div class="flex flex-wrap gap-2">
+											{#each portfolio.cryptoPicks as crypto}
+												<span class="bg-green-600/20 text-green-400 px-2 py-1 rounded">{crypto}</span>
+											{/each}
+										</div>
+										{#if portfolio.strategyNotes}
+											<div class="mt-2 text-gray-400 italic text-xs">{portfolio.strategyNotes}</div>
+										{/if}
+									</div>
+								{:else}
+									<div class="ml-11 text-sm text-gray-500">No portfolio submitted</div>
+								{/if}
 							</div>
 						{/each}
 					</div>

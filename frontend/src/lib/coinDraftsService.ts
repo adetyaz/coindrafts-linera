@@ -14,6 +14,8 @@ export interface Game {
 	createdAt: number;
 	playerCount: number;
 	maxPlayers: number;
+	winners: string[];
+	entryFeeUsdc: number;
 }
 
 export interface Tournament {
@@ -24,14 +26,18 @@ export interface Tournament {
 	entryFeeUsdc: number;
 	maxParticipants: number;
 	currentParticipants: number;
-	currentRound: number;
-	maxRounds: number;
 	createdAt: number;
 	category?: string;
 }
 
 export interface MutationResult {
 	success: boolean;
+}
+
+export interface PriceSnapshotInput {
+	cryptoId: string; // Will be mapped to crypto_id for GraphQL
+	priceUsd: number; // Will be mapped to price_usd for GraphQL (Micro-USDC)
+	timestamp: number;
 }
 
 // Player and Portfolio types
@@ -47,10 +53,15 @@ export interface PlayerProfile {
 }
 
 export interface Portfolio {
-	playerId: string;
-	cryptocurrencies: string[];
+	playerAccount: string;
+	holdings: Array<{ symbol: string; allocationPercent: number }>;
 	submittedAt: number;
 	status: string;
+}
+
+export interface TournamentPortfolio {
+	cryptoPicks: string[];
+	strategyNotes?: string | null;
 }
 
 export interface LeaderboardEntry {
@@ -101,13 +112,16 @@ interface TournamentLeaderboardQueryResult {
 	tournamentLeaderboard: LeaderboardEntry[];
 }
 
+interface TournamentPortfolioQueryResult {
+	playerPortfolio: TournamentPortfolio | null;
+}
+
 // Mutation Response Types
 // Removed fake mutation result interfaces - using direct success checking instead
 
 // Configuration - SvelteKit environment variables
 const LINERA_GRAPHQL_BASE = 'http://localhost:8081';
-const DEFAULT_CHAIN_ID =
-	PUBLIC_DEFAULT_CHAIN_ID || 'b955f1992f7dbaeb4b6878fcc6d52038c2e317bab277cb1e1e5a99530ea3a527';
+const DEFAULT_CHAIN_ID = PUBLIC_DEFAULT_CHAIN_ID;
 
 // Application IDs - MUST be set via environment variables after deployment
 const COINDRAFTS_CORE_APP_ID = PUBLIC_COINDRAFTS_CORE_APP_ID;
@@ -131,7 +145,7 @@ const coinDraftsClient = new ApolloClient({
 	cache: new InMemoryCache(),
 	defaultOptions: {
 		query: { errorPolicy: 'all' },
-		mutate: { errorPolicy: 'ignore', fetchPolicy: 'no-cache' }
+		mutate: { errorPolicy: 'all', fetchPolicy: 'no-cache' }
 	}
 });
 
@@ -157,6 +171,8 @@ const GET_GAMES = gql`
 			createdAt
 			playerCount
 			maxPlayers
+			winners
+			entryFeeUsdc
 		}
 	}
 `;
@@ -171,6 +187,8 @@ const GET_GAME = gql`
 			createdAt
 			playerCount
 			maxPlayers
+			winners
+			entryFeeUsdc
 		}
 	}
 `;
@@ -179,8 +197,11 @@ const GET_GAME = gql`
 const GET_PORTFOLIOS = gql`
 	query GetPortfolios($gameId: String!) {
 		portfolios(gameId: $gameId) {
-			playerId
-			cryptocurrencies
+			playerAccount
+			holdings {
+				symbol
+				allocationPercent
+			}
 			submittedAt
 			status
 		}
@@ -278,6 +299,15 @@ const GET_TOURNAMENT_LEADERBOARD = gql`
 	}
 `;
 
+const GET_PLAYER_PORTFOLIO = gql`
+	query GetPlayerPortfolio($tournamentId: String!, $playerAccount: String!) {
+		playerPortfolio(tournamentId: $tournamentId, playerAccount: $playerAccount) {
+			cryptoPicks
+			strategyNotes
+		}
+	}
+`;
+
 // GraphQL Mutations - Based on ACTUAL deployed application schema
 // CoinDrafts Core mutations (from CoinDraftsOperation enum)
 const CREATE_GAME = gql`
@@ -295,6 +325,18 @@ const REGISTER_PLAYER = gql`
 const SUBMIT_PORTFOLIO = gql`
 	mutation SubmitPortfolio($gameId: String!, $cryptocurrencies: [String!]!) {
 		submitPortfolio(gameId: $gameId, cryptocurrencies: $cryptocurrencies)
+	}
+`;
+
+const START_GAME = gql`
+	mutation StartGame($gameId: String!, $priceSnapshot: [PriceSnapshotInput!]!) {
+		startGame(gameId: $gameId, priceSnapshot: $priceSnapshot)
+	}
+`;
+
+const END_GAME = gql`
+	mutation EndGame($gameId: String!, $priceSnapshot: [PriceSnapshotInput!]!) {
+		endGame(gameId: $gameId, priceSnapshot: $priceSnapshot)
 	}
 `;
 
@@ -323,6 +365,24 @@ const REGISTER_FOR_TOURNAMENT = gql`
 	}
 `;
 
+const START_TOURNAMENT = gql`
+	mutation StartTournament($tournamentId: String!, $startPrices: [String!]!) {
+		startTournament(tournamentId: $tournamentId, startPrices: $startPrices)
+	}
+`;
+
+const END_TOURNAMENT = gql`
+	mutation EndTournament($tournamentId: String!, $endPrices: [String!]!) {
+		endTournament(tournamentId: $tournamentId, endPrices: $endPrices)
+	}
+`;
+
+const ADVANCE_ROUND = gql`
+	mutation AdvanceRound($tournamentId: String!) {
+		advanceRound(tournamentId: $tournamentId)
+	}
+`;
+
 // Service
 class CoinDraftsService {
 	// === GAME QUERIES ===
@@ -334,8 +394,10 @@ class CoinDraftsService {
 	async fetchGame(gameId: string): Promise<Game | null> {
 		const result = await coinDraftsClient.query<GameQueryResult>({
 			query: GET_GAME,
-			variables: { gameId }
+			variables: { gameId },
+			fetchPolicy: 'network-only'
 		});
+
 		return result.data?.game || null;
 	}
 
@@ -355,17 +417,35 @@ class CoinDraftsService {
 	// Helper method to get games where a specific player is registered
 	async fetchPlayerGames(playerId: string): Promise<Game[]> {
 		const allGames = await this.fetchGames();
-		// For now, we'll need to check portfolios for each game to see if player participated
-		// This is a simplified version - ideally backend would have a direct query
-		return allGames;
+
+		// Filter games by checking portfolios for player participation
+		const playerGames: Game[] = [];
+
+		for (const game of allGames) {
+			const portfolios = await this.fetchPortfolios(game.gameId);
+			const hasPlayerPortfolio = portfolios.some((p) => p.playerAccount === playerId);
+
+			if (hasPlayerPortfolio) {
+				playerGames.push(game);
+			}
+		}
+
+		return playerGames;
 	}
 
 	async fetchPortfolios(gameId: string): Promise<Portfolio[]> {
-		const result = await coinDraftsClient.query<PortfoliosQueryResult>({
-			query: GET_PORTFOLIOS,
-			variables: { gameId }
-		});
-		return result.data?.portfolios || [];
+		try {
+			const result = await coinDraftsClient.query<PortfoliosQueryResult>({
+				query: GET_PORTFOLIOS,
+				variables: { gameId },
+				fetchPolicy: 'network-only'
+			});
+
+			return result.data?.portfolios || [];
+		} catch (error) {
+			console.error('[DEBUG fetchPortfolios] Query failed:', error);
+			return [];
+		}
 	}
 
 	// === TOURNAMENT QUERIES ===
@@ -407,19 +487,23 @@ class CoinDraftsService {
 		return result.data?.tournamentResults || [];
 	}
 
+	async fetchPlayerPortfolio(
+		tournamentId: string,
+		playerAccount: string
+	): Promise<TournamentPortfolio | null> {
+		const result = await tradLeaguesClient.query<TournamentPortfolioQueryResult>({
+			query: GET_PLAYER_PORTFOLIO,
+			variables: { tournamentId, playerAccount }
+		});
+		return result.data?.playerPortfolio || null;
+	}
+
 	async createGame(mode: string): Promise<MutationResult> {
 		try {
-			console.log('Sending game creation request to:', coinDraftsClient.link);
-			console.log('Variables:', { mode });
-
 			const result = await coinDraftsClient.mutate({
 				mutation: CREATE_GAME,
 				variables: { mode }
 			});
-
-			console.log('GraphQL Result:', result);
-			console.log('Result data:', result.data);
-			console.log('Result error:', result.error);
 
 			if (result.error) {
 				console.error('GraphQL Error:', result.error);
@@ -428,7 +512,6 @@ class CoinDraftsService {
 
 			// Check if we got the game ID directly as a string
 			const success = !!(result.data && typeof result.data === 'string');
-			console.log('Game creation success:', success, 'Game ID:', result.data);
 
 			return { success };
 		} catch (error) {
@@ -465,10 +548,6 @@ class CoinDraftsService {
 				}
 			});
 
-			console.log('GraphQL Result:', result);
-			console.log('Result data:', result.data);
-			console.log('Result error:', result.error);
-
 			if (result.error) {
 				console.error('GraphQL Error:', result.error);
 				return { success: false };
@@ -476,7 +555,6 @@ class CoinDraftsService {
 
 			// Check if we got the tournament ID directly as a string
 			const success = !!(result.data && typeof result.data === 'string');
-			console.log('Tournament creation success:', success, 'Tournament ID:', result.data);
 
 			return { success };
 		} catch (error) {
@@ -492,9 +570,7 @@ class CoinDraftsService {
 				variables: { gameId, playerName }
 			});
 
-			const success = !!(result.data && typeof result.data === 'string');
-			console.log('Player registration success:', success, 'Transaction ID:', result.data);
-
+			const success = !result.error;
 			return { success };
 		} catch (error) {
 			console.error('Player registration error:', error);
@@ -513,7 +589,6 @@ class CoinDraftsService {
 			});
 
 			const success = !!(result.data && typeof result.data === 'string');
-			console.log('Tournament registration success:', success, 'Transaction ID:', result.data);
 
 			return { success };
 		} catch (error) {
@@ -543,12 +618,128 @@ class CoinDraftsService {
 				variables: { gameId, cryptocurrencies }
 			});
 
-			const success = !!(result.data && typeof result.data === 'string');
-			console.log('Portfolio submission success:', success, 'Transaction ID:', result.data);
-
+			const success = !result.error;
 			return { success };
 		} catch (error) {
 			console.error('Portfolio submission error:', error);
+			return { success: false };
+		}
+	}
+
+	async startGame(gameId: string, priceSnapshot: PriceSnapshotInput[]): Promise<MutationResult> {
+		try {
+			const result = await coinDraftsClient.mutate({
+				mutation: START_GAME,
+				variables: {
+					gameId,
+					priceSnapshot: priceSnapshot.map((s) => ({
+						crypto_id: s.cryptoId,
+						price_usd: Math.floor(s.priceUsd),
+						timestamp: Math.floor(s.timestamp)
+					}))
+				}
+			});
+
+			const success = !result.error;
+			return { success };
+		} catch (error) {
+			console.error('Start game error:', error);
+			return { success: false };
+		}
+	}
+
+	async endGame(gameId: string, priceSnapshot: PriceSnapshotInput[]): Promise<MutationResult> {
+		try {
+			const result = await coinDraftsClient.mutate({
+				mutation: END_GAME,
+				variables: {
+					gameId,
+					priceSnapshot: priceSnapshot.map((s) => ({
+						crypto_id: s.cryptoId,
+						price_usd: Math.floor(s.priceUsd),
+						timestamp: Math.floor(s.timestamp)
+					}))
+				}
+			});
+			const success = !result.error;
+			return { success };
+		} catch (error) {
+			console.error('End game error:', error);
+			return { success: false };
+		}
+	}
+
+	async startTournament(
+		tournamentId: string,
+		startPrices: PriceSnapshotInput[]
+	): Promise<MutationResult> {
+		try {
+			// Convert PriceSnapshotInput to stringified JSON array (backend expects Vec<String>)
+			const priceStrings = startPrices.map((p) =>
+				JSON.stringify({
+					crypto_id: p.cryptoId,
+					price_usd: p.priceUsd,
+					timestamp: p.timestamp
+				})
+			);
+
+			const result = await tradLeaguesClient.mutate({
+				mutation: START_TOURNAMENT,
+				variables: { tournamentId, startPrices: priceStrings }
+			});
+
+			const success = !!(result.data && typeof result.data === 'string');
+			console.log('Start tournament success:', success, 'Transaction ID:', result.data);
+
+			return { success };
+		} catch (error) {
+			console.error('Start tournament error:', error);
+			return { success: false };
+		}
+	}
+
+	async endTournament(
+		tournamentId: string,
+		endPrices: PriceSnapshotInput[]
+	): Promise<MutationResult> {
+		try {
+			// Convert PriceSnapshotInput to stringified JSON array (backend expects Vec<String>)
+			const priceStrings = endPrices.map((p) =>
+				JSON.stringify({
+					crypto_id: p.cryptoId,
+					price_usd: p.priceUsd,
+					timestamp: p.timestamp
+				})
+			);
+
+			const result = await tradLeaguesClient.mutate({
+				mutation: END_TOURNAMENT,
+				variables: { tournamentId, endPrices: priceStrings }
+			});
+
+			const success = !!(result.data && typeof result.data === 'string');
+			console.log('End tournament success:', success, 'Transaction ID:', result.data);
+
+			return { success };
+		} catch (error) {
+			console.error('End tournament error:', error);
+			return { success: false };
+		}
+	}
+
+	async advanceRound(tournamentId: string): Promise<MutationResult> {
+		try {
+			const result = await tradLeaguesClient.mutate({
+				mutation: ADVANCE_ROUND,
+				variables: { tournamentId }
+			});
+
+			const success = !!(result.data && typeof result.data === 'string');
+			console.log('Advance round success:', success, 'Transaction ID:', result.data);
+
+			return { success };
+		} catch (error) {
+			console.error('Advance round error:', error);
 			return { success: false };
 		}
 	}

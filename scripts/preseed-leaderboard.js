@@ -57,23 +57,36 @@ async function graphql(query, variables = {}) {
   return result.data;
 }
 
-// Sample players with realistic stats distribution
-const SAMPLE_PLAYERS = [
-  { name: "CryptoKing", gamesPlayed: 50, gamesWon: 35, earnings: 5000 },
-  { name: "BlockchainBoss", gamesPlayed: 45, gamesWon: 30, earnings: 4200 },
-  { name: "DeFiDragon", gamesPlayed: 42, gamesWon: 28, earnings: 3800 },
-  { name: "TokenTitan", gamesPlayed: 38, gamesWon: 22, earnings: 3200 },
-  { name: "WhaleWatcher", gamesPlayed: 35, gamesWon: 20, earnings: 2800 },
-  { name: "MoonMaster", gamesPlayed: 30, gamesWon: 18, earnings: 2400 },
-  { name: "SatoshiSage", gamesPlayed: 28, gamesWon: 15, earnings: 2000 },
-  { name: "AltcoinAce", gamesPlayed: 25, gamesWon: 12, earnings: 1600 },
-  { name: "HODLHero", gamesPlayed: 22, gamesWon: 10, earnings: 1300 },
-  { name: "StakeSeeker", gamesPlayed: 18, gamesWon: 8, earnings: 1000 },
-  { name: "GasGuru", gamesPlayed: 15, gamesWon: 6, earnings: 750 },
-  { name: "YieldYoda", gamesPlayed: 12, gamesWon: 4, earnings: 500 },
-  { name: "SwapStar", gamesPlayed: 10, gamesWon: 3, earnings: 350 },
-  { name: "NFTNinja", gamesPlayed: 8, gamesWon: 2, earnings: 200 },
-  { name: "ChainChampion", gamesPlayed: 5, gamesWon: 1, earnings: 100 },
+// Unique player addresses for 3 games with 5 players each
+const UNIQUE_PLAYERS = [
+  "0x1111111111111111111111111111111111111111",
+  "0x2222222222222222222222222222222222222222",
+  "0x3333333333333333333333333333333333333333",
+  "0x4444444444444444444444444444444444444444",
+  "0x5555555555555555555555555555555555555555",
+  "0x6666666666666666666666666666666666666666",
+  "0x7777777777777777777777777777777777777777",
+  "0x8888888888888888888888888888888888888888",
+  "0x9999999999999999999999999999999999999999",
+  "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "0xcccccccccccccccccccccccccccccccccccccccc",
+  "0xdddddddddddddddddddddddddddddddddddddddd",
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "0xffffffffffffffffffffffffffffffffffffffff",
+];
+
+// 3 games, each with 5 unique players
+const GAMES_CONFIG = [
+  {
+    players: UNIQUE_PLAYERS.slice(0, 5),
+  },
+  {
+    players: UNIQUE_PLAYERS.slice(5, 10),
+  },
+  {
+    players: UNIQUE_PLAYERS.slice(10, 15),
+  },
 ];
 
 const CRYPTOCURRENCIES = [
@@ -92,8 +105,10 @@ function generatePriceSnapshot() {
   }));
 }
 
-async function createCompleteGame(playerName) {
+async function createCompleteGame(gameIndex, playerAddresses) {
   try {
+    console.log(`\nCreating completed game ${gameIndex + 1}...`);
+
     // 1. Create a game
     await graphql(
       `
@@ -104,7 +119,7 @@ async function createCompleteGame(playerName) {
       { mode: "QUICK_MATCH" }
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // 2. Get the latest game
     const gamesData = await graphql(`
@@ -117,38 +132,81 @@ async function createCompleteGame(playerName) {
 
     const games = gamesData.games || [];
     const latestGame = games[games.length - 1];
-    if (!latestGame) return false;
+    if (!latestGame) {
+      console.log("Failed to create game");
+      return false;
+    }
 
     const gameId = latestGame.gameId;
+    console.log(`Created game: ${gameId}`);
 
-    // 3. Register player
-    await graphql(
-      `
-        mutation RegisterPlayer($gameId: String!, $playerName: String!) {
-          registerPlayer(gameId: $gameId, playerName: $playerName)
-        }
-      `,
-      { gameId, playerName }
-    );
+    // 3. Register all players with unique addresses
+    for (let i = 0; i < playerAddresses.length; i++) {
+      const playerAddress = playerAddresses[i];
+      const playerName = `Player${gameIndex * 5 + i + 1}`;
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
+      console.log(
+        `Registering ${playerName} with address ${playerAddress.substring(
+          0,
+          10
+        )}...`
+      );
 
-    // 4. Submit portfolio
-    await graphql(
-      `
-        mutation SubmitPortfolio(
-          $gameId: String!
-          $cryptocurrencies: [String!]!
-        ) {
-          submitPortfolio(gameId: $gameId, cryptocurrencies: $cryptocurrencies)
-        }
-      `,
-      { gameId, cryptocurrencies: CRYPTOCURRENCIES }
-    );
+      await graphql(
+        `
+          mutation RegisterPlayerWithAccount(
+            $gameId: String!
+            $playerName: String!
+            $playerAccount: String!
+          ) {
+            registerPlayerWithAccount(
+              gameId: $gameId
+              playerName: $playerName
+              playerAccount: $playerAccount
+            )
+          }
+        `,
+        { gameId, playerName, playerAccount: playerAddress }
+      );
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    // 4. Submit portfolios for all players
+    for (let i = 0; i < playerAddresses.length; i++) {
+      const playerAddress = playerAddresses[i];
+      const playerName = `Player${gameIndex * 5 + i + 1}`;
+
+      // Each player gets a different random portfolio
+      const portfolio = CRYPTOCURRENCIES.slice(
+        0,
+        3 + Math.floor(Math.random() * 3)
+      );
+
+      console.log(`Submitting portfolio for ${playerName}...`);
+
+      await graphql(
+        `
+          mutation SubmitPortfolioForAccount(
+            $gameId: String!
+            $playerAccount: String!
+            $cryptocurrencies: [String!]!
+          ) {
+            submitPortfolioForAccount(
+              gameId: $gameId
+              playerAccount: $playerAccount
+              cryptocurrencies: $cryptocurrencies
+            )
+          }
+        `,
+        { gameId, playerAccount: playerAddress, cryptocurrencies: portfolio }
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
 
     // 5. Start game with price snapshot
+    console.log("Starting game with price snapshot...");
     const startSnapshot = generatePriceSnapshot();
     await graphql(
       `
@@ -162,9 +220,10 @@ async function createCompleteGame(playerName) {
       { gameId, priceSnapshot: startSnapshot }
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // 6. End game with final price snapshot
+    // 6. End game with final price snapshot (different prices to generate winners)
+    console.log("Ending game with final price snapshot...");
     const endSnapshot = generatePriceSnapshot();
     await graphql(
       `
@@ -178,68 +237,68 @@ async function createCompleteGame(playerName) {
       { gameId, priceSnapshot: endSnapshot }
     );
 
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    console.log(
+      `✓ Completed game ${gameId} with ${playerAddresses.length} players`
+    );
     return true;
   } catch (error) {
-    log(`    ✗ Error: ${error.message}`, "yellow");
+    console.log(`✗ Error creating game ${gameIndex + 1}: ${error.message}`);
     return false;
   }
 }
 
 async function main() {
-  log("\n🎮 Pre-seeding Leaderboard with Sample Players", "cyan");
+  log("\n🎮 Pre-seeding Leaderboard with Completed Games", "cyan");
   log("═".repeat(80), "cyan");
   log(`Endpoint: ${CORE_ENDPOINT}`, "blue");
-  log("Creating diverse player profiles with realistic stats...\n", "yellow");
+  log("Creating 3 completed games with 5 unique players each...\n", "yellow");
 
   try {
-    // Check if players already exist
-    const existingPlayers = await graphql(`
-      query GetPlayers {
-        players {
-          account
-          name
+    // Check if games already exist
+    const existingGames = await graphql(`
+      query GetGames {
+        games {
+          gameId
+          status
         }
       }
     `);
 
-    if (existingPlayers.players && existingPlayers.players.length > 5) {
-      log("✓ Leaderboard already has players, skipping pre-seed", "green");
+    const completedGames =
+      existingGames.games?.filter((g) => g.status === "COMPLETED") || [];
+    if (completedGames.length >= 3) {
       log(
-        `  Found ${existingPlayers.players.length} existing players\n`,
-        "blue"
+        "✓ Leaderboard already has completed games, skipping pre-seed",
+        "green"
       );
+      log(`  Found ${completedGames.length} completed games\n`, "blue");
       return;
     }
 
-    log("Creating sample player profiles...\n", "yellow");
+    log("Creating completed games for leaderboard...\n", "yellow");
 
     let created = 0;
-    for (const player of SAMPLE_PLAYERS) {
-      log(
-        `  → Creating ${player.name} (target: ${player.gamesPlayed} games, ${player.gamesWon} wins, $${player.earnings})`,
-        "blue"
-      );
-
-      // Create a complete game (with portfolio submission and completion)
-      const success = await createCompleteGame(player.name);
+    for (let i = 0; i < GAMES_CONFIG.length; i++) {
+      const config = GAMES_CONFIG[i];
+      const success = await createCompleteGame(i, config.players);
       if (success) {
         created++;
       }
 
-      // Small delay between players
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      // Delay between games
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     log("\n✓ Leaderboard pre-seeding complete!", "green");
-    log(
-      `  Created ${created}/${SAMPLE_PLAYERS.length} players with game stats`,
-      "green"
-    );
+    log(`  Created ${created}/${GAMES_CONFIG.length} completed games`, "green");
+    log(`  Total of ${created * 5} unique players with game stats`, "green");
     log(
       "\n📊 Players will appear in the leaderboard with initial stats",
       "cyan"
     );
-    log("   Stats will update as real games are played\n", "yellow");
+    log("   Stats will update as more games are played\n", "yellow");
   } catch (error) {
     log(`\n✗ Error pre-seeding leaderboard: ${error.message}`, "yellow");
     log("  Leaderboard will populate as users play games\n", "yellow");

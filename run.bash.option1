@@ -14,6 +14,8 @@ linera wallet request-chain --faucet="$LINERA_FAUCET_URL"
 # Build both applications in parallel
 echo "Building applications..."
 cd /build
+echo "Cleaning previous build artifacts..."
+cargo clean
 cargo build --release --target wasm32-unknown-unknown --package coindrafts-core --package traditional-leagues
 
 # Deploy CoinDrafts Core
@@ -34,7 +36,7 @@ echo "Chain ID: $DEFAULT_CHAIN_ID"
 
 # Wait for blob synchronization
 echo "Waiting for blob synchronization..."
-sleep 60
+sleep 30
 
 # Start GraphQL service
 echo "Starting GraphQL service..."

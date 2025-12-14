@@ -146,13 +146,11 @@ export const REGISTER_FOR_TOURNAMENT = gql`
 export const SUBMIT_TOURNAMENT_PORTFOLIO = gql`
 	mutation SubmitTournamentPortfolio(
 		$tournamentId: String!
-		$round: Int!
 		$cryptoPicks: [String!]!
 		$strategyNotes: String
 	) {
 		submitPortfolio(
 			tournamentId: $tournamentId
-			round: $round
 			cryptoPicks: $cryptoPicks
 			strategyNotes: $strategyNotes
 		)

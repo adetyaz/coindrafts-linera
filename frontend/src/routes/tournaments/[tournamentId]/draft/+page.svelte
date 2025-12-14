@@ -231,7 +231,6 @@
 				mutation: SUBMIT_TOURNAMENT_PORTFOLIO,
 				variables: {
 					tournamentId,
-					round: 1,
 					cryptoPicks,
 					strategyNotes: null
 				}

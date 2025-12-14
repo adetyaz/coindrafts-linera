@@ -40,10 +40,9 @@ pub enum TraditionalLeaguesOperation {
         tournament_id: String,
         player_account: String,
     },
-    /// Submit portfolio for tournament round
+    /// Submit portfolio for tournament
     SubmitPortfolio {
         tournament_id: String,
-        round: u32,
         portfolio: TournamentPortfolio,
     },
     /// Start tournament with price snapshot
@@ -55,10 +54,6 @@ pub enum TraditionalLeaguesOperation {
     EndTournament {
         tournament_id: String,
         end_prices: Vec<PriceSnapshot>,
-    },
-    /// Advance tournament to next round
-    AdvanceRound {
-        tournament_id: String,
     },
     /// Complete tournament and distribute rewards
     CompleteTournament {
@@ -148,8 +143,6 @@ pub struct Tournament {
     pub entry_fee_usdc: u64,
     pub max_participants: u32,
     pub current_participants: u32,
-    pub current_round: u32,
-    pub max_rounds: u32,
     pub created_at: u64,
     pub started_at: Option<u64>,
     pub completed_at: Option<u64>,

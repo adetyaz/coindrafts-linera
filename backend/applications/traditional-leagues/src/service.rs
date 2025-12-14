@@ -167,9 +167,9 @@ impl QueryRoot {
         }
     }
 
-    /// Get player's portfolio for a specific tournament and round
-    async fn player_portfolio(&self, tournament_id: String, round: i32, player_account: String) -> Option<TournamentPortfolio> {
-        let portfolio_key = format!("{}-{}-{}", tournament_id, round, player_account);
+    /// Get player's portfolio for a tournament
+    async fn player_portfolio(&self, tournament_id: String, player_account: String) -> Option<TournamentPortfolio> {
+        let portfolio_key = format!("{}-{}", tournament_id, player_account);
         match self.state.portfolios.get(&portfolio_key).await {
             Ok(portfolio) => portfolio,
             Err(e) => {
@@ -196,7 +196,7 @@ impl QueryRoot {
         // Collect portfolios
         let mut portfolios = Vec::new();
         for participant in participants {
-            let portfolio_key = format!("{}-{}-{}", tournament_id, tournament.current_round, participant);
+            let portfolio_key = format!("{}-{}", tournament_id, participant);
             if let Ok(Some(portfolio)) = self.state.portfolios.get(&portfolio_key).await {
                 portfolios.push((participant, portfolio));
             }
@@ -289,12 +289,11 @@ impl MutationRoot {
         format!("Registration scheduled for tournament {}", tournament_id)
     }
 
-    /// Submit portfolio for a tournament round
+    /// Submit portfolio for a tournament
     async fn submit_portfolio(
         &self,
         _context: &Context<'_>,
         tournament_id: String,
-        round: i32,
         crypto_picks: Vec<String>,
         strategy_notes: Option<String>,
     ) -> String {
@@ -305,7 +304,6 @@ impl MutationRoot {
 
         let operation = traditional_leagues::TraditionalLeaguesOperation::SubmitPortfolio {
             tournament_id: tournament_id.clone(),
-            round: round as u32,
             portfolio,
         };
 
@@ -377,20 +375,6 @@ impl MutationRoot {
 
         self.runtime.schedule_operation(&operation);
         format!("Tournament {} end scheduled", tournament_id)
-    }
-
-    /// Advance to next round
-    async fn advance_round(
-        &self,
-        _context: &Context<'_>,
-        tournament_id: String,
-    ) -> String {
-        let operation = traditional_leagues::TraditionalLeaguesOperation::AdvanceRound {
-            tournament_id: tournament_id.clone(),
-        };
-
-        self.runtime.schedule_operation(&operation);
-        format!("Round advance scheduled for tournament {}", tournament_id)
     }
 
     /// Complete tournament and calculate winners

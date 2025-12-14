@@ -98,13 +98,36 @@ docker compose up --build --force-recreate
    cd coindrafts-linera
    ```
 
-2. **Start with Docker Compose**
+2. **Create `frontend/.env` file** (REQUIRED)
+
+   Create a `frontend/.env` file with the following configuration:
+
+   ```bash
+   PUBLIC_COINDRAFTS_CORE_APP_ID=your-core-app-id-here
+   PUBLIC_TRADITIONAL_LEAGUES_APP_ID=your-leagues-app-id-here
+   PUBLIC_DEFAULT_CHAIN_ID=your-chain-id-here
+   ```
+
+   **CRITICAL:** Without this file, the frontend **will not work**. These values are automatically generated during Docker deployment.
+
+   **For fresh installations:**
+
+   - Leave the file empty or skip this step
+   - Run `docker compose up --force-recreate` (step 3)
+   - The deployment script will automatically generate and populate `frontend/.env` with the correct values
+
+   **For existing deployments:**
+
+   - The file should already exist with your application IDs
+   - Do not modify these values unless redeploying the backend
+
+3. **Start with Docker Compose**
 
    ```bash
    docker compose up --force-recreate
    ```
 
-3. **Wait for backend build and deployment** ⏱️
+4. **Wait for backend build and deployment** ⏱️
 
    - **Build phase**: Compiles Rust applications (~3-5 minutes)
    - **Deploy phase**: Deploys to Linera network, generates unique application IDs (~2-3 minutes)

@@ -52,10 +52,10 @@ impl Contract for CoinDraftsContract {
                 let game_id = format!("game_{}", *self.state.game_counter.get());
                 let timestamp = self.runtime.system_time().micros();
                 
-                let max_players = match mode {
-                    GameMode::TraditionalLeague => 100,
-                    GameMode::QuickMatch => 50,
-                    GameMode::PricePrediction => 200,
+                let (max_players, entry_fee) = match mode {
+                    GameMode::TraditionalLeague => (100, 1_000_000),
+                    GameMode::QuickMatch => (50, 500_000),
+                    GameMode::PricePrediction => (200, 1_000_000),
                 };
 
                 let game = Game {
@@ -65,6 +65,9 @@ impl Contract for CoinDraftsContract {
                     created_at: timestamp,
                     player_count: 0,
                     max_players,
+                    entry_fee_usdc: entry_fee,
+                    start_prices: None,
+                    winners: Vec::new(),
                 };
 
                 self.state.games.insert(&game_id, game).expect("Failed to create game");
@@ -124,6 +127,36 @@ impl Contract for CoinDraftsContract {
                 }
             },
 
+            CoinDraftsOperation::RegisterPlayerWithAccount { game_id, player_name, player_account } => {
+                let timestamp = self.runtime.system_time().micros();
+
+                let player = PlayerProfile {
+                    name: player_name,
+                    account: player_account.clone(),
+                    registered_at: timestamp,
+                    stats: PlayerStats {
+                        games_played: 0,
+                        games_won: 0,
+                        top_10_finishes: 0,
+                        avg_performance: 0,
+                        best_performance: 0,
+                        current_streak: 0,
+                        longest_streak: 0,
+                        accuracy_score: 0,
+                    },
+                    tier: PlayerTier::Rookie,
+                    total_earnings_usdc: 0,
+                };
+
+                self.state.players.insert(&player_account, player).expect("Failed to register player");
+
+                // Update game player count
+                if let Ok(Some(mut game)) = self.state.games.get(&game_id).await {
+                    game.player_count += 1;
+                    self.state.games.insert(&game_id, game).expect("Failed to update game");
+                }
+            },
+
             CoinDraftsOperation::SubmitPortfolio { game_id, cryptocurrencies } => {
                 let account_str = self.runtime.authenticated_signer()
                     .map(|a| a.to_string())
@@ -159,52 +192,131 @@ impl Contract for CoinDraftsContract {
                     .expect("Failed to submit portfolio");
             },
 
+            CoinDraftsOperation::SubmitPortfolioForAccount { game_id, player_account, cryptocurrencies } => {
+                let timestamp = self.runtime.system_time().micros();
+
+                // Convert cryptocurrencies to CryptoHolding with equal allocation
+                let equal_allocation = 100u8 / cryptocurrencies.len() as u8;
+                let holdings: Vec<CryptoHolding> = cryptocurrencies.into_iter().map(|symbol| {
+                    CryptoHolding {
+                        symbol,
+                        allocation_percent: equal_allocation,
+                    }
+                }).collect();
+
+                let portfolio = Portfolio {
+                    game_id: game_id.clone(),
+                    player_account,
+                    holdings,
+                    submitted_at: timestamp,
+                    status: PortfolioStatus::Valid,
+                };
+
+                // Get existing portfolios for this game or create new vec
+                let mut portfolios = self.state.portfolios.get(&game_id)
+                    .await
+                    .unwrap_or_default()
+                    .unwrap_or_default();
+                
+                portfolios.push(portfolio);
+                
+                self.state.portfolios.insert(&game_id, portfolios)
+                    .expect("Failed to submit portfolio");
+            },
+
             CoinDraftsOperation::StartGame { game_id, price_snapshot } => {
                 // Record starting prices for the game
                 if let Ok(Some(mut game)) = self.state.games.get(&game_id).await {
-                    // Store price snapshot in a separate collection or game field
-                    // For now, update game status to Active
                     game.status = GameStatus::Active;
+                    game.start_prices = Some(price_snapshot.clone());
                     self.state.games.insert(&game_id, game).expect("Failed to update game");
-                    
-                    // TODO: Store price_snapshot in state for later scoring
-                    log::info!("Game {} started with {} price snapshots", game_id, price_snapshot.len());
+                    log::info!("Game {} started with {} price snapshots stored", game_id, price_snapshot.len());
                 }
             },
 
-            CoinDraftsOperation::EndGame { game_id, price_snapshot: _ } => {
+            CoinDraftsOperation::EndGame { game_id, price_snapshot } => {
                 // Record ending prices and calculate winners
                 if let Ok(Some(mut game)) = self.state.games.get(&game_id).await {
-                    // Update game status to Completed
-                    game.status = GameStatus::Completed;
+                    // Can only end an active game that has been started
+                    if game.status != GameStatus::Active {
+                        log::warn!("Cannot end game {} - status is {:?}, not Active", game_id, game.status);
+                        return;
+                    }
                     
-                    // Get all portfolios for this game
+                    // Must have start prices to calculate returns
+                    if game.start_prices.is_none() {
+                        log::warn!("Cannot end game {} - no start prices recorded", game_id);
+                        return;
+                    }
+                    
                     let portfolios = self.state.portfolios.get(&game_id)
                         .await
                         .unwrap_or_default()
                         .unwrap_or_default();
                     
-                    // Update stats for all participants who submitted portfolios
-                    for portfolio in &portfolios {
-                        let player_account = &portfolio.player_account;
+                    if portfolios.is_empty() {
+                        log::warn!("Cannot end game {} - no portfolios submitted", game_id);
+                        return;
+                    }
+
+                    game.status = GameStatus::Completed;
+
+                    // Calculate returns for each portfolio
+                    let mut leaderboard: Vec<(String, i64)> = Vec::new();
+                    
+                    if let Some(start_prices) = &game.start_prices {
+                        for portfolio in &portfolios {
+                            let crypto_ids: Vec<String> = portfolio.holdings.iter()
+                                .map(|h| h.symbol.clone())
+                                .collect();
+                            let total_return = Self::calculate_portfolio_return(
+                                &crypto_ids,
+                                start_prices,
+                                &price_snapshot
+                            );
+                            leaderboard.push((portfolio.player_account.clone(), total_return));
+                        }
+                        
+                        // Sort by returns (descending)
+                        leaderboard.sort_by(|a, b| b.1.cmp(&a.1));
+                    } else {
+                        // No start prices, just list players
+                        for portfolio in &portfolios {
+                            leaderboard.push((portfolio.player_account.clone(), 0));
+                        }
+                    }
+                    
+                    // Calculate prize pool using stored entry fee
+                    let total_pool = game.entry_fee_usdc * portfolios.len() as u64;
+                    let prizes = vec![
+                        total_pool * 50 / 100,
+                        total_pool * 30 / 100,
+                        total_pool * 20 / 100,
+                    ];
+                    
+                    // Update all player stats and distribute prizes
+                    for (rank, (player_account, _return)) in leaderboard.iter().enumerate() {
                         if let Ok(Some(mut player)) = self.state.players.get(player_account).await {
                             player.stats.games_played += 1;
+                            
+                            if rank == 0 {
+                                player.stats.games_won += 1;
+                            }
+                            
+                            // Only distribute prizes to top 3
+                            if rank < prizes.len() {
+                                player.total_earnings_usdc += prizes[rank];
+                            }
+                            
                             let _ = self.state.players.insert(player_account, player);
                         }
                     }
                     
-                    // Award win and prize to first participant (simplified - real logic would calculate based on portfolios)
-                    if !portfolios.is_empty() {
-                        let winner_account = &portfolios[0].player_account;
-                        if let Ok(Some(mut winner)) = self.state.players.get(winner_account).await {
-                            winner.stats.games_won += 1;
-                            winner.total_earnings_usdc += 100; // Base prize for quick match
-                            let _ = self.state.players.insert(winner_account, winner);
-                        }
-                    }
+                    // Store top 3 winners
+                    game.winners = leaderboard.iter().take(3).map(|(acc, _)| acc.clone()).collect();
+                    log::info!("Game {} completed. Winners: {:?}", game_id, game.winners);
                     
                     self.state.games.insert(&game_id, game).expect("Failed to update game");
-                    log::info!("Game {} ended with {} participants, stats updated", game_id, portfolios.len());
                 }
             },
         }
@@ -274,5 +386,37 @@ impl Contract for CoinDraftsContract {
                 // For now, just acknowledge the status update
             }
         }
+    }
+}
+
+// Helper functions for CoinDraftsContract
+impl CoinDraftsContract {
+    /// Calculate portfolio return from start to end prices
+    fn calculate_portfolio_return(
+        cryptocurrencies: &[String],
+        start_prices: &[PriceSnapshot],
+        end_prices: &[PriceSnapshot]
+    ) -> i64 {
+        let mut total_return: i64 = 0;
+
+        for crypto_id in cryptocurrencies {
+            let start_price = start_prices.iter()
+                .find(|p| p.crypto_id == *crypto_id)
+                .map(|p| p.price_usd)
+                .unwrap_or(0);
+
+            let end_price = end_prices.iter()
+                .find(|p| p.crypto_id == *crypto_id)
+                .map(|p| p.price_usd)
+                .unwrap_or(0);
+
+            if start_price > 0 {
+                // Calculate percentage return (* 10000 for basis points precision)
+                let return_pct = ((end_price as i128 - start_price as i128) * 10000) / start_price as i128;
+                total_return += return_pct as i64;
+            }
+        }
+
+        total_return
     }
 }

@@ -189,9 +189,7 @@
 							<p class="text-sm text-gray-600 mb-2">
 								Participants: {tournament.currentParticipants}/{tournament.maxParticipants}
 							</p>
-							<p class="text-sm text-gray-600 mb-2">
-								Round: {tournament.currentRound}/{tournament.maxRounds}
-							</p>
+
 							<p class="text-sm text-gray-600 mb-4">
 								Created: {formatTimestamp(tournament.createdAt)}
 							</p>

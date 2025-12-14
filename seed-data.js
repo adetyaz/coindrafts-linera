@@ -27,6 +27,8 @@ function loadEnvConfig() {
   return {
     chainId: config.PUBLIC_DEFAULT_CHAIN_ID,
     tradLeaguesAppId: config.PUBLIC_TRADITIONAL_LEAGUES_APP_ID,
+    coreAppId: config.PUBLIC_COINDRAFTS_CORE_APP_ID,
+    ownerAccount: config.PUBLIC_DEFAULT_OWNER,
   };
 }
 
@@ -44,6 +46,43 @@ async function graphql(query, variables = {}, endpoint) {
   return result.data;
 }
 
+// Unique player addresses
+const UNIQUE_PLAYERS = [
+  "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "0xcccccccccccccccccccccccccccccccccccccccc",
+  "0xdddddddddddddddddddddddddddddddddddddddd",
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+];
+
+// Sample cryptocurrencies for portfolios
+const CRYPTOS = ["bitcoin", "ethereum", "solana", "cardano", "polkadot"];
+
+// All available cryptos for random selection
+const ALL_CRYPTOS = [
+  "bitcoin",
+  "ethereum",
+  "solana",
+  "cardano",
+  "polkadot",
+  "chainlink",
+  "polygon",
+  "avalanche",
+  "cosmos",
+  "near",
+  "algorand",
+  "fantom",
+  "hedera",
+  "internet-computer",
+  "vechain",
+];
+
+// Helper function to get random 5 cryptos
+function getRandomCryptos() {
+  const shuffled = [...ALL_CRYPTOS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 5);
+}
+
 // Sample tournaments to create
 const TOURNAMENTS = [
   {
@@ -52,6 +91,7 @@ const TOURNAMENTS = [
     entryFee: 10,
     maxParticipants: 16,
     type: "SINGLE_ELIMINATION",
+    players: UNIQUE_PLAYERS.slice(0, 4), // 4 players
   },
   {
     name: "Layer 2 Scaling Wars",
@@ -59,6 +99,7 @@ const TOURNAMENTS = [
     entryFee: 5,
     maxParticipants: 8,
     type: "SINGLE_ELIMINATION",
+    players: UNIQUE_PLAYERS.slice(0, 3), // 3 players
   },
   {
     name: "Meme Madness Tournament",
@@ -66,6 +107,7 @@ const TOURNAMENTS = [
     entryFee: 5,
     maxParticipants: 16,
     type: "SINGLE_ELIMINATION",
+    players: UNIQUE_PLAYERS, // all 5 players
   },
   {
     name: "DeFi Dominance League",
@@ -73,6 +115,7 @@ const TOURNAMENTS = [
     entryFee: 10,
     maxParticipants: 8,
     type: "SINGLE_ELIMINATION",
+    players: UNIQUE_PLAYERS.slice(0, 2), // 2 players
   },
   {
     name: "Crypto All-Stars",
@@ -80,11 +123,20 @@ const TOURNAMENTS = [
     entryFee: 10,
     maxParticipants: 16,
     type: "SINGLE_ELIMINATION",
+    players: UNIQUE_PLAYERS.slice(0, 4), // 4 players
   },
+];
+
+// Sample Quick Match games to create
+const QUICK_MATCH_GAMES = [
+  { mode: "QUICK_MATCH", players: UNIQUE_PLAYERS.slice(0, 3) },
+  { mode: "QUICK_MATCH", players: UNIQUE_PLAYERS.slice(0, 2) },
+  { mode: "QUICK_MATCH", players: UNIQUE_PLAYERS },
 ];
 
 async function createTournament(endpoint, tournament) {
   try {
+    // Create tournament
     const data = await graphql(
       `
         mutation CreateTournament(
@@ -113,7 +165,91 @@ async function createTournament(endpoint, tournament) {
       endpoint
     );
 
-    console.log(`  ✅ Created: ${tournament.name} [${tournament.category}]`);
+    // Query to get the tournament ID (like test-all-flows.js does)
+    const tournamentsData = await graphql(
+      `
+        query GetTournaments {
+          tournaments {
+            id
+            name
+          }
+        }
+      `,
+      {},
+      endpoint
+    );
+
+    const tournaments = tournamentsData.tournaments || [];
+    const latestTournament = tournaments[tournaments.length - 1];
+    const tournamentId = latestTournament?.id;
+
+    if (!tournamentId) {
+      console.log(`  ❌ Failed to get tournament ID for ${tournament.name}`);
+      return false;
+    }
+
+    console.log(
+      `  ✅ Created: ${tournament.name} [${tournament.category}] - ID: ${tournamentId}`
+    );
+
+    // Register players and submit portfolios
+    if (tournament.players && tournament.players.length > 0) {
+      for (const playerAccount of tournament.players) {
+        try {
+          // Register player
+          await graphql(
+            `
+              mutation RegisterForTournament(
+                $tournamentId: String!
+                $playerAccount: String!
+              ) {
+                registerForTournament(
+                  tournamentId: $tournamentId
+                  playerAccount: $playerAccount
+                )
+              }
+            `,
+            { tournamentId, playerAccount },
+            endpoint
+          );
+          console.log(`    ✅ Registered: ${playerAccount}`);
+
+          // Submit portfolio (5 random crypto picks for tournaments)
+          const randomCryptos = getRandomCryptos();
+          await graphql(
+            `
+              mutation SubmitPortfolio(
+                $tournamentId: String!
+                $cryptoPicks: [String!]!
+                $strategyNotes: String
+              ) {
+                submitPortfolio(
+                  tournamentId: $tournamentId
+                  cryptoPicks: $cryptoPicks
+                  strategyNotes: $strategyNotes
+                )
+              }
+            `,
+            {
+              tournamentId,
+              cryptoPicks: randomCryptos,
+              strategyNotes: `Auto-seeded portfolio for ${playerAccount}`,
+            },
+            endpoint
+          );
+          console.log(
+            `    ✅ Submitted portfolio for: ${playerAccount} [${randomCryptos.join(
+              ", "
+            )}]`
+          );
+        } catch (err) {
+          console.log(
+            `    ⚠️  Failed to register/submit for ${playerAccount}: ${err.message}`
+          );
+        }
+      }
+    }
+
     return true;
   } catch (error) {
     console.log(`  ❌ Failed: ${tournament.name} - ${error.message}`);
@@ -121,29 +257,127 @@ async function createTournament(endpoint, tournament) {
   }
 }
 
-async function seedTournaments() {
-  console.log("\n🌱 SEEDING TOURNAMENTS...\n");
+async function createQuickMatchGame(endpoint, gameData) {
+  try {
+    // Create game
+    await graphql(
+      `
+        mutation CreateGame($mode: String!) {
+          createGame(mode: $mode)
+        }
+      `,
+      { mode: gameData.mode },
+      endpoint
+    );
+
+    // Query to get the game ID (like test-all-flows.js does)
+    const gamesData = await graphql(
+      `
+        query GetGames {
+          games {
+            gameId
+            mode
+            status
+          }
+        }
+      `,
+      {},
+      endpoint
+    );
+
+    const games = gamesData.games || [];
+    const latestGame = games[games.length - 1];
+    const gameId = latestGame?.gameId;
+
+    if (!gameId) {
+      console.log(`  ❌ Failed to get game ID`);
+      return false;
+    }
+
+    console.log(`  ✅ Created Quick Match game: ${gameId}`);
+
+    // Register players and submit portfolios
+    if (gameData.players && gameData.players.length > 0) {
+      for (const playerAccount of gameData.players) {
+        try {
+          // Register player with account
+          await graphql(
+            `
+              mutation RegisterPlayerWithAccount(
+                $gameId: String!
+                $playerName: String!
+                $playerAccount: String!
+              ) {
+                registerPlayerWithAccount(
+                  gameId: $gameId
+                  playerName: $playerAccount
+                  playerAccount: $playerAccount
+                )
+              }
+            `,
+            { gameId, playerName: playerAccount, playerAccount },
+            endpoint
+          );
+          console.log(`    ✅ Registered: ${playerAccount}`);
+
+          // Submit portfolio for player
+          await graphql(
+            `
+              mutation SubmitPortfolioForAccount(
+                $gameId: String!
+                $playerAccount: String!
+                $cryptocurrencies: [String!]!
+              ) {
+                submitPortfolioForAccount(
+                  gameId: $gameId
+                  playerAccount: $playerAccount
+                  cryptocurrencies: $cryptocurrencies
+                )
+              }
+            `,
+            { gameId, playerAccount, cryptocurrencies: CRYPTOS },
+            endpoint
+          );
+          console.log(`    ✅ Submitted portfolio for: ${playerAccount}`);
+        } catch (error) {
+          console.log(`    ⚠️  Failed to register/submit for ${playerAccount}`);
+        }
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.log(`  ❌ Failed to create Quick Match: ${error.message}`);
+    return false;
+  }
+}
+
+async function seedData() {
+  console.log("\n🌱 SEEDING DATA...\n");
 
   try {
     // Load config from .env
     const config = loadEnvConfig();
 
-    if (!config.chainId || !config.tradLeaguesAppId) {
+    if (!config.chainId || !config.tradLeaguesAppId || !config.coreAppId) {
       console.error("❌ Missing deployment IDs in frontend/.env");
       process.exit(1);
     }
 
-    const endpoint = `http://localhost:8081/chains/${config.chainId}/applications/${config.tradLeaguesAppId}`;
+    const tradLeaguesEndpoint = `http://localhost:8081/chains/${config.chainId}/applications/${config.tradLeaguesAppId}`;
+    const coreEndpoint = `http://localhost:8081/chains/${config.chainId}/applications/${config.coreAppId}`;
 
-    console.log(`📡 GraphQL Endpoint: ${endpoint}\n`);
+    console.log(`📡 Traditional Leagues Endpoint: ${tradLeaguesEndpoint}`);
+    console.log(`📡 Quick Match Endpoint: ${coreEndpoint}\n`);
 
     // Wait for GraphQL to be ready
-    console.log("⏳ Waiting for GraphQL service...");
+    console.log("⏳ Waiting for GraphQL services...");
     let ready = false;
     let lastError = null;
     for (let i = 0; i < 15; i++) {
       try {
-        await graphql("{ tournaments { id } }", {}, endpoint);
+        await graphql("{ tournaments { id } }", {}, tradLeaguesEndpoint);
+        await graphql("{ games { gameId } }", {}, coreEndpoint);
         ready = true;
         break;
       } catch (e) {
@@ -155,24 +389,34 @@ async function seedTournaments() {
     console.log("");
 
     if (!ready) {
-      console.error("❌ GraphQL service not ready after 30 seconds");
+      console.error("❌ GraphQL services not ready after 30 seconds");
       console.error("   Last error:", lastError);
       console.log("   Tip: Check /tmp/graphql-service.log for details");
       process.exit(1);
     }
 
-    console.log("✅ GraphQL service ready\n");
+    console.log("✅ GraphQL services ready\n");
 
     // Create tournaments
-    let created = 0;
+    console.log("🏆 Creating tournaments...");
+    let tournamentsCreated = 0;
     for (const tournament of TOURNAMENTS) {
-      if (await createTournament(endpoint, tournament)) {
-        created++;
+      if (await createTournament(tradLeaguesEndpoint, tournament)) {
+        tournamentsCreated++;
       }
     }
 
+    // Create Quick Match games - COMMENTED OUT (will come back to this)
+    // console.log("\n⚡ Creating Quick Match games...");
+    // let gamesCreated = 0;
+    // for (const game of QUICK_MATCH_GAMES) {
+    //   if (await createQuickMatchGame(coreEndpoint, game)) {
+    //     gamesCreated++;
+    //   }
+    // }
+
     console.log(
-      `\n✨ Seeding complete: ${created}/${TOURNAMENTS.length} tournaments created\n`
+      `\n✨ Seeding complete: ${tournamentsCreated}/${TOURNAMENTS.length} tournaments\n`
     );
     process.exit(0);
   } catch (error) {
@@ -182,4 +426,4 @@ async function seedTournaments() {
 }
 
 // Run seeding
-seedTournaments();
+seedData();

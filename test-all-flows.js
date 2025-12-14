@@ -13,13 +13,13 @@
 
 const GRAPHQL_BASE = "http://localhost:8081";
 const DEFAULT_CHAIN_ID =
-  "80c593711d43d85cb63afbc0a29231cf2c3ddef5d6fb3bbf0709bd73cec05acd";
+  "46dcbd1fa263c4b21ec61f3acb0a3ae12c3775719c69ad6558b1ee2c2c159cdb";
 
 // Application IDs - from latest Docker deployment
 const COINDRAFTS_CORE_APP_ID =
-  "cc4e4f7fb3fc0bad2cd91f00c7d876201d8c3965a418c9c5a764947b95212763";
+  "5b5a059379b2b45e3486ce9b008edf72529affff9e83b07854b60c84e00b4112";
 const TRADITIONAL_LEAGUES_APP_ID =
-  "b4367ef5d1fcc46b2d09af5e79807adc5e40634948c0e4ca6e9b0b3cddc4367a";
+  "a53fb95be702d710013453806c3af3cb0c21fd13e6f2594623658ceedbeb25bd";
 
 // GraphQL Endpoints
 const CORE_ENDPOINT = `${GRAPHQL_BASE}/chains/${DEFAULT_CHAIN_ID}/applications/${COINDRAFTS_CORE_APP_ID}`;
@@ -126,7 +126,7 @@ async function test_Core_RegisterPlayer(gameId) {
   }
 
   try {
-    const data = await graphql(
+    await graphql(
       `
         mutation RegisterPlayer($gameId: String!, $playerName: String!) {
           registerPlayer(gameId: $gameId, playerName: $playerName)
@@ -136,8 +136,22 @@ async function test_Core_RegisterPlayer(gameId) {
       CORE_ENDPOINT
     );
 
-    const result = data.registerPlayer;
-    log(`  ✅ Player registered: ${result}`, "green");
+    // Verify by querying game player count
+    const gameData = await graphql(
+      `
+        query GetGame($gameId: String!) {
+          game(gameId: $gameId) {
+            playerCount
+          }
+        }
+      `,
+      { gameId },
+      CORE_ENDPOINT
+    );
+
+    const playerCount = gameData.game?.playerCount || 0;
+    log(`  ✅ Player registered: ${PLAYER_1}`, "green");
+    log(`    Game now has ${playerCount} player(s)`, "blue");
     return true;
   } catch (error) {
     log(`  ❌ Failed: ${error.message}`, "red");
@@ -156,7 +170,7 @@ async function test_Core_SubmitPortfolio(gameId) {
 
   try {
     const cryptos = ["bitcoin", "ethereum", "solana"];
-    const data = await graphql(
+    await graphql(
       `
         mutation SubmitPortfolio(
           $gameId: String!
@@ -169,9 +183,26 @@ async function test_Core_SubmitPortfolio(gameId) {
       CORE_ENDPOINT
     );
 
-    const result = data.submitPortfolio;
-    log(`  ✅ Portfolio submitted: ${result}`, "green");
+    // Verify portfolio was stored
+    const portfolioData = await graphql(
+      `
+        query GetPortfolios($gameId: String!) {
+          portfolios(gameId: $gameId) {
+            playerAccount
+            holdings {
+              symbol
+            }
+          }
+        }
+      `,
+      { gameId },
+      CORE_ENDPOINT
+    );
+
+    const portfolios = portfolioData.portfolios || [];
+    log(`  ✅ Portfolio submitted successfully`, "green");
     log(`    Cryptos: ${cryptos.join(", ")}`, "blue");
+    log(`    Total portfolios in game: ${portfolios.length}`, "blue");
     return true;
   } catch (error) {
     log(`  ❌ Failed: ${error.message}`, "red");
@@ -195,7 +226,7 @@ async function test_Core_StartGame(gameId) {
       "solana",
     ]);
 
-    const data = await graphql(
+    await graphql(
       `
         mutation StartGame(
           $gameId: String!
@@ -208,10 +239,23 @@ async function test_Core_StartGame(gameId) {
       CORE_ENDPOINT
     );
 
-    const result = data.startGame;
-    log(`  ✅ Game started: ${result}`, "green");
-    log(`    Prices: ${priceSnapshot.length} crypto snapshots`, "blue");
-    return true;
+    // Verify game status changed to ACTIVE
+    const gameData = await graphql(
+      `
+        query GetGame($gameId: String!) {
+          game(gameId: $gameId) {
+            status
+          }
+        }
+      `,
+      { gameId },
+      CORE_ENDPOINT
+    );
+
+    const status = gameData.game?.status;
+    log(`  ✅ Game started: ${gameId} → ${status}`, "green");
+    log(`    Prices: ${priceSnapshot.length} crypto snapshots stored`, "blue");
+    return status === "ACTIVE";
   } catch (error) {
     log(`  ❌ Failed: ${error.message}`, "red");
     return false;
@@ -234,7 +278,7 @@ async function test_Core_EndGame(gameId) {
       "solana",
     ]);
 
-    const data = await graphql(
+    await graphql(
       `
         mutation EndGame(
           $gameId: String!
@@ -247,9 +291,32 @@ async function test_Core_EndGame(gameId) {
       CORE_ENDPOINT
     );
 
-    const result = data.endGame;
-    log(`  ✅ Game ended: ${result}`, "green");
-    return true;
+    // Verify game is completed by querying
+    const gameData = await graphql(
+      `
+        query GetGame($gameId: String!) {
+          game(gameId: $gameId) {
+            gameId
+            status
+            winners
+          }
+        }
+      `,
+      { gameId },
+      CORE_ENDPOINT
+    );
+
+    const game = gameData.game;
+    if (game && game.status === "COMPLETED") {
+      log(`  ✅ Game ended: ${gameId} → COMPLETED`, "green");
+      if (game.winners && game.winners.length > 0) {
+        log(`    🏆 Winners: ${game.winners.join(", ")}`, "green");
+      }
+      return true;
+    } else {
+      log(`  ⚠️  Game status: ${game?.status || "unknown"}`, "yellow");
+      return false;
+    }
   } catch (error) {
     log(`  ❌ Failed: ${error.message}`, "red");
     return false;

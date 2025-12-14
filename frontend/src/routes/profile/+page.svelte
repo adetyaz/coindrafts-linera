@@ -98,7 +98,7 @@
 			<div class="text-4xl mb-4">👤</div>
 			<h2 class="text-2xl font-bold text-white mb-4">Player Not Found</h2>
 			<p class="text-text-secondary mb-8">No player data available. Play some games to create your profile!</p>
-			<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full cursor-pointer">
+			<a href="/tournaments" class="bg-green-600 hover:bg-green-700 text-black font-bold py-3 px-6 rounded-full cursor-pointer">
 				Browse Tournaments
 			</a>
 		</div>
@@ -190,7 +190,7 @@
 					</div>
 					<h3 class="text-lg font-semibold text-white mb-2">No Active Tournaments</h3>
 					<p class="text-text-secondary mb-4">You're not currently participating in any tournaments.</p>
-					<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full cursor-pointer">
+					<a href="/tournaments" class="bg-green-600 hover:bg-green-700 text-black font-bold py-2 px-4 rounded-full cursor-pointer">
 						Browse Tournaments
 					</a>
 				</div>
@@ -211,16 +211,12 @@
 									<span class="text-white">{tournament.tournamentType}</span>
 								</div>
 								<div class="flex justify-between">
-									<span>Round:</span>
-									<span class="text-white">{tournament.currentRound}/{tournament.maxRounds}</span>
-								</div>
-								<div class="flex justify-between">
 									<span>Players:</span>
 									<span class="text-white">{tournament.currentParticipants}/{tournament.maxParticipants}</span>
 								</div>
 							</div>
 							
-							<a href="/tournaments/{tournament.id}" class="block w-full bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-full transition-colors cursor-pointer">
+							<a href="/tournaments/{tournament.id}" class="block w-full bg-green-600 hover:bg-green-700 text-black text-center py-2 rounded-full transition-colors cursor-pointer">
 								View Details
 							</a>
 						</div>
@@ -242,7 +238,7 @@
 					</div>
 					<h3 class="text-lg font-semibold text-white mb-2">No Recent Games</h3>
 					<p class="text-text-secondary mb-4">Start playing to see your game history here.</p>
-					<a href="/quick-match" class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full cursor-pointer flex items-center gap-2 mx-auto w-fit">
+					<a href="/quick-match" class="bg-green-600 hover:bg-green-700 text-black font-bold py-2 px-4 rounded-full cursor-pointer flex items-center gap-2 mx-auto w-fit">
 						<Zap class="w-4 h-4" />
 						Play Quick Match
 					</a>
@@ -276,7 +272,7 @@
 								</div>
 							</div>
 							
-							<a href="/games/{game.gameId}" class="block w-full bg-primary-green hover:bg-dark-green text-black text-center py-2 rounded-full transition-colors cursor-pointer">
+							<a href="/games/{game.gameId}" class="block w-full bg-green-600 hover:bg-green-700 text-black text-center py-2 rounded-full transition-colors cursor-pointer">
 								View Game
 							</a>
 						</div>
@@ -346,11 +342,11 @@
 		<!-- Action Buttons -->
 		<div class="text-center">
 			<div class="flex flex-col sm:flex-row gap-4 justify-center">
-				<a href="/tournaments" class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 mx-auto w-fit">
+				<a href="/tournaments" class="bg-green-600 hover:bg-green-700 text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 mx-auto w-fit">
 					<Trophy class="w-5 h-5" />
 					Join Tournament
 				</a>
-				<a href="/quick-match" class="bg-primary-green hover:bg-dark-green text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 mx-auto w-fit">
+				<a href="/quick-match" class="bg-green-600 hover:bg-green-700 text-black font-bold py-3 px-6 rounded-full transition-colors cursor-pointer flex items-center gap-2 mx-auto w-fit">
 					<Zap class="w-5 h-5" />
 					Quick Match
 				</a>

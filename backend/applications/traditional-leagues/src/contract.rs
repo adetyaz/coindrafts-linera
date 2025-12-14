@@ -71,9 +71,8 @@ impl Contract for TraditionalLeaguesContract {
 
             TraditionalLeaguesOperation::SubmitPortfolio {
                 tournament_id,
-                round,
                 portfolio,
-            } => self.submit_portfolio(tournament_id, round, portfolio).await,
+            } => self.submit_portfolio(tournament_id, portfolio).await,
 
             TraditionalLeaguesOperation::StartTournament {
                 tournament_id,
@@ -84,10 +83,6 @@ impl Contract for TraditionalLeaguesContract {
                 tournament_id,
                 end_prices,
             } => self.end_tournament(tournament_id, end_prices).await,
-
-            TraditionalLeaguesOperation::AdvanceRound { tournament_id } => {
-                self.advance_round(tournament_id).await
-            }
 
             TraditionalLeaguesOperation::CompleteTournament { tournament_id } => {
                 self.complete_tournament(tournament_id).await
@@ -226,8 +221,6 @@ impl TraditionalLeaguesContract {
             entry_fee_usdc,
             max_participants,
             current_participants: 0,
-            current_round: 0,
-            max_rounds,
             created_at: timestamp.micros(),
             started_at: None,
             completed_at: None,
@@ -270,14 +263,6 @@ impl TraditionalLeaguesContract {
                             return TraditionalLeaguesResponse::PlayerRegistered { success: false };
                         }
                         
-                        // Check if we now have minimum players to start (2 players minimum)
-                        if let Ok(Some(participants)) = self.state.participants.get(&tournament_id).await {
-                            if participants.len() >= 2 {
-                                // Auto-start tournament with first round
-                                let _ = self.advance_round(tournament_id.clone()).await;
-                            }
-                        }
-                        
                         TraditionalLeaguesResponse::PlayerRegistered { success: true }
                     }
                     Ok(true) => {
@@ -303,39 +288,15 @@ impl TraditionalLeaguesContract {
     async fn submit_portfolio(
         &mut self,
         tournament_id: String,
-        round: u32,
         portfolio: traditional_leagues::TournamentPortfolio,
     ) -> TraditionalLeaguesResponse {
-        let portfolio_key = format!("{}-{}-{}", tournament_id, round, self.runtime.authenticated_signer().unwrap());
+        let portfolio_key = format!("{}-{}", tournament_id, self.runtime.authenticated_signer().unwrap());
         
         if let Err(_e) = self.state.portfolios.insert(&portfolio_key, portfolio) {
             return TraditionalLeaguesResponse::PortfolioSubmitted { success: false };
         }
 
         TraditionalLeaguesResponse::PortfolioSubmitted { success: true }
-    }
-
-    async fn advance_round(&mut self, tournament_id: String) -> TraditionalLeaguesResponse {
-        match self.state.tournaments.get(&tournament_id).await {
-            Ok(Some(mut tournament)) => {
-                tournament.current_round += 1;
-                
-                if tournament.current_round == 1 {
-                    // Update status to InProgress
-                    tournament.status = TournamentStatus::InProgress;
-                    tournament.started_at = Some(self.runtime.system_time().micros());
-                }
-
-                if let Err(_e) = self.state.tournaments.insert(&tournament_id, tournament.clone()) {
-                    return TraditionalLeaguesResponse::RoundAdvanced { new_round: 0 };
-                }
-
-                TraditionalLeaguesResponse::RoundAdvanced {
-                    new_round: tournament.current_round,
-                }
-            }
-            _ => TraditionalLeaguesResponse::RoundAdvanced { new_round: 0 },
-        }
     }
 
     async fn complete_tournament(&mut self, tournament_id: String) -> TraditionalLeaguesResponse {

@@ -556,14 +556,7 @@ class CoinDraftsService {
 		category: string = 'ALL_CATEGORIES'
 	): Promise<MutationResult> {
 		try {
-			console.log('Sending tournament creation request to:', tradLeaguesClient.link);
-			console.log('Variables:', {
-				name,
-				entryFeeUsdc: entryFeeUsdc.toString(),
-				maxParticipants,
-				tournamentType,
-				category
-			});
+
 
 			const result = await tradLeaguesClient.mutate({
 				mutation: CREATE_TOURNAMENT,
@@ -656,22 +649,36 @@ class CoinDraftsService {
 
 	async startGame(gameId: string, priceSnapshot: PriceSnapshotInput[]): Promise<MutationResult> {
 		try {
+			const formattedSnapshot = priceSnapshot.map((s) => ({
+				cryptoId: s.cryptoId,
+				priceUsd: Math.floor(s.priceUsd),
+				timestamp: Math.floor(s.timestamp)
+			}));
+
+	
 			const result = await coinDraftsClient.mutate({
 				mutation: START_GAME,
 				variables: {
 					gameId,
-					priceSnapshot: priceSnapshot.map((s) => ({
-						crypto_id: s.cryptoId,
-						price_usd: Math.floor(s.priceUsd),
-						timestamp: Math.floor(s.timestamp)
-					}))
+					priceSnapshot: formattedSnapshot
 				}
 			});
 
-			const success = !result.error;
+	
+
+			if (result.error) {
+				console.error('[startGame] result.error:', result.error);
+			}
+
+			if (!result.data) {
+				console.error('[startGame] No data in result');
+			}
+
+			const success = !result.error && !!result.data;
+			
 			return { success };
 		} catch (error) {
-			console.error('Start game error:', error);
+			console.error('[startGame] Exception:', error);
 			return { success: false };
 		}
 	}
@@ -683,8 +690,8 @@ class CoinDraftsService {
 				variables: {
 					gameId,
 					priceSnapshot: priceSnapshot.map((s) => ({
-						crypto_id: s.cryptoId,
-						price_usd: Math.floor(s.priceUsd),
+						cryptoId: s.cryptoId,
+						priceUsd: Math.floor(s.priceUsd),
 						timestamp: Math.floor(s.timestamp)
 					}))
 				}
@@ -717,7 +724,7 @@ class CoinDraftsService {
 			});
 
 			const success = !!(result.data && typeof result.data === 'string');
-			console.log('Start tournament success:', success, 'Transaction ID:', result.data);
+			
 
 			return { success };
 		} catch (error) {
@@ -746,7 +753,7 @@ class CoinDraftsService {
 			});
 
 			const success = !!(result.data && typeof result.data === 'string');
-			console.log('End tournament success:', success, 'Transaction ID:', result.data);
+		
 
 			return { success };
 		} catch (error) {
@@ -763,7 +770,7 @@ class CoinDraftsService {
 			});
 
 			const success = !!(result.data && typeof result.data === 'string');
-			console.log('Advance round success:', success, 'Transaction ID:', result.data);
+			
 
 			return { success };
 		} catch (error) {

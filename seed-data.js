@@ -55,8 +55,11 @@ const UNIQUE_PLAYERS = [
   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
 ];
 
-// Sample cryptocurrencies for portfolios
-const CRYPTOS = ["bitcoin", "ethereum", "solana", "cardano", "polkadot"];
+// Sample cryptocurrencies for portfolios (use random for variety)
+function getRandomCryptosForSeed() {
+  const shuffled = [...ALL_CRYPTOS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 5);
+}
 
 // All available cryptos for random selection
 const ALL_CRYPTOS = [
@@ -67,7 +70,7 @@ const ALL_CRYPTOS = [
   "polkadot",
   "chainlink",
   "polygon",
-  "avalanche",
+  "avalanche-2",
   "cosmos",
   "near",
   "algorand",
@@ -75,6 +78,7 @@ const ALL_CRYPTOS = [
   "hedera",
   "internet-computer",
   "vechain",
+  "tezos",
 ];
 
 // Helper function to get random 5 cryptos
@@ -374,7 +378,7 @@ async function createQuickMatchGame(endpoint, gameData) {
                   gameId: $gameId
                   playerAccount: $playerAccount
                   cryptocurrencies: $cryptocurrencies
-                )
+                )getRandomCryptosForSeed()
               }
             `,
             { gameId, playerAccount, cryptocurrencies: CRYPTOS },

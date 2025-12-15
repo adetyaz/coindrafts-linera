@@ -20,6 +20,9 @@ CoinDrafts allows users to compete in cryptocurrency portfolio contests and tour
 ## Quick Start (Docker)
 
 ```bash
+# If you've been running a previous project, clean up first:
+docker compose down -v
+
 # Clone and run the complete application
 docker compose up --force-recreate
 
@@ -50,21 +53,30 @@ docker compose up --build --force-recreate
 
 ## How to Use the App
 
-### Quick Match (Fast Portfolio Contest)
+### Quick Match Flow
 
-1. **Connect Wallet**: Click "Connect Wallet" and enter any Ethereum address
-2. **Create Game**: Navigate to "Quick Match" → Click "CREATE GAME"
-3. **Select Cryptos**: Choose at least 1 cryptocurrency (up to 5 recommended)
-4. **Join Game**: Click "View & Join Game" → Select exactly 5 cryptocurrencies for your portfolio
-5. **Submit**: Click "Join & Submit" to register and submit your portfolio
+**Simple 5-step process:**
 
-### Traditional Leagues (Tournament Format)
+1. Connect wallet (any address)
+2. Create game → Set name, players, entry fee, duration
+3. Join game → Pick exactly 5 cryptos
+4. Admin starts game → Captures starting prices
+5. Admin ends game → Calculates winners, distributes prizes (50%/30%/20%)
 
-1. **Connect Wallet**: Ensure wallet is connected
-2. **Browse Tournaments**: Navigate to "Traditional Leagues" to see pre-seeded tournaments
-3. **View Details**: Click on any tournament to see participants and details
-4. **Register**: Click "Register for Tournament" on pending tournaments
-5. **Draft Phase**: Select your cryptocurrencies when the tournament enters draft phase
+**Manual Controls:** Games are manually started/ended (MVP demo). Future: automated with Linera time triggers.
+
+### Tournament Flow
+
+**Traditional league format:**
+
+1. Connect wallet
+2. Admin creates tournament → Set entry fee, max participants, type
+3. Players register → Submit portfolio (up to 10 cryptos)
+4. Admin starts tournament → Records baseline prices
+5. Admin ends tournament → Calculates returns with 100x amplification (<30min games)
+6. Prizes distributed → Top 3 get 50%/30%/20%
+
+**Manual Controls:** Tournaments manually started/ended for demo. Future: automated scheduling.
 
 ### Global Leaderboard
 

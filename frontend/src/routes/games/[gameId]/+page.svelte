@@ -194,12 +194,16 @@
 		try {
 			startingGame = true;
 			
-			// Get real-time prices for all cryptos
-			const cryptoIds = ['bitcoin', 'ethereum', 'solana', 'cardano', 'polkadot', 
-				'chainlink', 'polygon', 'avalanche-2', 'cosmos', 'near', 
-				'algorand', 'fantom', 'hedera', 'internet-computer', 'vechain', 'tezos'];
+			// Get crypto IDs from submitted portfolios
+			const cryptoIds = portfolios.flatMap(p => p.holdings.map(h => h.symbol)).filter((v, i, a) => a.indexOf(v) === i);
+			
+			if (cryptoIds.length === 0) {
+				showToast('No portfolios submitted yet', 'error');
+				return;
+			}
 			
 			const snapshot = await getPriceSnapshot(cryptoIds);
+			
 			
 			// Convert to backend format (micro-USDC)
 			const priceSnapshot: PriceSnapshotInput[] = Object.entries(snapshot.prices).map(([cryptoId, priceUsd]) => ({
@@ -207,8 +211,10 @@
 				priceUsd: Math.floor(priceUsd * 1_000_000), // Convert to micro-USDC
 				timestamp: snapshot.timestamp
 			}));
-
+			
+		
 			const result = await coinDraftsService.startGame(gameId, priceSnapshot);
+			
 
 			if (result.success) {
 				showToast('Game started successfully!', 'success');
@@ -216,11 +222,11 @@
 				await new Promise(resolve => setTimeout(resolve, 2000));
 				window.location.reload();
 			} else {
-				showToast('Failed to start game', 'error');
+				showToast('Failed to start game - check console for details', 'error');
 			}
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error starting game:', error);
-			showToast('Error starting game. Please try again.', 'error');
+			showToast(`Error: ${error.message || 'Failed to start game'}`, 'error');
 		} finally {
 			startingGame = false;
 		}
@@ -235,10 +241,13 @@
 		try {
 			endingGame = true;
 			
-			// Get real-time prices for all cryptos
-			const cryptoIds = ['bitcoin', 'ethereum', 'solana', 'cardano', 'polkadot', 
-				'chainlink', 'polygon', 'avalanche-2', 'cosmos', 'near', 
-				'algorand', 'fantom', 'hedera', 'internet-computer', 'vechain', 'tezos'];
+			// Get crypto IDs from submitted portfolios
+			const cryptoIds = portfolios.flatMap(p => p.holdings.map(h => h.symbol)).filter((v, i, a) => a.indexOf(v) === i);
+			
+			if (cryptoIds.length === 0) {
+				showToast('No portfolios submitted yet', 'error');
+				return;
+			}
 			
 			const snapshot = await getPriceSnapshot(cryptoIds);
 			

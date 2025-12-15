@@ -15,6 +15,12 @@
 	let selectedCryptos = $state<string[]>([]);
 	let creating = $state(false);
 	
+	// Game creation form fields
+	let gameName = $state('');
+	let maxPlayers = $state(10);
+	let entryFee = $state(5);
+	let duration = $state(24);
+	
 	const walletState = $derived($wallet);
 	
 	let showPortfolioModal = $state(false);
@@ -30,7 +36,7 @@
 		{ name: 'Polkadot', id: 'polkadot' },
 		{ name: 'Chainlink', id: 'chainlink' },
 		{ name: 'Polygon', id: 'polygon' },
-		{ name: 'Avalanche', id: 'avalanche' },
+		{ name: 'Avalanche', id: 'avalanche-2' },
 		{ name: 'Cosmos', id: 'cosmos' },
 		{ name: 'Near Protocol', id: 'near' },
 		{ name: 'Algorand', id: 'algorand' },
@@ -74,13 +80,32 @@
 	}
 
 	async function createGame() {
+		// Validation
+		if (!gameName.trim()) {
+			showToast('Please enter a game name', 'error');
+			return;
+		}
+		
 		try {
 			creating = true;
-			const result = await coinDraftsService.createGame(selectedMode);
+			const entryFeeUsdc = entryFee * 1_000_000; // Convert dollars to micro-USDC
+			const result = await coinDraftsService.createGame(
+				selectedMode,
+				gameName,
+				maxPlayers,
+				entryFeeUsdc,
+				duration
+			);
 			
 			if (result.success) {
 				showToast('Game created! Redirecting...', 'success');
 				showCreateModal = false;
+				// Reset form
+				gameName = '';
+				maxPlayers = 10;
+				entryFee = 5;
+				duration = 24;
+				
 				// Get the latest games to find the newly created one
 				const allGames = await coinDraftsService.fetchGames();
 				const quickMatchGames = allGames.filter(game => game.mode === 'QUICK_MATCH');
@@ -90,7 +115,7 @@
 					const latestGame = quickMatchGames[0];
 					await goto(`/games/${latestGame.gameId}`);
 				} else {
-					await loadGames();
+					window.location.reload();
 				}
 			} else {
 				showToast('Failed to create game. Please try again.', 'error');
@@ -239,11 +264,11 @@
 					</div>
 					<div class="flex justify-between text-sm">
 						<span class="text-text-secondary">Entry Fee</span>
-						<span class="text-white font-medium">$5</span>
-					</div>
-					<div class="flex justify-between text-sm">
-						<span class="text-text-secondary">Prize Pool</span>
-						<span class="text-primary-green font-bold">${game.playerCount * 5}</span>
+					<span class="text-white font-medium">${(game.entryFeeUsdc / 1_000_000).toFixed(2)}</span>
+				</div>
+				<div class="flex justify-between text-sm">
+					<span class="text-text-secondary">Prize Pool</span>
+					<span class="text-primary-green font-bold">${((game.entryFeeUsdc * game.playerCount) / 1_000_000).toFixed(2)}</span>
 					</div>
 					<div class="flex justify-between text-sm">
 						<span class="text-text-secondary">Starts</span>
@@ -305,39 +330,94 @@
 			<h2 class="text-2xl font-bold text-white mb-6">Create Quick Match</h2>
 			
 			<div class="space-y-6">
+				<!-- Game Name -->
 				<div>
-					<label class="block text-sm font-medium text-text-secondary mb-3">Game Mode</label>
-					<div class="space-y-2">
-						<label class="flex items-center space-x-3">
-							<input 
-								type="radio" 
-								bind:group={selectedMode} 
-								value="QUICK_MATCH"
-								class="text-primary-green"
-							>
-							<div>
-								<div class="text-white font-medium">Quick Match</div>
-								<div class="text-sm text-text-secondary">24-hour portfolio contest</div>
-							</div>
-						</label>
-					</div>
+					<label for="gameName" class="block text-sm font-medium text-text-secondary mb-2">
+						Game Name
+					</label>
+					<input 
+						id="gameName"
+						type="text"
+						bind:value={gameName}
+						placeholder="e.g., Weekend Warriors"
+						class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-text-secondary focus:outline-none focus:border-primary-green"
+					/>
 				</div>
 
+				<!-- Max Players -->
+				<div>
+					<label for="maxPlayers" class="block text-sm font-medium text-text-secondary mb-2">
+						Maximum Players
+					</label>
+					<select 
+						id="maxPlayers"
+						bind:value={maxPlayers}
+						class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-primary-green"
+					>
+						<option value={2}>2 Players</option>
+						<option value={5}>5 Players</option>
+						<option value={10}>10 Players</option>
+						<option value={20}>20 Players</option>
+						<option value={50}>50 Players</option>
+					</select>
+				</div>
 
+				<!-- Entry Fee -->
+				<div>
+					<label for="entryFee" class="block text-sm font-medium text-text-secondary mb-2">
+						Entry Fee (USDC)
+					</label>
+					<select 
+						id="entryFee"
+						bind:value={entryFee}
+						class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-primary-green"
+					>
+						<option value={1}>$1</option>
+						<option value={5}>$5</option>
+						<option value={10}>$10</option>
+						<option value={25}>$25</option>
+						<option value={50}>$50</option>
+					</select>
+				</div>
+
+				<!-- Duration (for testing) -->
+				<div>
+					<label for="duration" class="block text-sm font-medium text-text-secondary mb-2">
+						Duration (for testing/judges)
+					</label>
+					<select 
+						id="duration"
+						bind:value={duration}
+						class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-primary-green"
+					>
+						<option value={0.08}>5 minutes</option>
+						<option value={0.5}>30 minutes</option>
+						<option value={1}>1 hour</option>
+						<option value={24}>24 hours (standard)</option>
+					</select>
+					<p class="text-xs text-text-secondary mt-1">Note: Short durations are for testing purposes only</p>
+				</div>
 			</div>
 			
 			<div class="flex gap-4 mt-6">
 				<button 
-					onclick={() => { showCreateModal = false; }}
+					onclick={() => { 
+						showCreateModal = false;
+						// Reset form
+						gameName = '';
+						maxPlayers = 10;
+						entryFee = 5;
+						duration = 24;
+					}}
 					class="flex-1 border border-white/30 text-white hover:bg-white/10 py-3 rounded-full transition-colors cursor-pointer"
 				>
 					Cancel
 				</button>
 				<button 
 					onclick={createGame}
-					disabled={creating}
+					disabled={creating || !gameName.trim()}
 					class="flex-1 py-3 rounded-full transition-colors font-bold {
-						creating
+						(creating || !gameName.trim())
 							? 'bg-gray-500 text-gray-300 cursor-not-allowed' 
 							: 'bg-[#39ff14] hover:bg-[#0bd10b] text-black cursor-pointer'
 					}"

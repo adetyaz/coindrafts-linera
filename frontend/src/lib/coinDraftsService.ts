@@ -235,8 +235,6 @@ const GET_TOURNAMENTS = gql`
 			entryFeeUsdc
 			maxParticipants
 			currentParticipants
-			currentRound
-			maxRounds
 			createdAt
 		}
 	}
@@ -252,8 +250,6 @@ const GET_TOURNAMENT = gql`
 			entryFeeUsdc
 			maxParticipants
 			currentParticipants
-			currentRound
-			maxRounds
 			createdAt
 		}
 	}
@@ -269,8 +265,6 @@ const GET_ACTIVE_TOURNAMENTS = gql`
 			entryFeeUsdc
 			maxParticipants
 			currentParticipants
-			currentRound
-			maxRounds
 			createdAt
 		}
 	}
@@ -311,8 +305,20 @@ const GET_PLAYER_PORTFOLIO = gql`
 // GraphQL Mutations - Based on ACTUAL deployed application schema
 // CoinDrafts Core mutations (from CoinDraftsOperation enum)
 const CREATE_GAME = gql`
-	mutation CreateGame($mode: String!) {
-		createGame(mode: $mode)
+	mutation CreateGame(
+		$mode: String!
+		$name: String!
+		$maxPlayers: Int!
+		$entryFeeUsdc: Int!
+		$durationHours: Int!
+	) {
+		createGame(
+			mode: $mode
+			name: $name
+			maxPlayers: $maxPlayers
+			entryFeeUsdc: $entryFeeUsdc
+			durationHours: $durationHours
+		)
 	}
 `;
 
@@ -482,7 +488,8 @@ class CoinDraftsService {
 	async fetchTournamentResults(tournamentId: string): Promise<string[]> {
 		const result = await tradLeaguesClient.query<TournamentResultsQueryResult>({
 			query: GET_TOURNAMENT_RESULTS,
-			variables: { tournamentId }
+			variables: { tournamentId },
+			fetchPolicy: 'network-only'
 		});
 		return result.data?.tournamentResults || [];
 	}
@@ -498,11 +505,32 @@ class CoinDraftsService {
 		return result.data?.playerPortfolio || null;
 	}
 
-	async createGame(mode: string): Promise<MutationResult> {
+	async fetchTournamentLeaderboard(tournamentId: string): Promise<LeaderboardEntry[]> {
+		const result = await tradLeaguesClient.query<{ tournamentLeaderboard: LeaderboardEntry[] }>({
+			query: GET_TOURNAMENT_LEADERBOARD,
+			variables: { tournamentId },
+			fetchPolicy: 'network-only'
+		});
+		return result.data?.tournamentLeaderboard || [];
+	}
+
+	async createGame(
+		mode: string,
+		name: string,
+		maxPlayers: number,
+		entryFeeUsdc: number,
+		durationHours: number
+	): Promise<MutationResult> {
 		try {
 			const result = await coinDraftsClient.mutate({
 				mutation: CREATE_GAME,
-				variables: { mode }
+				variables: {
+					mode,
+					name,
+					maxPlayers,
+					entryFeeUsdc,
+					durationHours
+				}
 			});
 
 			if (result.error) {

@@ -129,9 +129,30 @@ const TOURNAMENTS = [
 
 // Sample Quick Match games to create
 const QUICK_MATCH_GAMES = [
-  { mode: "QUICK_MATCH", players: UNIQUE_PLAYERS.slice(0, 3) },
-  { mode: "QUICK_MATCH", players: UNIQUE_PLAYERS.slice(0, 2) },
-  { mode: "QUICK_MATCH", players: UNIQUE_PLAYERS },
+  {
+    mode: "QUICK_MATCH",
+    name: "Lightning Round",
+    maxPlayers: 10,
+    entryFee: 5,
+    duration: 24,
+    players: UNIQUE_PLAYERS.slice(0, 3),
+  },
+  {
+    mode: "QUICK_MATCH",
+    name: "Starter Tournament",
+    maxPlayers: 5,
+    entryFee: 1,
+    duration: 24,
+    players: UNIQUE_PLAYERS.slice(0, 2),
+  },
+  {
+    mode: "QUICK_MATCH",
+    name: "All-Stars Championship",
+    maxPlayers: 20,
+    entryFee: 10,
+    duration: 24,
+    players: UNIQUE_PLAYERS,
+  },
 ];
 
 async function createTournament(endpoint, tournament) {
@@ -218,13 +239,15 @@ async function createTournament(endpoint, tournament) {
           const randomCryptos = getRandomCryptos();
           await graphql(
             `
-              mutation SubmitPortfolio(
+              mutation SubmitPortfolioForAccount(
                 $tournamentId: String!
+                $playerAccount: String!
                 $cryptoPicks: [String!]!
                 $strategyNotes: String
               ) {
-                submitPortfolio(
+                submitPortfolioForAccount(
                   tournamentId: $tournamentId
+                  playerAccount: $playerAccount
                   cryptoPicks: $cryptoPicks
                   strategyNotes: $strategyNotes
                 )
@@ -232,6 +255,7 @@ async function createTournament(endpoint, tournament) {
             `,
             {
               tournamentId,
+              playerAccount,
               cryptoPicks: randomCryptos,
               strategyNotes: `Auto-seeded portfolio for ${playerAccount}`,
             },
@@ -259,14 +283,32 @@ async function createTournament(endpoint, tournament) {
 
 async function createQuickMatchGame(endpoint, gameData) {
   try {
-    // Create game
+    // Create game with all required parameters
     await graphql(
       `
-        mutation CreateGame($mode: String!) {
-          createGame(mode: $mode)
+        mutation CreateGame(
+          $mode: String!
+          $name: String!
+          $maxPlayers: Int!
+          $entryFeeUsdc: Int!
+          $durationHours: Int!
+        ) {
+          createGame(
+            mode: $mode
+            name: $name
+            maxPlayers: $maxPlayers
+            entryFeeUsdc: $entryFeeUsdc
+            durationHours: $durationHours
+          )
         }
       `,
-      { mode: gameData.mode },
+      {
+        mode: gameData.mode,
+        name: gameData.name,
+        maxPlayers: gameData.maxPlayers,
+        entryFeeUsdc: gameData.entryFee * 1_000_000,
+        durationHours: gameData.duration,
+      },
       endpoint
     );
 
@@ -406,17 +448,17 @@ async function seedData() {
       }
     }
 
-    // Create Quick Match games - COMMENTED OUT (will come back to this)
-    // console.log("\n⚡ Creating Quick Match games...");
-    // let gamesCreated = 0;
-    // for (const game of QUICK_MATCH_GAMES) {
-    //   if (await createQuickMatchGame(coreEndpoint, game)) {
-    //     gamesCreated++;
-    //   }
-    // }
+    // Create Quick Match games
+    console.log("\n⚡ Creating Quick Match games...");
+    let gamesCreated = 0;
+    for (const game of QUICK_MATCH_GAMES) {
+      if (await createQuickMatchGame(coreEndpoint, game)) {
+        gamesCreated++;
+      }
+    }
 
     console.log(
-      `\n✨ Seeding complete: ${tournamentsCreated}/${TOURNAMENTS.length} tournaments\n`
+      `\n✨ Seeding complete: ${tournamentsCreated}/${TOURNAMENTS.length} tournaments, ${gamesCreated}/${QUICK_MATCH_GAMES.length} games\n`
     );
     process.exit(0);
   } catch (error) {

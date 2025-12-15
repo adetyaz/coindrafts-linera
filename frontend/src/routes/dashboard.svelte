@@ -9,6 +9,10 @@
 	let showCreateGame = $state(false);
 	let showCreateTournament = $state(false);
 	let gameMode = $state('QUICK_MATCH');
+	let gameName = $state('');
+	let gameMaxPlayers = $state(10);
+	let gameEntryFee = $state(5);
+	let gameDuration = $state(24);
 	let tournamentName = $state('');
 	let entryFee = $state(10);
 	let maxParticipants = $state(16);
@@ -34,11 +38,28 @@
 	});
 
 	async function createGame() {
+		if (!gameName.trim()) {
+			error = 'Please enter a game name';
+			return;
+		}
 		try {
-			await coinDraftsService.createGame(gameMode);
+			const entryFeeUsdc = gameEntryFee * 1_000_000; // Convert to micro-USDC
+			await coinDraftsService.createGame(
+				gameMode,
+				gameName,
+				gameMaxPlayers,
+				entryFeeUsdc,
+				gameDuration
+			);
 			showCreateGame = false;
+			// Reset form
+			gameName = '';
+			gameMaxPlayers = 10;
+			gameEntryFee = 5;
+			gameDuration = 24;
 			// Refresh games list
 			games = await coinDraftsService.fetchGames();
+			error = '';
 		} catch (err) {
 			error = `Error creating game: ${err}`;
 		}
@@ -215,6 +236,16 @@
 		<div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
 			<h3 class="text-lg font-bold mb-4">Create New Game</h3>
 			<div class="mb-4">
+				<label for="gameName" class="block text-gray-700 text-sm font-bold mb-2">Game Name:</label>
+				<input 
+					id="gameName"
+					bind:value={gameName} 
+					type="text" 
+					class="w-full px-3 py-2 border rounded"
+					placeholder="e.g., Lightning Round"
+				/>
+			</div>
+			<div class="mb-4">
 				<label for="gameMode" class="block text-gray-700 text-sm font-bold mb-2">Game Mode:</label>
 				<select id="gameMode" bind:value={gameMode} class="w-full px-3 py-2 border rounded">
 					<option value="QUICK_MATCH">Quick Match</option>
@@ -222,16 +253,46 @@
 					<option value="PRICE_PREDICTION">Price Prediction</option>
 				</select>
 			</div>
+			<div class="mb-4">
+				<label for="gameMaxPlayers" class="block text-gray-700 text-sm font-bold mb-2">Max Players:</label>
+				<select id="gameMaxPlayers" bind:value={gameMaxPlayers} class="w-full px-3 py-2 border rounded">
+					<option value={2}>2 Players</option>
+					<option value={5}>5 Players</option>
+					<option value={10}>10 Players</option>
+					<option value={20}>20 Players</option>
+					<option value={50}>50 Players</option>
+				</select>
+			</div>
+			<div class="mb-4">
+				<label for="gameEntryFee" class="block text-gray-700 text-sm font-bold mb-2">Entry Fee (USDC):</label>
+				<select id="gameEntryFee" bind:value={gameEntryFee} class="w-full px-3 py-2 border rounded">
+					<option value={1}>$1</option>
+					<option value={5}>$5</option>
+					<option value={10}>$10</option>
+					<option value={25}>$25</option>
+					<option value={50}>$50</option>
+				</select>
+			</div>
+			<div class="mb-4">
+				<label for="gameDuration" class="block text-gray-700 text-sm font-bold mb-2">Duration:</label>
+				<select id="gameDuration" bind:value={gameDuration} class="w-full px-3 py-2 border rounded">
+					<option value={0.08}>5 minutes (testing)</option>
+					<option value={0.5}>30 minutes (testing)</option>
+					<option value={1}>1 hour (testing)</option>
+					<option value={24}>24 hours (standard)</option>
+				</select>
+			</div>
 			<div class="flex justify-end space-x-2">
 				<button 
-					onclick={() => showCreateGame = false}
-					class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+					onclick={() => { showCreateGame = false; error = ''; }}
+					class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded cursor-pointer"
 				>
 					Cancel
 				</button>
 				<button 
 					onclick={createGame}
-					class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full cursor-pointer"
+					disabled={!gameName.trim()}
+					class="bg-primary-green hover:bg-dark-green text-black font-bold py-2 px-4 rounded-full cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
 				>
 					Create
 				</button>

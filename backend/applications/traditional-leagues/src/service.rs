@@ -209,12 +209,23 @@ impl QueryRoot {
         // Get price data
         let price_data = match (&tournament.start_prices, &tournament.end_prices) {
             (Some(start), Some(end)) => {
+                // Calculate tournament duration in minutes
+                let duration_minutes = if let (Some(started), Some(completed)) = (tournament.started_at, tournament.completed_at) {
+                    ((completed - started) / 1_000_000) / 60 // Convert microseconds to minutes
+                } else {
+                    u64::MAX // Unknown duration, don't amplify
+                };
+                
+                // Amplify returns 100x for short tournaments (< 30 minutes) for demo purposes
+                let amplification_factor = if duration_minutes < 30 { 100 } else { 1 };
+                
                 let mut prices = Vec::new();
                 for start_snap in start {
                     if let Some(end_snap) = end.iter().find(|e| e.crypto_id == start_snap.crypto_id) {
                         let percentage_change = if start_snap.price_usd > 0 {
                             let change = (end_snap.price_usd as i64) - (start_snap.price_usd as i64);
-                            ((change * 10000) / (start_snap.price_usd as i64)) as i32
+                            let base_change = ((change * 10000) / (start_snap.price_usd as i64)) as i32;
+                            base_change * amplification_factor
                         } else {
                             0
                         };
@@ -309,6 +320,30 @@ impl MutationRoot {
 
         self.runtime.schedule_operation(&operation);
         format!("Portfolio submission scheduled for tournament {}", tournament_id)
+    }
+
+    /// Submit portfolio for a specific player account (for seeding/testing)
+    async fn submit_portfolio_for_account(
+        &self,
+        _context: &Context<'_>,
+        tournament_id: String,
+        player_account: String,
+        crypto_picks: Vec<String>,
+        strategy_notes: Option<String>,
+    ) -> String {
+        let portfolio = traditional_leagues::TournamentPortfolio {
+            crypto_picks,
+            strategy_notes,
+        };
+
+        let operation = traditional_leagues::TraditionalLeaguesOperation::SubmitPortfolioForAccount {
+            tournament_id: tournament_id.clone(),
+            player_account: player_account.clone(),
+            portfolio,
+        };
+
+        self.runtime.schedule_operation(&operation);
+        format!("Portfolio submission scheduled for {} in tournament {}", player_account, tournament_id)
     }
 
     /// Start tournament with initial price snapshot

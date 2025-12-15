@@ -48,24 +48,20 @@ impl Contract for CoinDraftsContract {
 
     async fn execute_operation(&mut self, operation: CoinDraftsOperation) -> () {
         match operation {
-            CoinDraftsOperation::CreateGame { mode } => {
+            CoinDraftsOperation::CreateGame { mode, name, max_players, entry_fee_usdc, duration_hours } => {
                 let game_id = format!("game_{}", *self.state.game_counter.get());
                 let timestamp = self.runtime.system_time().micros();
-                
-                let (max_players, entry_fee) = match mode {
-                    GameMode::TraditionalLeague => (100, 1_000_000),
-                    GameMode::QuickMatch => (50, 500_000),
-                    GameMode::PricePrediction => (200, 1_000_000),
-                };
 
                 let game = Game {
                     game_id: game_id.clone(),
+                    name,
                     mode,
                     status: GameStatus::WaitingForPlayers,
                     created_at: timestamp,
                     player_count: 0,
                     max_players,
-                    entry_fee_usdc: entry_fee,
+                    entry_fee_usdc,
+                    duration_hours,
                     start_prices: None,
                     winners: Vec::new(),
                 };
@@ -163,11 +159,11 @@ impl Contract for CoinDraftsContract {
                     .unwrap_or_else(|| "unknown".to_string());
                 let timestamp = self.runtime.system_time().micros();
 
-                // Convert cryptocurrencies to CryptoHolding with equal allocation
+                // Convert cryptocurrencies (IDs like "bitcoin") to CryptoHolding with equal allocation
                 let equal_allocation = 100u8 / cryptocurrencies.len() as u8;
-                let holdings: Vec<CryptoHolding> = cryptocurrencies.into_iter().map(|symbol| {
+                let holdings: Vec<CryptoHolding> = cryptocurrencies.into_iter().map(|crypto_id| {
                     CryptoHolding {
-                        symbol,
+                        symbol: crypto_id,  // Store crypto ID (e.g., "bitcoin") to match price snapshots
                         allocation_percent: equal_allocation,
                     }
                 }).collect();
@@ -195,11 +191,11 @@ impl Contract for CoinDraftsContract {
             CoinDraftsOperation::SubmitPortfolioForAccount { game_id, player_account, cryptocurrencies } => {
                 let timestamp = self.runtime.system_time().micros();
 
-                // Convert cryptocurrencies to CryptoHolding with equal allocation
+                // Convert cryptocurrencies (IDs like "bitcoin") to CryptoHolding with equal allocation
                 let equal_allocation = 100u8 / cryptocurrencies.len() as u8;
-                let holdings: Vec<CryptoHolding> = cryptocurrencies.into_iter().map(|symbol| {
+                let holdings: Vec<CryptoHolding> = cryptocurrencies.into_iter().map(|crypto_id| {
                     CryptoHolding {
-                        symbol,
+                        symbol: crypto_id,  // Store crypto ID (e.g., "bitcoin") to match price snapshots
                         allocation_percent: equal_allocation,
                     }
                 }).collect();

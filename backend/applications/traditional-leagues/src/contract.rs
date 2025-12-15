@@ -74,6 +74,12 @@ impl Contract for TraditionalLeaguesContract {
                 portfolio,
             } => self.submit_portfolio(tournament_id, portfolio).await,
 
+            TraditionalLeaguesOperation::SubmitPortfolioForAccount {
+                tournament_id,
+                player_account,
+                portfolio,
+            } => self.submit_portfolio_for_account(tournament_id, player_account, portfolio).await,
+
             TraditionalLeaguesOperation::StartTournament {
                 tournament_id,
                 start_prices,
@@ -167,7 +173,6 @@ impl Contract for TraditionalLeaguesContract {
                 // Submit portfolio using existing method
                 let response = self.submit_portfolio(
                     tournament_id,
-                    1, // Default to round 1 for now
                     tournament_portfolio,
                 ).await;
                 
@@ -205,13 +210,6 @@ impl TraditionalLeaguesContract {
     ) -> TraditionalLeaguesResponse {
         let tournament_id = self.state.generate_tournament_id().await;
         let timestamp = self.runtime.system_time();
-        
-        let max_rounds = match tournament_type {
-            TournamentType::SingleElimination => (max_participants as f64).log2().ceil() as u32,
-            TournamentType::DoubleElimination => ((max_participants as f64).log2().ceil() as u32) * 2,
-            TournamentType::RoundRobin => max_participants - 1,
-            TournamentType::Swiss => (max_participants as f64).log2().ceil() as u32,
-        };
 
         let tournament = Tournament {
             id: tournament_id.clone(),
@@ -293,6 +291,22 @@ impl TraditionalLeaguesContract {
         let portfolio_key = format!("{}-{}", tournament_id, self.runtime.authenticated_signer().unwrap());
         
         if let Err(_e) = self.state.portfolios.insert(&portfolio_key, portfolio) {
+            return TraditionalLeaguesResponse::PortfolioSubmitted { success: false };
+        }
+
+        TraditionalLeaguesResponse::PortfolioSubmitted { success: true }
+    }
+
+    async fn submit_portfolio_for_account(
+        &mut self,
+        tournament_id: String,
+        player_account: String,
+        portfolio: traditional_leagues::TournamentPortfolio,
+    ) -> TraditionalLeaguesResponse {
+        // Use the provided player_account instead of authenticated signer
+        let portfolio_key = format!("{}-{}", tournament_id, player_account);
+        
+        if let Err(_e) = self.state.portfolios.insert(&portfolio_key, portfolio.clone()) {
             return TraditionalLeaguesResponse::PortfolioSubmitted { success: false };
         }
 
@@ -400,11 +414,11 @@ impl TraditionalLeaguesContract {
             _ => return vec![], // Tournament not found
         };
 
-        // Collect portfolios from all participants for the current round
+        // Collect portfolios from all participants
         let mut portfolio_vec: Vec<(String, traditional_leagues::TournamentPortfolio)> = Vec::new();
         
         for participant in participants {
-            let portfolio_key = format!("{}-{}-{}", tournament_id, tournament.current_round, participant);
+            let portfolio_key = format!("{}-{}", tournament_id, participant);
             if let Ok(Some(portfolio)) = self.state.portfolios.get(&portfolio_key).await {
                 portfolio_vec.push((participant, portfolio));
             }
@@ -423,6 +437,16 @@ impl TraditionalLeaguesContract {
         // Build price data from tournament snapshots instead of mock prices
         let price_data = match (&tournament.start_prices, &tournament.end_prices) {
             (Some(start_prices), Some(end_prices)) => {
+                // Calculate tournament duration in minutes
+                let duration_minutes = if let (Some(started), Some(completed)) = (tournament.started_at, tournament.completed_at) {
+                    ((completed - started) / 1_000_000) / 60 // Convert microseconds to minutes
+                } else {
+                    u64::MAX // Unknown duration, don't amplify
+                };
+                
+                // Amplify returns 100x for short tournaments (< 30 minutes) for demo purposes
+                let amplification_factor = if duration_minutes < 30 { 100 } else { 1 };
+                
                 // Create PriceData from real snapshots
                 let mut prices = Vec::new();
                 for start_snap in start_prices {
@@ -430,7 +454,8 @@ impl TraditionalLeaguesContract {
                         // Calculate percentage change: ((end - start) / start) * 10000
                         let percentage_change = if start_snap.price_usd > 0 {
                             let change = (end_snap.price_usd as i64) - (start_snap.price_usd as i64);
-                            ((change * 10000) / (start_snap.price_usd as i64)) as i32
+                            let base_change = ((change * 10000) / (start_snap.price_usd as i64)) as i32;
+                            base_change * amplification_factor
                         } else {
                             0
                         };
@@ -539,6 +564,11 @@ impl TraditionalLeaguesContract {
 
         // Calculate winners
         let winners = self.calculate_tournament_winners(&tournament_id).await;
+
+        // Store results
+        if let Err(e) = self.state.results.insert(&tournament_id, winners.clone()) {
+            log::error!("Failed to store results for {}: {:?}", tournament_id, e);
+        }
 
         log::info!(
             "Tournament {} ended at {} with {} winners",

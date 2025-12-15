@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { priceService, formatPrice, type PriceData } from '$lib/services/priceService';
-	import { wallet } from '$lib/stores/wallet';
+	import { wallet, getWalletState } from '$lib/stores/wallet';
 	import { addToast } from '$lib/stores/toasts';
 	import { tradLeaguesClient, SUBMIT_TOURNAMENT_PORTFOLIO } from '$lib/coinDraftsClient';
 	import { getCryptosForCategory, type CryptoInfo } from '$lib/data/cryptoCategories';
@@ -222,15 +222,16 @@
 			console.log('Crypto picks (using IDs):', cryptoPicks);
 			console.log('Portfolio data:', {
 				tournamentId,
-				round: 1,
 				cryptoPicks
 			});
 
 			// STEP 3: Submit portfolio
+			const walletState = getWalletState();
 			const result = await tradLeaguesClient.mutate({
 				mutation: SUBMIT_TOURNAMENT_PORTFOLIO,
 				variables: {
 					tournamentId,
+					playerAccount: walletState.chainId,
 					cryptoPicks,
 					strategyNotes: null
 				}
@@ -240,7 +241,9 @@
 
 			if (result.data) {
 				addToast('Registered and portfolio submitted successfully!', 'success');
-				goto(`/tournaments/${tournamentId}`);
+				setTimeout(() => {
+					window.location.href = `/tournaments/${tournamentId}`;
+				}, 1000);
 			} else {
 				throw new Error('No data returned from mutation');
 			}

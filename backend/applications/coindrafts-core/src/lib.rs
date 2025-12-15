@@ -44,7 +44,13 @@ impl ServiceAbi for CoinDraftsAbi {
 
 #[derive(Debug, Serialize, Deserialize, GraphQLMutationRoot)]
 pub enum CoinDraftsOperation {
-    CreateGame { mode: GameMode },
+    CreateGame { 
+        mode: GameMode,
+        name: String,
+        max_players: u32,
+        entry_fee_usdc: u64,
+        duration_hours: u64
+    },
     RegisterPlayer { game_id: String, player_name: String },
     RegisterPlayerWithAccount { game_id: String, player_name: String, player_account: String },
     SubmitPortfolio { game_id: String, cryptocurrencies: Vec<String> },
@@ -65,12 +71,14 @@ pub enum GameStatus {
 #[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
 pub struct Game {
     pub game_id: String,
+    pub name: String,
     pub mode: GameMode,
     pub status: GameStatus,
     pub created_at: u64,
     pub player_count: u32,
     pub max_players: u32,
     pub entry_fee_usdc: u64,
+    pub duration_hours: u64,
     pub start_prices: Option<Vec<PriceSnapshot>>,
     pub winners: Vec<String>,
 }

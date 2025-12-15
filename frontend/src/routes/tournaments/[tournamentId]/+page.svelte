@@ -14,11 +14,13 @@
 	let tournament = $state<Tournament | null>(null);
 	let participants = $state<string[]>([]);
 	let results = $state<string[]>([]);
+	let leaderboard = $state<any[]>([]);
 	let portfolios = $state<Map<string, any>>(new Map());
 	let loading = $state(true);
 	let error = $state('');
 	let startingTournament = $state(false);
 	let endingTournament = $state(false);
+	let cryptoIds = $state<string[]>([]);
 
 	onMount(async () => {
 		await loadTournamentDetails();
@@ -49,6 +51,15 @@
 			participants = await coinDraftsService.fetchTournamentParticipants(tournamentId);
 			results = await coinDraftsService.fetchTournamentResults(tournamentId);
 			
+			// Load leaderboard for completed tournaments
+			if (tournament.status.toUpperCase() === 'COMPLETED') {
+				try {
+					leaderboard = await coinDraftsService.fetchTournamentLeaderboard(tournamentId);
+				} catch (err) {
+					console.error('Failed to load leaderboard:', err);
+				}
+			}
+			
 			// Load portfolios for all participants
 			if (participants.length > 0) {
 				const newPortfolios = new Map();
@@ -66,6 +77,16 @@
 					}
 				}
 				portfolios = newPortfolios;
+				
+				// Log unique selected cryptocurrencies
+				const allSelectedCryptos = Array.from(portfolios.values())
+					.flatMap(p => p.cryptoPicks)
+					.filter((v, i, a) => a.indexOf(v) === i)
+					.sort();
+
+
+				cryptoIds = allSelectedCryptos;
+			
 			}
 			
 		} catch (err) {
@@ -113,10 +134,6 @@
 			startingTournament = true;
 			
 			// Get real-time prices for all cryptos
-			const cryptoIds = ['bitcoin', 'ethereum', 'solana', 'cardano', 'polkadot', 
-				'chainlink', 'polygon', 'avalanche', 'cosmos', 'near', 
-				'algorand', 'fantom', 'hedera', 'internet-computer', 'vechain', 'tezos'];
-			
 			const snapshot = await getPriceSnapshot(cryptoIds);
 			
 			// Convert to backend format (micro-USDC)
@@ -130,7 +147,7 @@
 
 			if (result.success) {
 				showToast('Tournament started successfully!', 'success');
-				await loadTournamentDetails();
+				setTimeout(() => window.location.reload(), 1000);
 			} else {
 				showToast('Failed to start tournament', 'error');
 			}
@@ -152,9 +169,7 @@
 			endingTournament = true;
 			
 			// Get real-time prices for all cryptos
-			const cryptoIds = ['bitcoin', 'ethereum', 'solana', 'cardano', 'polkadot', 
-				'chainlink', 'polygon', 'avalanche', 'cosmos', 'near', 
-				'algorand', 'fantom', 'hedera', 'internet-computer', 'vechain', 'tezos'];
+
 			
 			const snapshot = await getPriceSnapshot(cryptoIds);
 			
@@ -169,7 +184,7 @@
 
 			if (result.success) {
 				showToast('Tournament ended successfully!', 'success');
-				await loadTournamentDetails();
+				setTimeout(() => window.location.reload(), 1000);
 			} else {
 				showToast('Failed to end tournament', 'error');
 			}
@@ -310,17 +325,65 @@
 			</div>
 
 			<!-- Chart Section (if tournament is in progress) -->
-			{#if tournament.status === 'InProgress' && portfolios.size > 0}
-				{@const allCryptoIds = Array.from(portfolios.values()).flatMap(p => p.cryptoPicks).filter((v, i, a) => a.indexOf(v) === i)}
+		<!-- DEBUG: Status = {tournament.status} -->
+		{#if tournament.status.toLowerCase().includes('progress') || tournament.status.toLowerCase() === 'active'}
+			{@const allCryptoIds = Array.from(portfolios.values()).flatMap(p => p.cryptoPicks).filter((v, i, a) => a.indexOf(v) === i)}
+			<div class="bg-gray-900 rounded-lg p-6 mb-8 border border-green-500/20">
+				<h2 class="text-2xl font-bold text-green-400 mb-4 flex items-center gap-2">
+					<TrendingUp size={24} />
+					Live Competition (Status: {tournament.status})
+				</h2>
 				{#if allCryptoIds.length > 0}
-					<div class="bg-gray-900 rounded-lg p-6 mb-8 border border-green-500/20">
-						<h2 class="text-2xl font-bold text-green-400 mb-4 flex items-center gap-2">
-							<TrendingUp size={24} />
-							Live Competition
-						</h2>
-						<TournamentChart cryptoIds={allCryptoIds} />
+					<TournamentChart cryptoIds={allCryptoIds} />
+				{:else}
+					<div class="text-center py-8">
+						<p class="text-gray-400 mb-2">Waiting for participants to submit portfolios...</p>
+						<p class="text-sm text-gray-500">
+							Participants: {participants.length} | Portfolios loaded: {portfolios.size}
+						</p>
+						<p class="text-xs text-gray-600 mt-2">
+							Debug: {JSON.stringify(Array.from(portfolios.values()))}
+						</p>
 					</div>
 				{/if}
+			</div>
+		{/if}
+
+			<!-- Results Section (if tournament is completed) -->
+			{#if tournament.status.toUpperCase() === 'COMPLETED' && leaderboard.length > 0}
+				<div class="bg-gray-900 rounded-lg p-6 mb-8 border border-green-500/20">
+					<h2 class="text-2xl font-bold text-green-400 mb-4 flex items-center gap-2">
+						<Crown size={24} />
+						Results
+					</h2>
+					
+					<div class="space-y-3">
+						{#each leaderboard.slice(0, 3) as entry, index}
+							<div class="bg-black/30 rounded-lg p-4 flex items-center gap-4">
+								<div class="flex items-center justify-center w-12 h-12 rounded-full
+									{index === 0 ? 'bg-yellow-500 text-black' : 
+									 index === 1 ? 'bg-gray-400 text-black' : 
+									 index === 2 ? 'bg-amber-600 text-black' : 'bg-green-600 text-black'}
+									font-bold text-lg">
+									{entry.rank}
+								</div>
+								<div class="flex-1">
+									<div class="font-semibold truncate">{entry.playerAccount}</div>
+									<div class="text-sm text-gray-400">
+										Portfolio Return: <span class="font-bold text-green-400">{(entry.totalReturn / 10000).toFixed(2)}%</span>
+									</div>
+									{#if index === 0}
+										<div class="text-yellow-400 text-sm font-semibold">🏆 Winner {entry.winningAmount > 0 ? `- $${(entry.winningAmount / 1000000).toFixed(2)} USDC` : ''}</div>
+									{:else if index === 1}
+										<div class="text-gray-300 text-sm font-semibold">🥈 Runner-up {entry.winningAmount > 0 ? `- $${(entry.winningAmount / 1000000).toFixed(2)} USDC` : ''}</div>
+									{:else if index === 2}
+										<div class="text-amber-500 text-sm font-semibold">🥉 Third Place {entry.winningAmount > 0 ? `- $${(entry.winningAmount / 1000000).toFixed(2)} USDC` : ''}</div>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
 			{/if}
 
 			<!-- Participants Section -->
@@ -365,40 +428,6 @@
 					</div>
 				{/if}
 			</div>
-
-			<!-- Results Section (if tournament is completed) -->
-			{#if tournament.status === 'Completed' && results.length > 0}
-				<div class="bg-gray-900 rounded-lg p-6 border border-green-500/20">
-					<h2 class="text-2xl font-bold text-green-400 mb-4 flex items-center gap-2">
-						<Crown size={24} />
-						Results
-					</h2>
-					
-					<div class="space-y-3">
-						{#each results as result, index}
-							<div class="bg-black/30 rounded-lg p-4 flex items-center gap-4">
-								<div class="flex items-center justify-center w-12 h-12 rounded-full
-									{index === 0 ? 'bg-yellow-500 text-black' : 
-									 index === 1 ? 'bg-gray-400 text-black' : 
-									 index === 2 ? 'bg-amber-600 text-black' : 'bg-green-600 text-black'}
-									font-bold text-lg">
-									{index + 1}
-								</div>
-								<div class="flex-1">
-									<div class="font-semibold">{result}</div>
-									{#if index === 0}
-										<div class="text-yellow-400 text-sm">🏆 Winner</div>
-									{:else if index === 1}
-										<div class="text-gray-400 text-sm">🥈 Runner-up</div>
-									{:else if index === 2}
-										<div class="text-amber-600 text-sm">🥉 Third Place</div>
-									{/if}
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
 		{/if}
 	</div>
 </div>

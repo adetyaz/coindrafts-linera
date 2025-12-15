@@ -13,7 +13,7 @@
 	let chart: any;
 	let seriesMap: Map<string, any> = new Map();
 	let startingPrices: Map<string, number> = new Map();
-	let chartType = $state<'line' | 'area'>('line');
+	let chartType = $state<'line' | 'area'>('area');
 	
 	// Map crypto IDs to display names and colors
 	const cryptoColors = new Map([
@@ -37,7 +37,17 @@
 	// Generate colors for cryptos dynamically if not in map
 	function getColorForCrypto(id: string, index: number): string {
 		const hue = (index * 137.5) % 360;
-		return `hsl(${hue}, 70%, 50%)`;
+		// Convert HSL to hex color
+		const h = hue;
+		const s = 70;
+		const l = 50;
+		const a = s * Math.min(l, 100 - l) / 100;
+		const f = (n: number) => {
+			const k = (n + h / 30) % 12;
+			const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+			return Math.round(255 * color / 100).toString(16).padStart(2, '0');
+		};
+		return `#${f(0)}${f(8)}${f(4)}`;
 	}
 
 	let cryptoList = $state<Array<{ id: string; name: string; color: string; visible: boolean }>>([]);
@@ -59,13 +69,8 @@
 	});
 
 	onMount(() => {
-		if (!cryptoIds || cryptoIds.length === 0) {
-			isLoading = false;
-			return;
-		}
-
 		// Get actual width from parent container
-		const containerWidth = chartContainer.parentElement?.clientWidth || 1200;
+		const containerWidth = chartContainer.parentElement?.clientWidth || 800;
 		
 		// Create chart
 		chart = createChart(chartContainer, {
@@ -102,14 +107,17 @@
 
 		// Handle window resize
 		const handleResize = () => {
-			chart.applyOptions({ width: chartContainer.clientWidth });
+			if (chart && chartContainer.parentElement) {
+				const newWidth = chartContainer.parentElement.clientWidth;
+				chart.applyOptions({ width: newWidth });
+			}
 		};
 		window.addEventListener('resize', handleResize);
 
 		return () => {
 			clearInterval(updateInterval);
 			window.removeEventListener('resize', handleResize);
-			if (chart) chart.remove();
+			chart.remove();
 		};
 	});
 
@@ -237,14 +245,15 @@
 		</div>
 
 		{#if isLoading}
-			<div class="bg-gray-900 rounded-lg p-8 text-center">
-				<div class="text-green-400 text-xl">Loading prices...</div>
+			<div class="bg-gray-900 rounded-lg p-8 text-center border border-green-500/20">
+				<div class="text-green-400 text-xl mb-2">Loading price data...</div>
+				<div class="text-gray-400 text-sm">Please wait while we fetch real-time cryptocurrency prices from CoinGecko API</div>
 			</div>
 		{/if}
 
 		<!-- Chart container -->
-		<div class="bg-gray-900 rounded-lg p-6 border border-green-500/20" class:hidden={isLoading}>
-			<div bind:this={chartContainer}></div>
+		<div class="bg-gray-900 rounded-lg p-6 border border-green-500/20 w-full overflow-hidden" class:hidden={isLoading}>
+			<div bind:this={chartContainer} class="w-full"></div>
 		</div>
 
 		<!-- Legend with Toggles -->
@@ -269,7 +278,7 @@
 				{/each}
 			</div>
 			<p class="text-text-secondary text-sm mt-4">
-				📊 Showing <strong>percentage change</strong> from starting price. Updates every 10 seconds.
+				Showing <strong>percentage change</strong> from starting price. Updates every 10 seconds.
 			</p>
 		</div>
 	</div>

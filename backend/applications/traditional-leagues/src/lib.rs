@@ -45,6 +45,12 @@ pub enum TraditionalLeaguesOperation {
         tournament_id: String,
         portfolio: TournamentPortfolio,
     },
+    /// Submit portfolio for a specific player account (for seeding/testing)
+    SubmitPortfolioForAccount {
+        tournament_id: String,
+        player_account: String,
+        portfolio: TournamentPortfolio,
+    },
     /// Start tournament with price snapshot
     StartTournament {
         tournament_id: String,

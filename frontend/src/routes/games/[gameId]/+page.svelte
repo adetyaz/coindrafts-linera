@@ -2,10 +2,11 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { coinDraftsService, type Game, type PlayerProfile, type Portfolio, type PriceSnapshotInput } from '$lib/coinDraftsService';
-	import { Trophy, Users, DollarSign, Calendar, Gamepad2, ArrowLeft, Target, Play, StopCircle } from '@lucide/svelte';
+	import { Trophy, Users, DollarSign, Calendar, Gamepad2, ArrowLeft, Target, Play, StopCircle, TrendingUp } from '@lucide/svelte';
 	import { wallet } from '$lib/stores/wallet';
 	import { showToast } from '$lib/stores/toasts';
 	import GameWinnersDisplay from '$lib/components/GameWinnersDisplay.svelte';
+	import TournamentChart from '$lib/components/TournamentChart.svelte';
 	import { getPriceSnapshot } from '$lib/services/priceService';
 
 	const gameId = page.params.gameId;
@@ -24,22 +25,22 @@
 	const walletState = $derived($wallet);
 
 	const availableCryptos = [
-		{ name: 'Bitcoin', id: 'bitcoin' },
-		{ name: 'Ethereum', id: 'ethereum' },
-		{ name: 'Cardano', id: 'cardano' },
-		{ name: 'Solana', id: 'solana' },
-		{ name: 'Polkadot', id: 'polkadot' },
-		{ name: 'Chainlink', id: 'chainlink' },
-		{ name: 'Polygon', id: 'polygon' },
-		{ name: 'Avalanche', id: 'avalanche' },
-		{ name: 'Cosmos', id: 'cosmos' },
-		{ name: 'Near Protocol', id: 'near' },
-		{ name: 'Algorand', id: 'algorand' },
-		{ name: 'Fantom', id: 'fantom' },
-		{ name: 'Hedera', id: 'hedera' },
-		{ name: 'Internet Computer', id: 'internet-computer' },
-		{ name: 'VeChain', id: 'vechain' },
-		{ name: 'Tezos', id: 'tezos' }
+		{ name: 'Bitcoin', id: 'bitcoin', symbol: 'BTC' },
+		{ name: 'Ethereum', id: 'ethereum', symbol: 'ETH' },
+		{ name: 'Cardano', id: 'cardano', symbol: 'ADA' },
+		{ name: 'Solana', id: 'solana', symbol: 'SOL' },
+		{ name: 'Polkadot', id: 'polkadot', symbol: 'DOT' },
+		{ name: 'Chainlink', id: 'chainlink', symbol: 'LINK' },
+		{ name: 'Polygon', id: 'polygon', symbol: 'MATIC' },
+		{ name: 'Avalanche', id: 'avalanche-2', symbol: 'AVAX' },
+		{ name: 'Cosmos', id: 'cosmos', symbol: 'ATOM' },
+		{ name: 'Near Protocol', id: 'near', symbol: 'NEAR' },
+		{ name: 'Algorand', id: 'algorand', symbol: 'ALGO' },
+		{ name: 'Fantom', id: 'fantom', symbol: 'FTM' },
+		{ name: 'Hedera', id: 'hedera', symbol: 'HBAR' },
+		{ name: 'Internet Computer', id: 'internet-computer', symbol: 'ICP' },
+		{ name: 'VeChain', id: 'vechain', symbol: 'VET' },
+		{ name: 'Tezos', id: 'tezos', symbol: 'XTZ' }
 	];
 
 	onMount(async () => {
@@ -121,6 +122,7 @@
 				return;
 			}
 
+			// Send crypto IDs directly (matches backend price snapshot format)
 			const portfolioResult = await coinDraftsService.submitPortfolio(gameId, portfolioCryptos);
 
 			if (portfolioResult.success) {
@@ -129,10 +131,8 @@
 				portfolioCryptos = [];
 				
 				// Wait for blockchain propagation then reload
-				showToast('Waiting for blockchain confirmation...', 'info');
-				await new Promise((resolve) => setTimeout(resolve, 5000));
-				await loadGameDetails();
-				showToast('Game updated with your participation!', 'success');
+				await new Promise((resolve) => setTimeout(resolve, 2000));
+				window.location.reload();
 			} else {
 				showToast('Registered but portfolio submission failed', 'error');
 			}
@@ -196,7 +196,7 @@
 			
 			// Get real-time prices for all cryptos
 			const cryptoIds = ['bitcoin', 'ethereum', 'solana', 'cardano', 'polkadot', 
-				'chainlink', 'polygon', 'avalanche', 'cosmos', 'near', 
+				'chainlink', 'polygon', 'avalanche-2', 'cosmos', 'near', 
 				'algorand', 'fantom', 'hedera', 'internet-computer', 'vechain', 'tezos'];
 			
 			const snapshot = await getPriceSnapshot(cryptoIds);
@@ -214,7 +214,7 @@
 				showToast('Game started successfully!', 'success');
 				// Wait for blockchain to propagate
 				await new Promise(resolve => setTimeout(resolve, 2000));
-				await loadGameDetails();
+				window.location.reload();
 			} else {
 				showToast('Failed to start game', 'error');
 			}
@@ -237,7 +237,7 @@
 			
 			// Get real-time prices for all cryptos
 			const cryptoIds = ['bitcoin', 'ethereum', 'solana', 'cardano', 'polkadot', 
-				'chainlink', 'polygon', 'avalanche', 'cosmos', 'near', 
+				'chainlink', 'polygon', 'avalanche-2', 'cosmos', 'near', 
 				'algorand', 'fantom', 'hedera', 'internet-computer', 'vechain', 'tezos'];
 			
 			const snapshot = await getPriceSnapshot(cryptoIds);
@@ -255,7 +255,7 @@
 				showToast('Game ended successfully! Calculating winners...', 'success');
 				// Wait for blockchain to propagate
 				await new Promise(resolve => setTimeout(resolve, 2000));
-				await loadGameDetails();
+				window.location.reload();
 			} else {
 				showToast('Failed to end game', 'error');
 			}
@@ -397,6 +397,24 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Chart Section (if game is active) -->
+			{#if game.status === 'ACTIVE' || game.status === 'Active'}
+				{@const allCryptoIds = portfolios.flatMap(p => p.holdings.map(h => h.symbol)).filter((v, i, a) => a.indexOf(v) === i)}
+				<div class="bg-gray-900 rounded-lg p-6 mb-8 border border-green-500/20">
+					<h2 class="text-2xl font-bold text-green-400 mb-4 flex items-center gap-2">
+						<TrendingUp size={24} />
+						Live Competition
+					</h2>
+					{#if allCryptoIds.length > 0}
+						<TournamentChart cryptoIds={allCryptoIds} />
+					{:else}
+						<div class="text-center py-8">
+							<p class="text-gray-400">Waiting for players to submit portfolios...</p>
+						</div>
+					{/if}
+				</div>
+			{/if}
 
 			<!-- Winners Display (only for completed games) -->
 			{#if game.status === 'COMPLETED' || game.status === 'Completed'}

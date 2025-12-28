@@ -4,10 +4,15 @@
 	import { onMount } from 'svelte';
 	import { coinDraftsService, type PriceSnapshotInput } from '$lib/coinDraftsService';
 	import type { Tournament } from '$lib/coinDraftsService';
-	import { Trophy, Users, DollarSign, Calendar, Crown, ArrowLeft, TrendingUp, Play, StopCircle } from '@lucide/svelte';
+	import { Trophy, Users, DollarSign, Calendar, Crown, ArrowLeft, TrendingUp, Play, StopCircle, Eye } from '@lucide/svelte';
 	import { showToast } from '$lib/stores/toasts';
 	import { getPriceSnapshot } from '$lib/services/priceService';
 	import TournamentChart from '$lib/components/TournamentChart.svelte';
+	import ShareButton from '$lib/components/ShareButton.svelte';
+	import ActivityFeed from '$lib/components/ActivityFeed.svelte';
+	import { generateTournamentShareText, generateTournamentWinShareText, getTournamentShareUrl } from '$lib/services/shareService';
+	import { generateTournamentActivity, type ActivityEvent } from '$lib/services/activityService';
+	import { wallet } from '$lib/stores/wallet';
 
 	const tournamentId = page.params.tournamentId;
 	
@@ -21,6 +26,12 @@
 	let startingTournament = $state(false);
 	let endingTournament = $state(false);
 	let cryptoIds = $state<string[]>([]);
+	
+	// Spectator mode (detection only, no polling)
+	let isSpectator = $state(false);
+	
+	// Activity Feed
+	let activityEvents = $state<ActivityEvent[]>([]);
 
 	onMount(async () => {
 		await loadTournamentDetails();
@@ -87,6 +98,16 @@
 
 				cryptoIds = allSelectedCryptos;
 			
+			}
+			
+			// Check if current user is a spectator
+			if ($wallet.isConnected && $wallet.chainId) {
+				isSpectator = !participants.includes($wallet.chainId);
+			}
+			
+			// Generate activity events
+			if (tournament) {
+				activityEvents = generateTournamentActivity(tournament, participants, portfolios);
 			}
 			
 		} catch (err) {
@@ -200,11 +221,19 @@
 <div class="min-h-screen bg-black text-green-400 p-6">
 	<div class="max-w-4xl mx-auto">
 		<!-- Header with Back Button -->
-		<div class="flex items-center gap-4 mb-8">
+		<div class="flex items-center justify-between mb-8">
 			<a href="/tournaments" class="flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors">
 				<ArrowLeft size={20} />
 				Back to Tournaments
 			</a>
+			
+			<!-- Spectator Badge -->
+			{#if isSpectator}
+				<div class="flex items-center gap-2 bg-blue-500/20 border border-blue-500/50 rounded-lg px-4 py-2">
+					<Eye size={18} class="text-blue-400" />
+					<span class="text-blue-400 font-medium">Spectating</span>
+				</div>
+			{/if}
 		</div>
 
 		{#if loading}
@@ -242,6 +271,24 @@
 					</div>
 					
 					<div class="flex gap-3">
+						<!-- Share Button for Completed Tournaments -->
+						{#if (tournament.status.toLowerCase() === 'completed' || tournament.status.toLowerCase() === 'finished') && leaderboard.length > 0}
+							{@const myEntry = leaderboard.find(e => e.player === $wallet.chainId)}
+							{#if myEntry}
+								{@const myRank = leaderboard.indexOf(myEntry) + 1}
+								{@const shareText = myRank === 1 
+									? generateTournamentWinShareText(tournament, myEntry.totalReturn)
+									: generateTournamentShareText(tournament, myRank, leaderboard.length, myEntry.totalReturn)
+								}
+								<ShareButton
+									text={shareText}
+									url={getTournamentShareUrl(tournament.id)}
+									title="CoinDrafts Tournament Results"
+									variant="icon-only"
+								/>
+							{/if}
+						{/if}
+
 						{#if tournament.status.toLowerCase().includes('registration') || tournament.status === 'PENDING'}
 							<button 
 								onclick={joinTournament}
@@ -357,29 +404,93 @@
 						Results
 					</h2>
 					
+					<!-- Explanation of Returns -->
+					<div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
+						<div class="text-sm text-blue-400">
+							<strong>How Returns Work:</strong> Your portfolio return is calculated based on the weighted performance of your top 5 picks. 
+							Position 1 has <strong>5x weight</strong>, Position 2 has <strong>4x weight</strong>, Position 3 has <strong>3x weight</strong>, 
+							Position 4 has <strong>2x weight</strong>, and Position 5 has <strong>1x weight</strong>. 
+							A negative return means your portfolio lost value, while a positive return means it gained value.
+						</div>
+					</div>
+					
 					<div class="space-y-3">
 						{#each leaderboard.slice(0, 3) as entry, index}
-							<div class="bg-black/30 rounded-lg p-4 flex items-center gap-4">
-								<div class="flex items-center justify-center w-12 h-12 rounded-full
-									{index === 0 ? 'bg-yellow-500 text-black' : 
-									 index === 1 ? 'bg-gray-400 text-black' : 
-									 index === 2 ? 'bg-amber-600 text-black' : 'bg-green-600 text-black'}
-									font-bold text-lg">
-									{entry.rank}
-								</div>
-								<div class="flex-1">
-									<div class="font-semibold truncate">{entry.playerAccount}</div>
-									<div class="text-sm text-gray-400">
-										Portfolio Return: <span class="font-bold text-green-400">{(entry.totalReturn / 10000).toFixed(2)}%</span>
+							{@const returnPercent = (entry.totalReturn / 10000)}
+							{@const isPositive = returnPercent >= 0}
+							{@const wonPrize = entry.winningAmount > 0}
+							{@const playerPortfolio = portfolios.get(entry.playerAccount)}
+							<div class="bg-black/30 rounded-lg p-4">
+								<div class="flex items-center gap-4 mb-3">
+									<div class="flex items-center justify-center w-12 h-12 rounded-full
+										{index === 0 ? 'bg-yellow-500 text-black' : 
+										 index === 1 ? 'bg-gray-400 text-black' : 
+										 index === 2 ? 'bg-amber-600 text-black' : 'bg-green-600 text-black'}
+										font-bold text-lg">
+										{entry.rank}
+									</div>
+									<div class="flex-1">
+										<div class="font-semibold truncate">{entry.playerAccount}</div>
+										<div class="text-sm text-gray-400">
+											Total Weighted Return: 
+											<span class="font-bold {isPositive ? 'text-green-400' : 'text-red-400'}">
+												{isPositive ? '+' : ''}{returnPercent.toFixed(2)}%
+												{#if !isPositive}
+													<span class="text-xs text-gray-500">(Loss)</span>
+												{:else if returnPercent > 0}
+													<span class="text-xs text-gray-500">(Gain)</span>
+												{:else}
+													<span class="text-xs text-gray-500">(No Change)</span>
+												{/if}
+											</span>
+										</div>
 									</div>
 									{#if index === 0}
-										<div class="text-yellow-400 text-sm font-semibold">🏆 Winner {entry.winningAmount > 0 ? `- $${(entry.winningAmount / 1000000).toFixed(2)} USDC` : ''}</div>
+										<div class="text-yellow-400 text-sm font-semibold">
+											🏆 Winner {wonPrize ? `- $${(entry.winningAmount / 1000000).toFixed(2)} USDC` : '(Best Performance)'}
+										</div>
 									{:else if index === 1}
-										<div class="text-gray-300 text-sm font-semibold">🥈 Runner-up {entry.winningAmount > 0 ? `- $${(entry.winningAmount / 1000000).toFixed(2)} USDC` : ''}</div>
+										<div class="text-gray-300 text-sm font-semibold">
+											🥈 Runner-up {wonPrize ? `- $${(entry.winningAmount / 1000000).toFixed(2)} USDC` : '(2nd Best)'}
+										</div>
 									{:else if index === 2}
-										<div class="text-amber-500 text-sm font-semibold">🥉 Third Place {entry.winningAmount > 0 ? `- $${(entry.winningAmount / 1000000).toFixed(2)} USDC` : ''}</div>
+										<div class="text-orange-400 text-sm font-semibold">
+											🥉 Third Place {wonPrize ? `- $${(entry.winningAmount / 1000000).toFixed(2)} USDC` : '(3rd Best)'}
+										</div>
 									{/if}
 								</div>
+								
+								<!-- Individual Coin Performance Breakdown -->
+								{#if playerPortfolio && playerPortfolio.cryptoPicks && tournament.startPrices && tournament.endPrices}
+									<div class="mt-4 pt-3 border-t border-gray-700">
+										<div class="text-xs text-gray-400 mb-2 font-semibold">Individual Coin Performance:</div>
+										<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+											{#each playerPortfolio.cryptoPicks.slice(0, 6) as cryptoId, pickIndex}
+												{@const startPrice = tournament.startPrices.find(p => p.cryptoId === cryptoId)}
+												{@const endPrice = tournament.endPrices.find(p => p.cryptoId === cryptoId)}
+												{#if startPrice && endPrice}
+													{@const coinReturn = ((endPrice.priceUsd - startPrice.priceUsd) / startPrice.priceUsd) * 100}
+													{@const isGain = coinReturn >= 0}
+													{@const positionWeight = [5, 4, 3, 2, 1][pickIndex]}
+													<div class="bg-gray-800/50 rounded px-3 py-2 text-xs">
+														<div class="flex items-center justify-between mb-1">
+															<span class="font-semibold text-gray-300 uppercase">{cryptoId}</span>
+															<span class="text-xs text-gray-500">{positionWeight}x weight</span>
+														</div>
+														<div class="flex items-center justify-between">
+															<span class="font-bold {isGain ? 'text-green-400' : 'text-red-400'}">
+																{isGain ? '+' : ''}{coinReturn.toFixed(2)}%
+															</span>
+															<span class="text-xs {isGain ? 'text-green-500' : 'text-red-500'}">
+																{isGain ? '📈' : '📉'}
+															</span>
+														</div>
+													</div>
+												{/if}
+											{/each}
+										</div>
+									</div>
+								{/if}
 							</div>
 						{/each}
 					</div>
@@ -427,7 +538,17 @@
 						No participants yet. Be the first to join!
 					</div>
 				{/if}
-			</div>
+		</div>
 		{/if}
 	</div>
+	
+	<!-- Floating Activity Feed -->
+	{#if tournament}
+		<div class="fixed top-24 right-6 w-80 max-h-[calc(100vh-8rem)] z-40 hidden xl:block">
+			<ActivityFeed 
+				bind:events={activityEvents}
+				autoRefresh={false}
+			/>
+		</div>
+	{/if}
 </div>

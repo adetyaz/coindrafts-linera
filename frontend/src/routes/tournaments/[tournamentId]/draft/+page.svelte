@@ -8,6 +8,8 @@
 	import { getCryptosForCategory, type CryptoInfo } from '$lib/data/cryptoCategories';
 	import { coinDraftsService, type Tournament } from '$lib/coinDraftsService';
 	import { gql } from '@apollo/client/core';
+	import { getAISuggestions, type AISuggestionResponse } from '$lib/services/aiSuggestionService';
+	import AISuggestionCard from '$lib/components/AISuggestionCard.svelte';
 
 	// Tournament ID from URL
 	let tournamentId = $derived(page.params.tournamentId);
@@ -38,6 +40,11 @@
 	let submitting = $state(false);
 	let draggedCrypto = $state<string | null>(null);
 	let draggedFromPosition = $state<number | null>(null);
+
+	// AI suggestions state
+	let aiSuggestions = $state<AISuggestionResponse | null>(null);
+	let aiLoading = $state(false);
+	let aiError = $state<string | null>(null);
 
 	// Computed
 	let selectedCryptoIds = $derived(draftPicks.filter((pick) => pick !== null) as string[]);
@@ -170,6 +177,37 @@
 	function clearDraft() {
 		draftPicks = [null, null, null, null, null];
 		addToast('Draft cleared', 'info');
+	}
+
+	async function handleRequestAISuggestions() {
+		if (aiLoading) return;
+
+		try {
+			aiLoading = true;
+			aiError = null;
+			aiSuggestions = null;
+
+			aiSuggestions = await getAISuggestions({
+				availableCoins: availableCryptos.map((c) => c.symbol),
+				gameType: 'tournament',
+				maxPicks: 5
+			});
+		} catch (err: any) {
+			aiError = err.message || 'Failed to get AI suggestions';
+			console.error('AI suggestion error:', err);
+		} finally {
+			aiLoading = false;
+		}
+	}
+
+	function handleAcceptAISuggestions(cryptos: string[]) {
+		// Convert symbols to IDs and fill draft picks
+		draftPicks = cryptos.slice(0, 5).map((symbol) => {
+			const crypto = availableCryptos.find((c) => c.symbol === symbol);
+			return crypto?.id || null;
+		});
+		aiSuggestions = null;
+		addToast('AI suggestions applied to draft', 'success');
 	}
 
 	async function submitDraft() {
@@ -307,6 +345,19 @@
 		<!-- Available Cryptos -->
 		<div>
 			<h2 class="text-2xl font-bold mb-4">Available Cryptocurrencies</h2>
+
+			<!-- AI Suggestion Card -->
+			{#if !loading && !loadingTournament}
+				<div class="mb-6">
+					<AISuggestionCard
+						suggestions={aiSuggestions}
+						loading={aiLoading}
+						error={aiError}
+						onAccept={handleAcceptAISuggestions}
+						onRequestSuggestions={handleRequestAISuggestions}
+					/>
+				</div>
+			{/if}
 
 			{#if loading || loadingTournament}
 				<div class="flex items-center justify-center py-12">

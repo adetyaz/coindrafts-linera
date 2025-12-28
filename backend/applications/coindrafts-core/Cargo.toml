@@ -13,11 +13,9 @@ linera-views = { workspace = true }
 # Async GraphQL for service layer
 async-graphql = { workspace = true }
 
-# Standard dependencies
+# Serialization
 serde = { workspace = true }
-serde_json = { workspace = true }
-async-trait = { workspace = true }
-anyhow = "1.0"
+
 thiserror = "1.0"
 log = "0.4"
 

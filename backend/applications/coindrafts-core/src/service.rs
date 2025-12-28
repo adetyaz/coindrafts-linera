@@ -11,7 +11,7 @@ mod state;
 
 use std::sync::Arc;
 
-use async_graphql::{Request, Response, Schema, EmptySubscription, Object};
+use async_graphql::{Request, Response, Schema, Object, EmptySubscription};
 use coindrafts_core::{CoinDraftsAbi, CoinDraftsOperation, Game, PlayerProfile, Portfolio};
 use self::state::CoinDraftsState;
 use linera_sdk::{

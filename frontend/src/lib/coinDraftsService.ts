@@ -28,6 +28,14 @@ export interface Tournament {
 	currentParticipants: number;
 	createdAt: number;
 	category?: string;
+	startPrices?: PriceSnapshot[];
+	endPrices?: PriceSnapshot[];
+}
+
+export interface PriceSnapshot {
+	cryptoId: string;
+	priceUsd: number;
+	timestamp: number;
 }
 
 export interface MutationResult {
@@ -251,6 +259,16 @@ const GET_TOURNAMENT = gql`
 			maxParticipants
 			currentParticipants
 			createdAt
+			startPrices {
+				cryptoId
+				priceUsd
+				timestamp
+			}
+			endPrices {
+				cryptoId
+				priceUsd
+				timestamp
+			}
 		}
 	}
 `;
@@ -308,16 +326,16 @@ const CREATE_GAME = gql`
 	mutation CreateGame(
 		$mode: String!
 		$name: String!
-		$maxPlayers: Int!
-		$entryFeeUsdc: Int!
-		$durationHours: Int!
+		$max_players: Int!
+		$entry_fee_usdc: Int!
+		$duration_hours: Int!
 	) {
 		createGame(
 			mode: $mode
 			name: $name
-			maxPlayers: $maxPlayers
-			entryFeeUsdc: $entryFeeUsdc
-			durationHours: $durationHours
+			max_players: $max_players
+			entry_fee_usdc: $entry_fee_usdc
+			duration_hours: $duration_hours
 		)
 	}
 `;
@@ -527,9 +545,9 @@ class CoinDraftsService {
 				variables: {
 					mode,
 					name,
-					maxPlayers,
-					entryFeeUsdc,
-					durationHours
+					max_players: maxPlayers,
+					entry_fee_usdc: entryFeeUsdc,
+					duration_hours: durationHours
 				}
 			});
 
@@ -556,8 +574,6 @@ class CoinDraftsService {
 		category: string = 'ALL_CATEGORIES'
 	): Promise<MutationResult> {
 		try {
-
-
 			const result = await tradLeaguesClient.mutate({
 				mutation: CREATE_TOURNAMENT,
 				variables: {
@@ -655,7 +671,6 @@ class CoinDraftsService {
 				timestamp: Math.floor(s.timestamp)
 			}));
 
-	
 			const result = await coinDraftsClient.mutate({
 				mutation: START_GAME,
 				variables: {
@@ -663,8 +678,6 @@ class CoinDraftsService {
 					priceSnapshot: formattedSnapshot
 				}
 			});
-
-	
 
 			if (result.error) {
 				console.error('[startGame] result.error:', result.error);
@@ -675,7 +688,7 @@ class CoinDraftsService {
 			}
 
 			const success = !result.error && !!result.data;
-			
+
 			return { success };
 		} catch (error) {
 			console.error('[startGame] Exception:', error);
@@ -724,7 +737,6 @@ class CoinDraftsService {
 			});
 
 			const success = !!(result.data && typeof result.data === 'string');
-			
 
 			return { success };
 		} catch (error) {
@@ -753,7 +765,6 @@ class CoinDraftsService {
 			});
 
 			const success = !!(result.data && typeof result.data === 'string');
-		
 
 			return { success };
 		} catch (error) {
@@ -770,7 +781,6 @@ class CoinDraftsService {
 			});
 
 			const success = !!(result.data && typeof result.data === 'string');
-			
 
 			return { success };
 		} catch (error) {

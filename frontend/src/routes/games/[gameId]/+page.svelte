@@ -2,12 +2,18 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { coinDraftsService, type Game, type PlayerProfile, type Portfolio, type PriceSnapshotInput } from '$lib/coinDraftsService';
-	import { Trophy, Users, DollarSign, Calendar, Gamepad2, ArrowLeft, Target, Play, StopCircle, TrendingUp } from '@lucide/svelte';
+	import { Trophy, Users, DollarSign, Calendar, Gamepad2, ArrowLeft, Target, Play, StopCircle, TrendingUp, Eye } from '@lucide/svelte';
 	import { wallet } from '$lib/stores/wallet';
 	import { showToast } from '$lib/stores/toasts';
 	import GameWinnersDisplay from '$lib/components/GameWinnersDisplay.svelte';
 	import TournamentChart from '$lib/components/TournamentChart.svelte';
+	import AISuggestionCard from '$lib/components/AISuggestionCard.svelte';
+	import ShareButton from '$lib/components/ShareButton.svelte';
+	import ActivityFeed from '$lib/components/ActivityFeed.svelte';
 	import { getPriceSnapshot } from '$lib/services/priceService';
+	import { getAISuggestions, type AISuggestionResponse } from '$lib/services/aiSuggestionService';
+	import { generateGameShareText, generatePortfolioShareText, getGameShareUrl } from '$lib/services/shareService';
+	import { generateGameActivity, type ActivityEvent } from '$lib/services/activityService';
 
 	const gameId = page.params.gameId;
 	
@@ -21,6 +27,17 @@
 	let submitting = $state(false);
 	let startingGame = $state(false);
 	let endingGame = $state(false);
+	
+	// Spectator mode
+	let isSpectator = $state(false);
+	
+	// Activity Feed
+	let activityEvents = $state<ActivityEvent[]>([]);
+	
+	// AI Suggestions
+	let aiSuggestions = $state<AISuggestionResponse | null>(null);
+	let aiLoading = $state(false);
+	let aiError = $state('');
 	
 	const walletState = $derived($wallet);
 
@@ -74,6 +91,18 @@
 			const allPlayers = await coinDraftsService.fetchPlayers();
 			const playerAccountsInGame = new Set(portfolios.map(p => p.playerAccount));
 			players = allPlayers.filter(p => playerAccountsInGame.has(p.account));
+			
+			// Check if current user is spectating (watching active/completed game they're not in)
+			if ($wallet.isConnected && game) {
+				const myPortfolio = portfolios.find(p => p.playerAccount === $wallet.chainId);
+				const gameIsActiveOrCompleted = game.status === 'Active' || game.status === 'ACTIVE' || game.status === 'Completed' || game.status === 'COMPLETED';
+				isSpectator = gameIsActiveOrCompleted && !myPortfolio;
+			}
+			
+			// Generate activity events
+			if (game) {
+				activityEvents = generateGameActivity(game, portfolios);
+			}
 			
 		} catch (err) {
 			console.error('Failed to load game details:', err);
@@ -144,6 +173,35 @@
 		}
 	}
 
+	async function handleRequestAISuggestions() {
+		try {
+			aiLoading = true;
+			aiError = '';
+			
+			const availableSymbols = availableCryptos.map(c => c.symbol);
+			
+			aiSuggestions = await getAISuggestions({
+				availableCoins: availableSymbols,
+				gameType: game?.mode || 'standard',
+				maxPicks: 5
+			});
+			
+			showToast('AI suggestions generated!', 'success');
+		} catch (err: any) {
+			console.error('Failed to get AI suggestions:', err);
+			aiError = err.message || 'Failed to generate AI suggestions';
+			showToast('Failed to get AI suggestions', 'error');
+		} finally {
+			aiLoading = false;
+		}
+	}
+
+	function handleAcceptAISuggestions(cryptos: string[]) {
+		portfolioCryptos = cryptos;
+		aiSuggestions = null;
+		showToast('AI suggestions applied! Review and submit your portfolio.', 'success');
+	}
+
 	function getStatusColor(status: string): string {
 		switch (status) {
 			case 'WAITING_FOR_PLAYERS':
@@ -183,6 +241,30 @@
 			case 'PRICE_PREDICTION': return 'Price Prediction';
 			default: return mode;
 		}
+	}
+
+	function formatTimestamp(timestamp: number | string | undefined): string {
+		if (!timestamp) return 'Unknown';
+		
+		const ts = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+		if (isNaN(ts)) return 'Unknown';
+		
+		// Try different timestamp formats (Linera uses nanoseconds)
+		const formats = [
+			ts / 1000000000, // nanoseconds (most likely for Linera)
+			ts / 1000000,    // microseconds
+			ts / 1000,       // seconds
+			ts               // milliseconds
+		];
+		
+		for (const converted of formats) {
+			const date = new Date(converted);
+			if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
+				return date.toLocaleDateString();
+			}
+		}
+		
+		return 'Unknown';
 	}
 
 	async function handleStartGame() {
@@ -280,11 +362,19 @@
 <div class="min-h-screen bg-black text-green-400 p-6">
 	<div class="max-w-4xl mx-auto">
 		<!-- Header with Back Button -->
-		<div class="flex items-center gap-4 mb-8">
+		<div class="flex items-center justify-between mb-8">
 			<a href="/quick-match" class="flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors">
 				<ArrowLeft size={20} />
 				Back to Games
 			</a>
+			
+			<!-- Spectator Badge -->
+			{#if isSpectator}
+				<div class="flex items-center gap-2 bg-blue-500/20 border border-blue-500/50 rounded-lg px-4 py-2">
+					<Eye size={18} class="text-blue-400" />
+					<span class="text-blue-400 font-medium">Spectating</span>
+				</div>
+			{/if}
 		</div>
 
 		{#if loading}
@@ -305,7 +395,7 @@
 			<!-- Game Header -->
 			<div class="bg-gray-900 rounded-lg p-6 mb-8 border border-green-500/20">
 				<div class="flex items-start justify-between mb-4">
-					<div>
+					<div class="flex-1">
 						<h1 class="text-3xl font-bold text-green-400 mb-2">Game {game.gameId}</h1>
 						<div class="flex items-center gap-2 text-lg">
 							{#if game.status === 'WaitingForPlayers'}
@@ -322,7 +412,23 @@
 					</div>
 					
 					<div class="flex gap-3">
+						<!-- Share Button for Completed Games -->
+						{#if game.status === 'Completed' || game.status === 'COMPLETED' || game.status === 'Finished'}
+							{@const myPortfolio = portfolios.find(p => p.playerAccount === $wallet.chainId)}
+							{@const myRank = portfolios.findIndex(p => p.playerAccount === $wallet.chainId) + 1}
+							{#if myPortfolio && myRank > 0}
+								<ShareButton
+									text={generateGameShareText(game, myRank, portfolios.length, 0)}
+									url={getGameShareUrl(game.gameId)}
+									title="CoinDrafts Game Results"
+									variant="icon-only"
+								/>
+							{/if}
+						{/if}
+
 						{#if game.status === 'WAITING_FOR_PLAYERS' || game.status === 'WaitingForPlayers' || game.status === 'PENDING'}
+						{@const myPortfolio = portfolios.find(p => p.playerAccount === $wallet.chainId)}
+						{#if !myPortfolio}
 							<button 
 								onclick={joinGame}
 								class="bg-[#39ff14] hover:bg-[#0bd10b] text-black px-6 py-3 rounded-full font-semibold transition-colors cursor-pointer flex items-center gap-2"
@@ -330,6 +436,12 @@
 								<Users size={20} />
 								Join Game
 							</button>
+						{:else}
+							<div class="bg-green-500/20 border border-green-500/50 rounded-lg px-6 py-3 flex items-center gap-2">
+								<Users size={20} class="text-green-400" />
+								<span class="text-green-400 font-medium">You're in this game</span>
+								</div>
+							{/if}
 							<button 
 								onclick={handleStartGame}
 								disabled={startingGame || (game.playerCount || 0) === 0}
@@ -373,35 +485,7 @@
 						<Calendar size={24} class="text-green-400" />
 						<div>
 							<div class="text-sm text-gray-400">Created</div>
-							<div class="text-lg font-semibold">
-								{#if game.createdAt}
-									{(() => {
-										console.log('Raw createdAt value:', game.createdAt, 'Type:', typeof game.createdAt);
-										// The timestamp might be in nanoseconds or microseconds, let's try different divisions
-										const timestamp = typeof game.createdAt === 'string' ? parseInt(game.createdAt) : game.createdAt;
-										if (isNaN(timestamp)) return 'Unknown';
-										
-										// Try different timestamp formats
-										const formats = [
-											timestamp,           // milliseconds
-											timestamp / 1000,    // seconds
-											timestamp / 1000000, // microseconds
-											timestamp / 1000000000 // nanoseconds
-										];
-										
-										for (const ts of formats) {
-											const date = new Date(ts);
-											if (date.getFullYear() >= 2020 && date.getFullYear() <= 2030) {
-												return date.toLocaleDateString();
-											}
-										}
-										
-										return `Debug: ${timestamp}`;
-									})()}
-								{:else}
-									Unknown
-								{/if}
-							</div>
+							<div class="text-lg font-semibold">{formatTimestamp(game.createdAt)}</div>
 						</div>
 					</div>
 				</div>
@@ -496,51 +580,81 @@
 			{/if}
 		{/if}
 	</div>
+	
+	<!-- Floating Activity Feed -->
+	{#if game}
+		<div class="fixed top-24 right-6 w-80 max-h-[calc(100vh-8rem)] z-40 hidden xl:block">
+			<ActivityFeed 
+				bind:events={activityEvents}
+				autoRefresh={false}
+			/>
+		</div>
+	{/if}
 </div>
 
 <!-- Portfolio Selection Modal -->
 {#if showPortfolioModal}
 	<div 
 		class="fixed inset-0 bg-black/70 flex items-start justify-center z-50 overflow-y-auto"
+		role="button"
+		tabindex="0"
 		onclick={(e) => { if (e.target === e.currentTarget) { showPortfolioModal = false; portfolioCryptos = []; } }}
+		onkeydown={(e) => { if (e.key === 'Escape') { showPortfolioModal = false; portfolioCryptos = []; } }}
 	>
-		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-[#39ff14]/30 max-w-md w-full my-8">
+		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-[#39ff14]/30 max-w-5xl w-full my-8 mx-4">
 			<h2 class="text-2xl font-bold text-white mb-6">Select Your Portfolio</h2>
 			
-			<div class="space-y-4 mb-6">
-				<p class="text-gray-300 text-sm">
-					Choose exactly 5 cryptocurrencies for this game. Your portfolio performance will determine your ranking!
-				</p>
-				
-				<div>
-					<label class="block text-sm font-medium text-gray-300 mb-3">
-						Select Cryptocurrencies ({portfolioCryptos.length}/5)
-					</label>
-					<div class="grid grid-cols-2 gap-2 max-h-80 overflow-y-auto bg-white/5 rounded-lg p-3 border border-white/20">
-						{#each availableCryptos as crypto}
-						<button
-							type="button"
-							onclick={() => togglePortfolioCrypto(crypto.id)}
-							class="text-left p-2 rounded-lg text-sm transition-all cursor-pointer {
-								portfolioCryptos.includes(crypto.id) 
-									? 'bg-[#39ff14] text-black font-medium' 
-									: 'bg-white/10 text-white hover:bg-white/20'
-							} {portfolioCryptos.length >= 5 && !portfolioCryptos.includes(crypto.id) ? 'opacity-50 cursor-not-allowed' : ''}"
-							disabled={portfolioCryptos.length >= 5 && !portfolioCryptos.includes(crypto.id)}
-						>
-							{crypto.name}
-						</button>
-						{/each}
-					</div>
-				</div>
-				
-				{#if !walletState.isConnected}
-					<div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3">
-						<p class="text-xs text-yellow-200">
-							Please connect your wallet to join this game
-						</p>
+			<!-- Two Column Layout: AI Suggestions | Crypto Selection -->
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+				<!-- AI Suggestion Column -->
+				{#if game && (game.status === 'WAITING_FOR_PLAYERS' || game.status === 'WaitingForPlayers' || game.status === 'PENDING')}
+					<div>
+						<AISuggestionCard 
+							suggestions={aiSuggestions}
+							loading={aiLoading}
+							error={aiError}
+							onAccept={handleAcceptAISuggestions}
+							onRequestSuggestions={handleRequestAISuggestions}
+						/>
 					</div>
 				{/if}
+				
+				<!-- Crypto Selection Column -->
+				<div class="space-y-4">
+					<p class="text-gray-300 text-sm">
+						Choose exactly 5 cryptocurrencies for this game. Your portfolio performance will determine your ranking!
+					</p>
+					
+					<div>
+						<div class="block text-sm font-medium text-gray-300 mb-3">
+							Select Cryptocurrencies ({portfolioCryptos.length}/5)
+						</div>
+						<div class="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto bg-white/5 rounded-lg p-3 border border-white/20">
+							{#each availableCryptos as crypto}
+							<button
+								type="button"
+								onclick={() => togglePortfolioCrypto(crypto.id)}
+								class="text-left p-2 rounded-lg text-sm transition-all cursor-pointer {
+									portfolioCryptos.includes(crypto.id) 
+										? 'bg-[#39ff14] text-black font-medium' 
+										: 'bg-white/10 text-white hover:bg-white/20'
+								} {portfolioCryptos.length >= 5 && !portfolioCryptos.includes(crypto.id) ? 'opacity-50 cursor-not-allowed' : ''}"
+								disabled={portfolioCryptos.length >= 5 && !portfolioCryptos.includes(crypto.id)}
+							>
+								{crypto.name}
+							</button>
+							{/each}
+						</div>
+					</div>
+					
+					{#if !walletState.isConnected}
+						<div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-3">
+							<p class="text-xs text-yellow-200">
+								Please connect your wallet to join this game
+							</p>
+						</div>
+					{/if}
+				</div>
 			</div>
 			
 			<div class="flex gap-4">
@@ -566,3 +680,18 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	@keyframes spin-slow {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	:global(.animate-spin-slow) {
+		animation: spin-slow 3s linear infinite;
+	}
+</style>

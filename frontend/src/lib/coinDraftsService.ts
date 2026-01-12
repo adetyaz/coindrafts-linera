@@ -9,6 +9,7 @@ import {
 // Types
 export interface Game {
 	gameId: string;
+	name: string;
 	mode: string;
 	status: string;
 	createdAt: number;
@@ -174,6 +175,7 @@ const GET_GAMES = gql`
 	query GetGames {
 		games {
 			gameId
+			name
 			mode
 			status
 			createdAt
@@ -190,6 +192,7 @@ const GET_GAME = gql`
 	query GetGame($gameId: String!) {
 		game(gameId: $gameId) {
 			gameId
+			name
 			mode
 			status
 			createdAt
@@ -326,16 +329,16 @@ const CREATE_GAME = gql`
 	mutation CreateGame(
 		$mode: String!
 		$name: String!
-		$max_players: Int!
-		$entry_fee_usdc: Int!
-		$duration_hours: Int!
+		$maxPlayers: Int!
+		$entryFeeUsdc: Int!
+		$durationHours: Int!
 	) {
 		createGame(
 			mode: $mode
 			name: $name
-			max_players: $max_players
-			entry_fee_usdc: $entry_fee_usdc
-			duration_hours: $duration_hours
+			maxPlayers: $maxPlayers
+			entryFeeUsdc: $entryFeeUsdc
+			durationHours: $durationHours
 		)
 	}
 `;
@@ -545,9 +548,9 @@ class CoinDraftsService {
 				variables: {
 					mode,
 					name,
-					max_players: maxPlayers,
-					entry_fee_usdc: entryFeeUsdc,
-					duration_hours: durationHours
+					maxPlayers,
+					entryFeeUsdc,
+					durationHours
 				}
 			});
 
@@ -650,16 +653,108 @@ class CoinDraftsService {
 
 	async submitPortfolio(gameId: string, cryptocurrencies: string[]): Promise<MutationResult> {
 		try {
+			console.log('[submitPortfolio] Submitting portfolio for game:', gameId);
 			const result = await coinDraftsClient.mutate({
 				mutation: SUBMIT_PORTFOLIO,
 				variables: { gameId, cryptocurrencies }
 			});
 
 			const success = !result.error;
+			console.log('[submitPortfolio] Submission result:', success);
+
+			// Check if game is now full and auto-start if needed
+			if (success) {
+				console.log('[submitPortfolio] Checking auto-start...');
+				await this.checkAndAutoStartGame(gameId, cryptocurrencies);
+			}
+
 			return { success };
 		} catch (error) {
-			console.error('Portfolio submission error:', error);
+			console.error('[submitPortfolio] Portfolio submission error:', error);
 			return { success: false };
+		}
+	}
+
+	private async checkAndAutoStartGame(gameId: string, cryptocurrencies: string[]): Promise<void> {
+		try {
+			console.log('[checkAndAutoStartGame] Checking game:', gameId);
+
+			// Wait longer for blockchain state to propagate
+			console.log('[checkAndAutoStartGame] Waiting 1s for blockchain propagation...');
+			await new Promise((resolve) => setTimeout(resolve, 3000));
+
+			// Fetch updated game data with forced refresh
+			const result = await coinDraftsClient.query<GameQueryResult>({
+				query: GET_GAME,
+				variables: { gameId },
+				fetchPolicy: 'network-only' // Force fresh data
+			});
+
+			const game = result.data?.game;
+
+			if (!game) {
+				console.log('[checkAndAutoStartGame] Game not found!');
+				return;
+			}
+
+			console.log(
+				'[checkAndAutoStartGame] Game status:',
+				game.status,
+				'Players:',
+				game.playerCount,
+				'/',
+				game.maxPlayers
+			);
+
+			// Check if game is full and still pending
+			if (game.status === 'Pending' && game.playerCount >= game.maxPlayers) {
+				console.log(
+					`[checkAndAutoStartGame] Game ${gameId} is FULL (${game.playerCount}/${game.maxPlayers}). Auto-starting...`
+				);
+
+				// Fetch current prices for the cryptocurrencies
+				console.log('[checkAndAutoStartGame] Fetching prices for:', cryptocurrencies);
+				const priceSnapshot = await this.fetchCryptoPrices(cryptocurrencies);
+				console.log('[checkAndAutoStartGame] Price snapshot:', priceSnapshot);
+
+				if (priceSnapshot.length > 0) {
+					console.log('[checkAndAutoStartGame] Starting game with prices...');
+					const startResult = await this.startGame(gameId, priceSnapshot);
+					console.log('[checkAndAutoStartGame] Start result:', startResult);
+
+					if (startResult.success) {
+						console.log(`[checkAndAutoStartGame] Game ${gameId} auto-started successfully!`);
+					} else {
+						console.error('[checkAndAutoStartGame] Failed to start game');
+					}
+				} else {
+					console.error('[checkAndAutoStartGame] No prices fetched!');
+				}
+			} else {
+				console.log('[checkAndAutoStartGame] Game not ready for auto-start');
+			}
+		} catch (error) {
+			console.error('[checkAndAutoStartGame] Auto-start check error:', error);
+		}
+	}
+
+	private async fetchCryptoPrices(cryptoIds: string[]): Promise<PriceSnapshotInput[]> {
+		try {
+			const promises = cryptoIds.map(async (cryptoId) => {
+				const response = await fetch(`https://api.coincap.io/v2/assets/${cryptoId}`);
+				const data = await response.json();
+
+				return {
+					cryptoId,
+					priceUsd: Math.floor(parseFloat(data.data.priceUsd) * 1_000_000), // Convert to micro-USDC
+					timestamp: Date.now() * 1000 // microseconds
+				};
+			});
+
+			return await Promise.all(promises);
+		} catch (error) {
+			console.error('Failed to fetch crypto prices:', error);
+			return [];
 		}
 	}
 

@@ -249,7 +249,7 @@
 						<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-primary-green/30">
 							<div class="flex justify-between items-start mb-4">
 								<div>
-									<h3 class="text-lg font-semibold text-white">Game #{game.gameId.slice(-6)}</h3>
+									<h3 class="text-lg font-semibold text-white">{game.name}</h3>
 									<p class="text-sm text-text-secondary">{game.mode}</p>
 								</div>
 								<span class="text-xs px-2 py-1 rounded-full border {

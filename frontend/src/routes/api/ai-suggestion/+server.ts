@@ -61,7 +61,7 @@ Provide your response in this EXACT JSON format (no markdown, no code blocks, ju
       "symbol": "BTC",
       "confidence": 85,
       "reasoning": "Specific explanation with real metrics or analysis - avoid generic marketing phrases"
-    }
+    },
   ],
   "overallStrategy": "Concrete strategy explaining WHY these picks work together and HOW they address the market context"
 }
@@ -133,17 +133,34 @@ CRITICAL REQUIREMENTS:
 		let aiResponse: AISuggestionResponse;
 		try {
 			// Remove markdown code blocks if present
-			const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+			let cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
+
+			// More robust comma cleanup - handle all patterns
+			// Remove trailing commas before } or ]
+			cleanedContent = cleanedContent.replace(/,(\s*[}\]])/g, '$1');
+			// Repeat until no more changes (handles deeply nested)
+			let previousContent = '';
+			while (previousContent !== cleanedContent) {
+				previousContent = cleanedContent;
+				cleanedContent = cleanedContent.replace(/,(\s*[}\]])/g, '$1');
+			}
+
 			aiResponse = JSON.parse(cleanedContent);
 		} catch (parseError) {
 			console.error('Failed to parse AI response:', content);
 			console.error('Parse error:', parseError);
-			// Try to fix common issues
+			// Final attempt - extract JSON and aggressively clean
 			try {
-				// Sometimes AI adds text before or after JSON, try to extract just the JSON
 				const jsonMatch = content.match(/\{[\s\S]*\}/);
 				if (jsonMatch) {
-					aiResponse = JSON.parse(jsonMatch[0]);
+					let extracted = jsonMatch[0];
+					// Remove ALL trailing commas iteratively
+					let prev = '';
+					while (prev !== extracted) {
+						prev = extracted;
+						extracted = extracted.replace(/,(\s*[}\]])/g, '$1');
+					}
+					aiResponse = JSON.parse(extracted);
 				} else {
 					throw error(500, `Invalid AI response format - no JSON found in response`);
 				}

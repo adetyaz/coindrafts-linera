@@ -182,6 +182,9 @@ impl Contract for CoinDraftsContract {
                     .unwrap_or_default()
                     .unwrap_or_default();
                 
+                // Remove any existing portfolio from this player (prevent duplicates)
+                portfolios.retain(|p| p.player_account != portfolio.player_account);
+                
                 portfolios.push(portfolio);
                 
                 self.state.portfolios.insert(&game_id, portfolios)
@@ -213,6 +216,9 @@ impl Contract for CoinDraftsContract {
                     .await
                     .unwrap_or_default()
                     .unwrap_or_default();
+                
+                // Remove any existing portfolio from this player (prevent duplicates)
+                portfolios.retain(|p| p.player_account != portfolio.player_account);
                 
                 portfolios.push(portfolio);
                 

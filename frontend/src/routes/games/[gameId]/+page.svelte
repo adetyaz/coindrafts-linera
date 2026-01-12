@@ -159,9 +159,9 @@
 				showPortfolioModal = false;
 				portfolioCryptos = [];
 				
-				// Wait for blockchain propagation then reload
-				await new Promise((resolve) => setTimeout(resolve, 2000));
-				window.location.reload();
+				// Wait longer for blockchain propagation AND auto-start to complete
+				await new Promise((resolve) => setTimeout(resolve, 3000));
+				await loadGameDetails(); // Reload data without full page refresh
 			} else {
 				showToast('Registered but portfolio submission failed', 'error');
 			}

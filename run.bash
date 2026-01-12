@@ -3,6 +3,12 @@ set -eu
 
 echo "Starting CoinDrafts Linera Application..."
 
+# Create .env if it doesn't exist
+if [ ! -f /build/.env ]; then
+    echo "Creating .env from .env.example..."
+    cp /build/.env.example /build/.env
+fi
+
 # Set up Linera network
 eval "$(linera net helper)"
 linera_spawn linera net up --with-faucet

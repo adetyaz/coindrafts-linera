@@ -94,7 +94,7 @@
 				gameName,
 				maxPlayers,
 				entryFeeUsdc,
-				duration
+				Math.round(duration) // Ensure integer for GraphQL Int type
 			);
 			
 			if (result.success) {
@@ -249,7 +249,7 @@
 				<div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:border-primary-green/50 transition-colors">
 					<div class="flex justify-between items-start mb-4">
 						<div>
-							<h3 class="text-xl font-bold text-white mb-1">Game #{game.gameId.slice(0, 8)}</h3>
+						<h3 class="text-xl font-bold text-white mb-1">{game.name}</h3>
 							<p class="text-sm text-text-secondary">{game.mode}</p>
 						</div>
 						<span class="px-3 py-1 bg-primary-green/20 text-primary-green text-xs font-semibold rounded-full">
@@ -354,11 +354,11 @@
 						bind:value={maxPlayers}
 						class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-primary-green"
 					>
-						<option value={2}>2 Players</option>
-						<option value={5}>5 Players</option>
-						<option value={10}>10 Players</option>
-						<option value={20}>20 Players</option>
-						<option value={50}>50 Players</option>
+						<option class="text-black" value={2}>2 Players</option>
+						<option class="text-black" value={5}>5 Players</option>
+						<option class="text-black" value={10}>10 Players</option>
+						<option class="text-black" value={20}>20 Players</option>
+						<option class="text-black" value={50}>50 Players</option>
 					</select>
 				</div>
 
@@ -372,11 +372,11 @@
 						bind:value={entryFee}
 						class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-primary-green"
 					>
-						<option value={1}>$1</option>
-						<option value={5}>$5</option>
-						<option value={10}>$10</option>
-						<option value={25}>$25</option>
-						<option value={50}>$50</option>
+						<option class="text-black" value={1}>$1</option>
+						<option class="text-black" value={5}>$5</option>
+						<option class="text-black" value={10}>$10</option>
+						<option class="text-black" value={25}>$25</option>
+						<option class="text-black" value={50}>$50</option>
 					</select>
 				</div>
 
@@ -390,10 +390,10 @@
 						bind:value={duration}
 						class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-primary-green"
 					>
-						<option value={0.08}>5 minutes</option>
-						<option value={0.5}>30 minutes</option>
-						<option value={1}>1 hour</option>
-						<option value={24}>24 hours (standard)</option>
+						<option class="text-black" value={0.08}>5 minutes</option>
+						<option class="text-black" value={0.5}>30 minutes</option>
+						<option class="text-black" value={1}>1 hour</option>
+						<option class="text-black" value={24}>24 hours (standard)</option>
 					</select>
 					<p class="text-xs text-text-secondary mt-1">Note: Short durations are for testing purposes only</p>
 				</div>

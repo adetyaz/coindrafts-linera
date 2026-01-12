@@ -248,12 +248,24 @@ class PricePredictionService {
 		return rangeMultiplier * confidenceMultiplier * aiPenalty;
 	}
 
-	// Fetch current price from CoinCap
+	// Fetch current price from CoinCap (using same working API as draft page)
 	async fetchCurrentPrice(cryptoId: string): Promise<number | null> {
 		try {
-			const response = await fetch(`https://api.coincap.io/v2/assets/${cryptoId}`);
+			const API_KEY = '16cd2c6e58545a8be5c66ce7c891c2e664303de43d35e6cb1f447ddf7d0bb857';
+			const response = await fetch(`https://rest.coincap.io/v3/assets?slugs=${cryptoId}`, {
+				headers: {
+					Authorization: `Bearer ${API_KEY}`,
+					'Content-Type': 'application/json'
+				}
+			});
+
+			if (!response.ok) {
+				console.error('CoinCap API error:', response.status, response.statusText);
+				return null;
+			}
+
 			const data = await response.json();
-			return data.data?.priceUsd ? parseFloat(data.data.priceUsd) : null;
+			return data.data?.[0]?.priceUsd ? parseFloat(data.data[0].priceUsd) : null;
 		} catch (error) {
 			console.error('Failed to fetch current price:', error);
 			return null;

@@ -14,12 +14,15 @@
 	let submitting = $state(false);
 	let currentPrice = $state<number | null>(null);
 	let loadingAI = $state(false);
+	let myPrediction = $state<any>(null);
+	let allPredictions = $state<any[]>([]);
 
 	// Form state
 	let minPrice = $state(0);
 	let maxPrice = $state(0);
 	let confidence = $state(50);
 	let aiAssisted = $state(false);
+	let aiSuggestionText = $state<string | null>(null);
 
 	// Calculated values
 	let rangeWidth = $derived(maxPrice - minPrice);
@@ -39,6 +42,12 @@
 		market = await pricePredictionService.fetchPredictionMarket(marketId);
 		if (market) {
 			currentPrice = await pricePredictionService.fetchCurrentPrice(market.cryptoId);
+			
+			// Load predictions if market is completed
+			if (market.status === 'Completed' && $wallet.chainId) {
+				allPredictions = await pricePredictionService.fetchMarketPredictions(marketId);
+				myPrediction = allPredictions.find(p => p.player === $wallet.chainId);
+			}
 		}
 		loading = false;
 	}
@@ -47,15 +56,32 @@
 		if (!market) return;
 		
 		loadingAI = true;
-		const priceToUse = currentPrice || 50000; // Fallback if price fetch failed
+		
+		// Try to get current price
+		let priceToUse = currentPrice;
+		if (!priceToUse) {
+			priceToUse = await pricePredictionService.fetchCurrentPrice(market.cryptoId);
+			if (priceToUse) {
+				currentPrice = priceToUse; // Update the displayed price
+			}
+		}
+		
+		if (!priceToUse) {
+			aiSuggestionText = ' Failed to fetch current price. Please check your internet connection and try again.';
+			loadingAI = false;
+			return;
+		}
+		
 		const suggestion = await pricePredictionService.getAISuggestion(market.cryptoId, priceToUse);
-		if (suggestion) {
+		if (suggestion && suggestion.minPrice && suggestion.maxPrice) {
 			minPrice = suggestion.minPrice;
 			maxPrice = suggestion.maxPrice;
 			aiAssisted = true;
-			showToast('AI suggestion applied!', 'success');
+			const rangeWidth = suggestion.maxPrice - suggestion.minPrice;
+			const rangePercent = ((rangeWidth / priceToUse) * 100).toFixed(2);
+			aiSuggestionText = `Based on current price of $${priceToUse.toFixed(2)}, AI recommends: $${suggestion.minPrice.toFixed(2)} - $${suggestion.maxPrice.toFixed(2)} (±${rangePercent}%). ${(suggestion as any).reasoning || ''}`;
 		} else {
-			showToast('Failed to get AI suggestion', 'error');
+			aiSuggestionText = ' AI returned invalid suggestion. Please try again.';
 		}
 		loadingAI = false;
 	}
@@ -239,15 +265,18 @@
 								disabled={loadingAI}
 								class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								{loadingAI ? 'Loading...' : 'Get Suggestion'}
+								{loadingAI ? 'Analyzing...' : 'Get AI Suggestion'}
 							</button>
 						</div>
 						<div class="text-sm text-gray-400">
 							Get AI-powered range recommendations (0.8x multiplier penalty)
-							{#if !currentPrice}
-								<div class="text-yellow-400 text-xs mt-1">⚠️ Current price unavailable - AI will use market data</div>
-							{/if}
 						</div>
+						
+						{#if aiSuggestionText}
+							<div class="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded text-sm text-blue-300">
+								{aiSuggestionText}
+							</div>
+						{/if}
 					</div>
 
 					<!-- Multiplier Display -->
@@ -271,6 +300,92 @@
 					</button>
 				</div>
 			</div>
+
+			<!-- Results Section (Only for Completed Markets) -->
+			{#if market.status === 'Completed'}
+				<div class="bg-gray-900 rounded-lg p-6 border border-green-500/20 mt-6">
+					<h2 class="text-2xl font-bold text-green-400 mb-6">Final Results</h2>
+
+					<!-- Final Price -->
+					{#if market.finalPrice}
+						<div class="bg-green-500/10 border border-green-500/30 rounded-lg p-6 mb-6">
+							<div class="text-center">
+								<div class="text-sm text-gray-400 mb-2">Final Price</div>
+								<div class="text-4xl font-bold text-green-400">${(market.finalPrice / 1_000_000).toFixed(2)}</div>
+							</div>
+						</div>
+					{/if}
+
+					<!-- My Prediction Result -->
+					{#if myPrediction}
+						<div class="bg-black/50 rounded-lg p-6 border {myPrediction.reward ? 'border-green-500' : 'border-red-500/50'} mb-6">
+							<h3 class="text-xl font-bold mb-4 {myPrediction.reward ? 'text-green-400' : 'text-red-400'}">
+								{myPrediction.reward ? '✓ You Won!' : '✗ Prediction Missed'}
+							</h3>
+							
+							<div class="grid grid-cols-2 gap-4 mb-4">
+								<div>
+									<div class="text-sm text-gray-400">Your Range</div>
+									<div class="text-lg font-bold text-green-400">
+										${(myPrediction.minPrice / 1_000_000).toFixed(2)} - ${(myPrediction.maxPrice / 1_000_000).toFixed(2)}
+									</div>
+								</div>
+								<div>
+									<div class="text-sm text-gray-400">Confidence</div>
+									<div class="text-lg font-bold text-green-400">{myPrediction.confidence}%</div>
+								</div>
+							</div>
+
+							{#if myPrediction.reward}
+								<div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+									<div class="flex items-center justify-between">
+										<div>
+											<div class="text-sm text-gray-400">Multiplier</div>
+											<div class="text-2xl font-bold text-green-400">{myPrediction.multiplier?.toFixed(2)}x</div>
+										</div>
+										<div>
+											<div class="text-sm text-gray-400">Reward</div>
+											<div class="text-2xl font-bold text-green-400">${(myPrediction.reward / 1_000_000).toFixed(2)} USDC</div>
+										</div>
+									</div>
+								</div>
+							{/if}
+						</div>
+					{:else if $wallet.isConnected}
+						<div class="bg-gray-800/50 rounded-lg p-6 border border-gray-700 text-center">
+							<div class="text-gray-400">You did not participate in this market</div>
+						</div>
+					{/if}
+
+					<!-- Leaderboard -->
+					{#if allPredictions.length > 0}
+						<div class="mt-6">
+							<h3 class="text-xl font-bold text-green-400 mb-4">Leaderboard</h3>
+							<div class="space-y-2">
+								{#each allPredictions.filter(p => p.reward).sort((a, b) => (b.reward || 0) - (a.reward || 0)) as prediction, index}
+									<div class="bg-black/50 rounded-lg p-4 border border-green-500/20 flex items-center justify-between">
+										<div class="flex items-center gap-4">
+											<div class="text-2xl font-bold text-gray-400">#{index + 1}</div>
+											<div>
+												<div class="text-sm text-gray-400">Player</div>
+												<div class="text-green-400 font-mono text-xs">
+													{prediction.player.slice(0, 8)}...{prediction.player.slice(-6)}
+												</div>
+											</div>
+										</div>
+										<div class="text-right">
+											<div class="text-sm text-gray-400">Reward</div>
+											<div class="text-xl font-bold text-green-400">
+												${(prediction.reward / 1_000_000).toFixed(2)}
+											</div>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>

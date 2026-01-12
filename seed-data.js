@@ -28,6 +28,7 @@ function loadEnvConfig() {
     chainId: config.PUBLIC_DEFAULT_CHAIN_ID,
     tradLeaguesAppId: config.PUBLIC_TRADITIONAL_LEAGUES_APP_ID,
     coreAppId: config.PUBLIC_COINDRAFTS_CORE_APP_ID,
+    pricePredictionAppId: config.PUBLIC_PRICE_PREDICTION_APP_ID,
     ownerAccount: config.PUBLIC_DEFAULT_OWNER,
   };
 }
@@ -93,7 +94,7 @@ const TOURNAMENTS = [
     name: "Bitcoin vs Ethereum Championship",
     category: "L1_CHAINS",
     entryFee: 10,
-    maxParticipants: 16,
+    maxParticipants: 5,
     type: "SINGLE_ELIMINATION",
     players: UNIQUE_PLAYERS.slice(0, 4), // 4 players
   },
@@ -109,7 +110,7 @@ const TOURNAMENTS = [
     name: "Meme Madness Tournament",
     category: "MEME_COINS",
     entryFee: 5,
-    maxParticipants: 16,
+    maxParticipants: 6,
     type: "SINGLE_ELIMINATION",
     players: UNIQUE_PLAYERS, // all 5 players
   },
@@ -136,7 +137,7 @@ const QUICK_MATCH_GAMES = [
   {
     mode: "QUICK_MATCH",
     name: "Lightning Round",
-    maxPlayers: 10,
+    maxPlayers: 4,
     entryFee: 5,
     duration: 24,
     players: UNIQUE_PLAYERS.slice(0, 3),
@@ -156,6 +157,30 @@ const QUICK_MATCH_GAMES = [
     entryFee: 10,
     duration: 24,
     players: UNIQUE_PLAYERS,
+  },
+];
+
+// Sample Price Prediction Markets to create
+const PRICE_PREDICTION_MARKETS = [
+  {
+    cryptoId: "bitcoin",
+    entryFee: 1,
+    durationDays: 7,
+    players: UNIQUE_PLAYERS.slice(0, 2), // 2 players with predictions
+    predictions: [
+      { minPrice: 95000, maxPrice: 98000, confidence: 75 },
+      { minPrice: 94000, maxPrice: 99000, confidence: 60 },
+    ],
+  },
+  {
+    cryptoId: "ethereum",
+    entryFee: 1,
+    durationDays: 7,
+    players: UNIQUE_PLAYERS.slice(0, 2),
+    predictions: [
+      { minPrice: 3500, maxPrice: 3700, confidence: 80 },
+      { minPrice: 3400, maxPrice: 3800, confidence: 65 },
+    ],
   },
 ];
 
@@ -367,6 +392,7 @@ async function createQuickMatchGame(endpoint, gameData) {
           console.log(`    ✅ Registered: ${playerAccount}`);
 
           // Submit portfolio for player
+          const randomCryptos = getRandomCryptos();
           await graphql(
             `
               mutation SubmitPortfolioForAccount(
@@ -378,15 +404,21 @@ async function createQuickMatchGame(endpoint, gameData) {
                   gameId: $gameId
                   playerAccount: $playerAccount
                   cryptocurrencies: $cryptocurrencies
-                )getRandomCryptosForSeed()
+                )
               }
             `,
-            { gameId, playerAccount, cryptocurrencies: CRYPTOS },
+            { gameId, playerAccount, cryptocurrencies: randomCryptos },
             endpoint
           );
-          console.log(`    ✅ Submitted portfolio for: ${playerAccount}`);
+          console.log(
+            `    ✅ Submitted portfolio for: ${playerAccount} [${randomCryptos.join(
+              ", "
+            )}]`
+          );
         } catch (error) {
-          console.log(`    ⚠️  Failed to register/submit for ${playerAccount}`);
+          console.log(
+            `    ⚠️  Failed to register/submit for ${playerAccount}: ${error.message}`
+          );
         }
       }
     }
@@ -397,7 +429,99 @@ async function createQuickMatchGame(endpoint, gameData) {
     return false;
   }
 }
+async function createPricePredictionMarket(endpoint, marketData) {
+  try {
+    // Create market
+    await graphql(
+      `
+        mutation CreateMarket(
+          $cryptoId: String!
+          $entryFee: String!
+          $durationDays: Int!
+        ) {
+          createMarket(
+            cryptoId: $cryptoId
+            entryFee: $entryFee
+            durationDays: $durationDays
+          )
+        }
+      `,
+      {
+        cryptoId: marketData.cryptoId,
+        entryFee: marketData.entryFee * 1_000_000,
+        durationDays: marketData.durationDays,
+      },
+      endpoint
+    );
 
+    // Get the created market ID
+    const marketsData = await graphql(
+      `
+        query GetMarkets {
+          activeMarkets {
+            id
+            cryptoId
+            status
+          }
+        }
+      `,
+      {},
+      endpoint
+    );
+
+    const market = marketsData.activeMarkets.find(
+      (m) => m.cryptoId === marketData.cryptoId && m.status === "Active"
+    );
+
+    if (!market) {
+      console.log(`  ⚠️  Market created but not found: ${marketData.cryptoId}`);
+      return false;
+    }
+
+    console.log(`  ✓ Created market: ${marketData.cryptoId} (${market.id})`);
+
+    // Submit predictions for players
+    for (let i = 0; i < marketData.players.length; i++) {
+      const player = marketData.players[i];
+      const prediction = marketData.predictions[i];
+
+      await graphql(
+        `
+          mutation SubmitPrediction(
+            $marketId: String!
+            $minPrice: String!
+            $maxPrice: String!
+            $confidence: Int!
+            $aiAssisted: Boolean!
+          ) {
+            submitPrediction(
+              marketId: $marketId
+              minPrice: $minPrice
+              maxPrice: $maxPrice
+              confidence: $confidence
+              aiAssisted: $aiAssisted
+            )
+          }
+        `,
+        {
+          marketId: market.id,
+          minPrice: (prediction.minPrice * 1_000_000).toString(),
+          maxPrice: (prediction.maxPrice * 1_000_000).toString(),
+          confidence: prediction.confidence,
+          aiAssisted: false,
+        },
+        endpoint
+      );
+
+      console.log(`    → Player ${i + 1} prediction submitted`);
+    }
+
+    return true;
+  } catch (error) {
+    console.log(`  ❌ Failed: ${marketData.cryptoId} - ${error.message}`);
+    return false;
+  }
+}
 async function seedData() {
   console.log("\n🌱 SEEDING DATA...\n");
 
@@ -412,9 +536,11 @@ async function seedData() {
 
     const tradLeaguesEndpoint = `http://localhost:8081/chains/${config.chainId}/applications/${config.tradLeaguesAppId}`;
     const coreEndpoint = `http://localhost:8081/chains/${config.chainId}/applications/${config.coreAppId}`;
+    const pricePredictionEndpoint = `http://localhost:8081/chains/${config.chainId}/applications/${config.pricePredictionAppId}`;
 
     console.log(`📡 Traditional Leagues Endpoint: ${tradLeaguesEndpoint}`);
-    console.log(`📡 Quick Match Endpoint: ${coreEndpoint}\n`);
+    console.log(`📡 Quick Match Endpoint: ${coreEndpoint}`);
+    console.log(`📡 Price Prediction Endpoint: ${pricePredictionEndpoint}\n`);
 
     // Wait for GraphQL to be ready
     console.log("⏳ Waiting for GraphQL services...");
@@ -424,6 +550,7 @@ async function seedData() {
       try {
         await graphql("{ tournaments { id } }", {}, tradLeaguesEndpoint);
         await graphql("{ games { gameId } }", {}, coreEndpoint);
+        await graphql("{ activeMarkets { id } }", {}, pricePredictionEndpoint);
         ready = true;
         break;
       } catch (e) {
@@ -461,8 +588,17 @@ async function seedData() {
       }
     }
 
+    // Create Price Prediction Markets
+    console.log("\n🔮 Creating Price Prediction markets...");
+    let marketsCreated = 0;
+    for (const market of PRICE_PREDICTION_MARKETS) {
+      if (await createPricePredictionMarket(pricePredictionEndpoint, market)) {
+        marketsCreated++;
+      }
+    }
+
     console.log(
-      `\n✨ Seeding complete: ${tournamentsCreated}/${TOURNAMENTS.length} tournaments, ${gamesCreated}/${QUICK_MATCH_GAMES.length} games\n`
+      `\n✨ Seeding complete: ${tournamentsCreated}/${TOURNAMENTS.length} tournaments, ${gamesCreated}/${QUICK_MATCH_GAMES.length} games, ${marketsCreated}/${PRICE_PREDICTION_MARKETS.length} markets\n`
     );
     process.exit(0);
   } catch (error) {

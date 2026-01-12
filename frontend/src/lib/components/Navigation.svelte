@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { House, Trophy, Zap, TrendingUp, Menu, User } from '@lucide/svelte';
+	import { House, Trophy, Zap, TrendingUp, Menu, User, Target } from '@lucide/svelte';
 	import '$lib/appkit'; // Ensure AppKit is initialized
 	
 	let mobileMenuOpen = $state(false);
@@ -21,6 +21,7 @@
 		{ name: 'Home', href: '/', icon: House, color: 'text-primary-green' },
 		{ name: 'Tournaments', href: '/tournaments', icon: Trophy, color: 'text-primary-green' },
 		{ name: 'Quick Match', href: '/quick-match', icon: Zap, color: 'text-primary-green' },
+		{ name: 'Predictions', href: '/predictions', icon: Target, color: 'text-primary-green' },
 		{ name: 'Leaderboard', href: '/leaderboard', icon: TrendingUp, color: 'text-primary-green' },
 		{ name: 'Profile', href: '/profile', icon: User, color: 'text-primary-green' }
 	];

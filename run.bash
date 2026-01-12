@@ -11,10 +11,10 @@ export LINERA_FAUCET_URL=http://localhost:8080
 linera wallet init --faucet="$LINERA_FAUCET_URL"
 linera wallet request-chain --faucet="$LINERA_FAUCET_URL"
 
-# Build both applications in parallel
+# Build all applications
 echo "Building applications..."
 cd /build
-cargo build --release --target wasm32-unknown-unknown --package coindrafts-core --package traditional-leagues
+cargo build --release --target wasm32-unknown-unknown --package coindrafts-core --package traditional-leagues --package price-prediction
 
 # Deploy CoinDrafts Core
 echo "Deploying CoinDrafts Core..."
@@ -27,6 +27,12 @@ echo "Deploying Traditional Leagues..."
 LEAGUES_OUTPUT=$(linera publish-and-create target/wasm32-unknown-unknown/release/traditional_leagues_{contract,service}.wasm --json-argument "null" 2>&1)
 TRADITIONAL_LEAGUES_APP_ID=$(echo "$LEAGUES_OUTPUT" | grep -o '[a-f0-9]\{64\}' | tail -1)
 echo "Leagues App ID: $TRADITIONAL_LEAGUES_APP_ID"
+
+# Deploy Price Prediction
+echo "Deploying Price Prediction..."
+PREDICTION_OUTPUT=$(linera publish-and-create target/wasm32-unknown-unknown/release/price_prediction_{contract,service}.wasm --json-argument "null" 2>&1)
+PRICE_PREDICTION_APP_ID=$(echo "$PREDICTION_OUTPUT" | grep -o '[a-f0-9]\{64\}' | tail -1)
+echo "Price Prediction App ID: $PRICE_PREDICTION_APP_ID"
 
 # Get default chain ID
 DEFAULT_CHAIN_ID=$(linera wallet show 2>&1 | grep -o '[a-f0-9]\{64,66\}' | sed -n '2p')
@@ -51,11 +57,15 @@ nvm use lts/krypton
 cat > .env << EOF
 PUBLIC_COINDRAFTS_CORE_APP_ID=$COINDRAFTS_CORE_APP_ID
 PUBLIC_TRADITIONAL_LEAGUES_APP_ID=$TRADITIONAL_LEAGUES_APP_ID
+PUBLIC_PRICE_PREDICTION_APP_ID=$PRICE_PREDICTION_APP_ID
 PUBLIC_DEFAULT_CHAIN_ID=$DEFAULT_CHAIN_ID
+GROQ_API_KEY=${GROQ_API_KEY:-}
 EOF
 
 # Install dependencies
 echo "Installing dependencies..."
+npm config set fetch-timeout 300000
+npm config set fetch-retry-maxtimeout 120000
 npm install
 
 # Run auto-seed script
@@ -72,6 +82,7 @@ node scripts/preseed-leaderboard.js
 echo ""
 echo "===== DEPLOYMENT COMPLETE ====="
 echo "Core: $COINDRAFTS_CORE_APP_ID"
+echo "Prediction: $PRICE_PREDICTION_APP_ID"
 echo "Leagues: $TRADITIONAL_LEAGUES_APP_ID"
 echo "Chain: $DEFAULT_CHAIN_ID"
 echo "GraphQL: http://localhost:8081"

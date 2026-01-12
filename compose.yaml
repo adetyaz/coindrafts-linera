@@ -1,6 +1,8 @@
 services:
   coindrafts:
     build: .
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
     volumes:
       - .:/build
       - /build/frontend/node_modules

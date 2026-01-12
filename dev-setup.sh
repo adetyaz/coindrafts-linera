@@ -12,10 +12,11 @@ echo "🚀 CoinDrafts Development Environment"
 # Check if applications are already deployed (frontend .env exists with app IDs)
 if [ -f "$PROJECT_ROOT/frontend/.env" ]; then
     source "$PROJECT_ROOT/frontend/.env"
-    if [ ! -z "$PUBLIC_COINDRAFTS_CORE_APP_ID" ] && [ ! -z "$PUBLIC_TRADITIONAL_LEAGUES_APP_ID" ]; then
+    if [ ! -z "$PUBLIC_COINDRAFTS_CORE_APP_ID" ] && [ ! -z "$PUBLIC_TRADITIONAL_LEAGUES_APP_ID" ] && [ ! -z "$PUBLIC_PRICE_PREDICTION_APP_ID" ]; then
         echo "✅ Applications already deployed!"
         echo "   CoinDrafts Core: $PUBLIC_COINDRAFTS_CORE_APP_ID"
         echo "   Traditional Leagues: $PUBLIC_TRADITIONAL_LEAGUES_APP_ID"
+        echo "   Price Prediction: $PUBLIC_PRICE_PREDICTION_APP_ID"
         SKIP_DEPLOYMENT=true
     fi
 fi
@@ -57,16 +58,25 @@ if [ "$SKIP_DEPLOYMENT" != "true" ]; then
     LEAGUES_BYTECODE_ID=$(linera publish target/wasm32-unknown-unknown/release/traditional-leagues_{contract,service}.wasm)
     LEAGUES_APP_ID=$(linera create-application $LEAGUES_BYTECODE_ID --json-argument "{}")
     
+    # Deploy Price Prediction
+    echo "📦 Building and deploying Price Prediction..."
+    cd "$PROJECT_ROOT/backend/applications/price-prediction"
+    linera build
+    PREDICTION_BYTECODE_ID=$(linera publish target/wasm32-unknown-unknown/release/price-prediction_{contract,service}.wasm)
+    PREDICTION_APP_ID=$(linera create-application $PREDICTION_BYTECODE_ID --json-argument "{}")
+    
     # Save to frontend .env
     cd "$PROJECT_ROOT/frontend"
     cat > .env << EOF
 PUBLIC_COINDRAFTS_CORE_APP_ID=$CORE_APP_ID
 PUBLIC_TRADITIONAL_LEAGUES_APP_ID=$LEAGUES_APP_ID
+PUBLIC_PRICE_PREDICTION_APP_ID=$PREDICTION_APP_ID
 EOF
     
     echo "✅ Deployment complete!"
     echo "   CoinDrafts Core: $CORE_APP_ID"
     echo "   Traditional Leagues: $LEAGUES_APP_ID"
+    echo "   Price Prediction: $PREDICTION_APP_ID"
     
 else
     # Just start services

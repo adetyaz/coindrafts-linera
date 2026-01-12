@@ -2,9 +2,9 @@
 members = [
     "backend/applications/coindrafts-core",
     "backend/applications/traditional-leagues",
+    "backend/applications/price-prediction",
     # Future game mode applications:
     # "backend/applications/quick-match", 
-    # "backend/applications/price-prediction",
     # "backend/applications/price-oracle",
     # "backend/applications/player-state",
     # "backend/applications/reward-system",

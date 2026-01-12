@@ -5,7 +5,11 @@ declare global {
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
-		// interface PageState {}
+		interface PageState {
+			gameId?: string;
+			tournamentId?: string;
+			marketId?: string;
+		}
 		// interface Platform {}
 	}
 }

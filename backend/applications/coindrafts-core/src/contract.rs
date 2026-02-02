@@ -9,7 +9,7 @@ Handles game creation, player registration, and portfolio submissions.
 
 mod state;
 
-use coindrafts_core::{CoinDraftsAbi, CoinDraftsOperation, Game, PlayerProfile, PlayerStats, PlayerTier, Portfolio, PortfolioStatus, CryptoHolding, GameMode, GameStatus, TraditionalLeaguesMessage, PriceSnapshot};
+use coindrafts_core::{Achievement, AchievementType, CoinDraftsAbi, CoinDraftsOperation, Game, GameResult, PlayerProfile, PlayerStats, PlayerTier, Portfolio, PortfolioStatus, CryptoHolding, GameMode, GameStatus, TraditionalLeaguesMessage, PriceSnapshot};
 use self::state::CoinDraftsState;
 use linera_sdk::{
     linera_base_types::WithContractAbi,
@@ -297,7 +297,23 @@ impl Contract for CoinDraftsContract {
                     ];
                     
                     // Update all player stats and distribute prizes
-                    for (rank, (player_account, _return)) in leaderboard.iter().enumerate() {
+                    let timestamp = self.runtime.system_time().micros();
+                    
+                    for (rank, (player_account, portfolio_return)) in leaderboard.iter().enumerate() {
+                        let rank_num = (rank + 1) as u32;
+                        let prize = if rank < prizes.len() { prizes[rank] } else { 0 };
+                        
+                        // Store game result
+                        let game_result = GameResult {
+                            game_id: game_id.clone(),
+                            rank: rank_num,
+                            portfolio_return: *portfolio_return,
+                            prize_won: prize,
+                            played_at: timestamp,
+                        };
+                        let _ = self.state.game_history.insert(&(player_account.clone(), game_id.clone()), game_result);
+                        
+                        // Update player stats
                         if let Ok(Some(mut player)) = self.state.players.get(player_account).await {
                             player.stats.games_played += 1;
                             
@@ -305,10 +321,19 @@ impl Contract for CoinDraftsContract {
                                 player.stats.games_won += 1;
                             }
                             
-                            // Only distribute prizes to top 3
+                            // Distribute prizes to top 3
                             if rank < prizes.len() {
                                 player.total_earnings_usdc += prizes[rank];
                             }
+                            
+                            // Check and unlock achievements
+                            let _ = self.check_and_unlock_achievements(
+                                player_account,
+                                &game_id,
+                                rank_num,
+                                *portfolio_return,
+                                &player
+                            ).await;
                             
                             let _ = self.state.players.insert(player_account, player);
                         }
@@ -317,6 +342,9 @@ impl Contract for CoinDraftsContract {
                     // Store top 3 winners
                     game.winners = leaderboard.iter().take(3).map(|(acc, _)| acc.clone()).collect();
                     log::info!("Game {} completed. Winners: {:?}", game_id, game.winners);
+                    
+                    // Mark game as completed
+                    game.status = GameStatus::Completed;
                     
                     self.state.games.insert(&game_id, game).expect("Failed to update game");
                 }
@@ -393,6 +421,107 @@ impl Contract for CoinDraftsContract {
 
 // Helper functions for CoinDraftsContract
 impl CoinDraftsContract {
+    /// Check and unlock achievements for a player after a game
+    async fn check_and_unlock_achievements(
+        &mut self,
+        player_account: &str,
+        game_id: &str,
+        rank: u32,
+        portfolio_return: i64,
+        player_profile: &PlayerProfile,
+    ) -> Result<Vec<Achievement>, ()> {
+        let timestamp = self.runtime.system_time().micros();
+        let mut newly_unlocked = Vec::new();
+
+        // Achievement: First Win
+        if rank == 1 && player_profile.stats.games_won == 1 {
+            let achievement = Achievement {
+                id: "first_win".to_string(),
+                achievement_type: AchievementType::FirstWin,
+                unlocked_at: timestamp,
+                game_id: Some(game_id.to_string()),
+            };
+            let _ = self.state.achievements.insert(&(player_account.to_string(), "first_win".to_string()), achievement.clone());
+            newly_unlocked.push(achievement);
+        }
+
+        // Achievement: Play 10 Games
+        if player_profile.stats.games_played == 10 {
+            let achievement = Achievement {
+                id: "play_10_games".to_string(),
+                achievement_type: AchievementType::Play10Games,
+                unlocked_at: timestamp,
+                game_id: Some(game_id.to_string()),
+            };
+            let _ = self.state.achievements.insert(&(player_account.to_string(), "play_10_games".to_string()), achievement.clone());
+            newly_unlocked.push(achievement);
+        }
+
+        // Achievement: Play 50 Games
+        if player_profile.stats.games_played == 50 {
+            let achievement = Achievement {
+                id: "play_50_games".to_string(),
+                achievement_type: AchievementType::Play50Games,
+                unlocked_at: timestamp,
+                game_id: Some(game_id.to_string()),
+            };
+            let _ = self.state.achievements.insert(&(player_account.to_string(), "play_50_games".to_string()), achievement.clone());
+            newly_unlocked.push(achievement);
+        }
+
+        // Achievement: Perfect Portfolio (>50% return = 5000 basis points)
+        if rank == 1 && portfolio_return > 5000 {
+            let achievement = Achievement {
+                id: "perfect_portfolio".to_string(),
+                achievement_type: AchievementType::PerfectPortfolio,
+                unlocked_at: timestamp,
+                game_id: Some(game_id.to_string()),
+            };
+            let _ = self.state.achievements.insert(&(player_account.to_string(), "perfect_portfolio".to_string()), achievement.clone());
+            newly_unlocked.push(achievement);
+        }
+
+        // Achievement: Tier Progression
+        let new_tier = Self::calculate_tier(player_profile.stats.games_played, player_profile.stats.games_won);
+        if matches!(new_tier, PlayerTier::Diamond | PlayerTier::Master | PlayerTier::Grandmaster) 
+            && !matches!(player_profile.tier, PlayerTier::Diamond | PlayerTier::Master | PlayerTier::Grandmaster) {
+            let achievement = Achievement {
+                id: "rising_star".to_string(),
+                achievement_type: AchievementType::RisingStar,
+                unlocked_at: timestamp,
+                game_id: Some(game_id.to_string()),
+            };
+            let _ = self.state.achievements.insert(&(player_account.to_string(), "rising_star".to_string()), achievement.clone());
+            newly_unlocked.push(achievement);
+        }
+
+        if !newly_unlocked.is_empty() {
+            log::info!("Player {} unlocked {} achievements", player_account, newly_unlocked.len());
+        }
+
+        Ok(newly_unlocked)
+    }
+
+    /// Calculate player tier based on games and wins
+    fn calculate_tier(games_played: u32, wins: u32) -> PlayerTier {
+        let win_rate = if games_played > 0 {
+            (wins as f64 / games_played as f64) * 100.0
+        } else {
+            0.0
+        };
+
+        match (games_played, win_rate) {
+            (0..=4, _) => PlayerTier::Rookie,
+            (5..=14, _) => PlayerTier::Bronze,
+            (15..=49, wr) if wr >= 30.0 => PlayerTier::Silver,
+            (50..=99, wr) if wr >= 40.0 => PlayerTier::Gold,
+            (100..=249, wr) if wr >= 45.0 => PlayerTier::Platinum,
+            (250..=499, wr) if wr >= 50.0 => PlayerTier::Diamond,
+            (500.., wr) if wr >= 55.0 => PlayerTier::Master,
+            _ => PlayerTier::Bronze,
+        }
+    }
+
     /// Calculate portfolio return from start to end prices
     fn calculate_portfolio_return(
         cryptocurrencies: &[String],

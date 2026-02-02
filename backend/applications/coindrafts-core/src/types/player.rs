@@ -88,6 +88,36 @@ impl Default for PlayerStats {
     }
 }
 
+/// Achievement system
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
+pub struct Achievement {
+    pub id: String,
+    pub achievement_type: AchievementType,
+    pub unlocked_at: u64,
+    pub game_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Enum)]
+pub enum AchievementType {
+    FirstWin,
+    Play10Games,
+    Play50Games,
+    WinStreak3,
+    PerfectPortfolio,
+    RisingStar,
+    Legend,
+}
+
+/// Game result for player history
+#[derive(Debug, Clone, Serialize, Deserialize, SimpleObject)]
+pub struct GameResult {
+    pub game_id: String,
+    pub rank: u32,
+    pub portfolio_return: i64,
+    pub prize_won: u64,
+    pub played_at: u64,
+}
+
 impl PlayerTier {
     /// Get required games for this tier
     pub fn required_games(self) -> u32 {

@@ -113,7 +113,7 @@
 				
 				<!-- Player Info -->
 				<div class="text-center md:text-left">
-					<h1 class="text-3xl font-bold text-white mb-2">{player.name}</h1>
+					<h1 class="text-xl font-bold text-white mb-2">{player.name}</h1>
 					<div class="flex items-center justify-center md:justify-start gap-2 mb-4">
 						<span class="text-lg {getTierColor(player.tier)} font-semibold">{player.tier} Tier</span>
 					</div>

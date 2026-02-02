@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import '$lib/appkit'; // Initialize Reown AppKit
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '$lib/assets/favicon.ico';
 	import Navigation from '$lib/components/Navigation.svelte';
 	import ToastContainer from '$lib/components/ToastContainer.svelte';
 	

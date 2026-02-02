@@ -16,6 +16,7 @@
 	let loadingAI = $state(false);
 	let myPrediction = $state<any>(null);
 	let allPredictions = $state<any[]>([]);
+	let settling = $state(false);
 
 	// Form state
 	let minPrice = $state(0);
@@ -43,9 +44,11 @@
 		if (market) {
 			currentPrice = await pricePredictionService.fetchCurrentPrice(market.cryptoId);
 			
-			// Load predictions if market is completed
-			if (market.status === 'Completed' && $wallet.chainId) {
-				allPredictions = await pricePredictionService.fetchMarketPredictions(marketId);
+			// Always load predictions to show leaderboard
+			allPredictions = await pricePredictionService.fetchMarketPredictions(marketId);
+			
+			// Find my prediction if wallet is connected
+			if ($wallet.chainId) {
 				myPrediction = allPredictions.find(p => p.player === $wallet.chainId);
 			}
 		}
@@ -67,7 +70,7 @@
 		}
 		
 		if (!priceToUse) {
-			aiSuggestionText = ' Failed to fetch current price. Please check your internet connection and try again.';
+			aiSuggestionText = '⚠️ Failed to fetch current price. Please check your internet connection and try again.';
 			loadingAI = false;
 			return;
 		}
@@ -79,9 +82,9 @@
 			aiAssisted = true;
 			const rangeWidth = suggestion.maxPrice - suggestion.minPrice;
 			const rangePercent = ((rangeWidth / priceToUse) * 100).toFixed(2);
-			aiSuggestionText = `Based on current price of $${priceToUse.toFixed(2)}, AI recommends: $${suggestion.minPrice.toFixed(2)} - $${suggestion.maxPrice.toFixed(2)} (±${rangePercent}%). ${(suggestion as any).reasoning || ''}`;
+			aiSuggestionText = `✨ Based on current price of $${priceToUse.toFixed(2)}, AI recommends: $${suggestion.minPrice.toFixed(2)} - $${suggestion.maxPrice.toFixed(2)} (±${rangePercent}%). ${(suggestion as any).reasoning || ''}`;
 		} else {
-			aiSuggestionText = ' AI returned invalid suggestion. Please try again.';
+			aiSuggestionText = '⚠️ AI returned invalid suggestion. Please try again.';
 		}
 		loadingAI = false;
 	}
@@ -120,6 +123,56 @@
 		submitting = false;
 	}
 
+	async function settleMarket() {
+		if (!$wallet.isConnected) {
+			showToast('Please connect your wallet first', 'error');
+			return;
+		}
+
+		if (!market) {
+			showToast('Market not found', 'error');
+			return;
+		}
+
+		try {
+			settling = true;
+			
+			// Get current price as final price
+			const finalPrice = await pricePredictionService.fetchCurrentPrice(market.cryptoId);
+			if (!finalPrice) {
+				showToast('Failed to fetch final price', 'error');
+				return;
+			}
+			
+			// Get all players who submitted predictions
+			const players = allPredictions.map(p => p.player);
+			
+			if (players.length === 0) {
+				showToast('No predictions to settle', 'error');
+				return;
+			}
+			
+			// Convert to micro-USDC
+			const finalPriceMicro = Math.floor(finalPrice * 1_000_000);
+			
+			const success = await pricePredictionService.settleMarket(marketId, finalPriceMicro, players);
+			
+			if (success) {
+				showToast('Market settled successfully! Calculating rewards...', 'success');
+				// Wait for blockchain propagation
+				await new Promise(resolve => setTimeout(resolve, 2000));
+				window.location.reload();
+			} else {
+				showToast('Failed to settle market', 'error');
+			}
+		} catch (error: any) {
+			console.error('Error settling market:', error);
+			showToast(`Error: ${error.message || 'Failed to settle market'}`, 'error');
+		} finally {
+			settling = false;
+		}
+	}
+
 	function getDifficultyColor(width: number): string {
 		if (width <= 1) return 'text-red-400';
 		if (width <= 5) return 'text-orange-400';
@@ -138,50 +191,52 @@
 	}
 </script>
 
-<div class="min-h-screen bg-black text-green-400 p-6">
-	<div class="max-w-4xl mx-auto">
+<div class="min-h-screen bg-black p-6 text-green-400">
+	<div class="mx-auto max-w-4xl">
 		<!-- Back Button -->
-		<a href="/predictions" class="flex items-center gap-2 text-green-400 hover:text-green-300 transition-colors mb-6">
+		<a
+			href="/predictions"
+			class="mb-6 flex items-center gap-2 text-green-400 transition-colors hover:text-green-300"
+		>
 			<ArrowLeft size={20} />
 			Back to Markets
 		</a>
 
 		{#if loading}
-			<div class="flex justify-center items-center py-20">
-				<div class="text-green-400 text-xl">Loading market...</div>
+			<div class="flex items-center justify-center py-20">
+				<div class="text-xl text-green-400">Loading market...</div>
 			</div>
 		{:else if !market}
-			<div class="bg-red-900/20 border border-red-500 rounded-lg p-6 text-center">
-				<div class="text-red-400 text-xl mb-4">Market not found</div>
+			<div class="rounded-lg border border-red-500 bg-red-900/20 p-6 text-center">
+				<div class="mb-4 text-xl text-red-400">Market not found</div>
 				<a href="/predictions" class="text-green-400 hover:underline">Return to markets</a>
 			</div>
 		{:else}
 			<!-- Market Info -->
-			<div class="bg-gray-900 rounded-lg p-6 mb-6 border border-green-500/20">
-				<div class="flex items-center justify-between mb-4">
-					<h1 class="text-3xl font-bold text-green-400 uppercase flex items-center gap-3">
+			<div class="mb-6 rounded-lg border border-green-500/20 bg-gray-900 p-6">
+				<div class="mb-4 flex items-center justify-between">
+					<h1 class="flex items-center gap-3 text-3xl font-bold text-green-400 uppercase">
 						<TrendingUp size={32} />
 						{market.cryptoId} Price Prediction
 					</h1>
-					<span class="bg-green-600/20 text-green-400 px-4 py-2 rounded-full text-sm font-semibold">
+					<span class="rounded-full bg-green-600/20 px-4 py-2 text-sm font-semibold text-green-400">
 						{market.status}
 					</span>
 				</div>
-				
+
 				{#if currentPrice}
-					<div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-4">
+					<div class="mb-4 rounded-lg border border-green-500/30 bg-green-500/10 p-4">
 						<div class="text-sm text-gray-400">Current Price</div>
 						<div class="text-3xl font-bold text-green-400">${currentPrice.toFixed(2)}</div>
 					</div>
 				{/if}
-					
-				
-				</div>
 
-				<div class="grid grid-cols-2 gap-4 text-gray-300">
+				<div class="mb-4 grid grid-cols-2 gap-4 text-gray-300">
 					<div>
 						<span class="text-sm text-gray-400">Entry Fee:</span>
-						<div class="text-xl font-bold text-green-400">${(market.entryFee / 1_000_000).toFixed(2)} USDC</div>
+						<div class="text-xl font-bold text-green-400">
+							${(market.entryFee / 1_000_000).toFixed(2)} USDC
+						</div>
 					</div>
 					<div>
 						<span class="text-sm text-gray-400">Duration:</span>
@@ -190,144 +245,171 @@
 						</div>
 					</div>
 				</div>
-		
 
-			<!-- Prediction Form -->
-			<div class="bg-gray-900 rounded-lg p-6 border border-green-500/20">
-				<h2 class="text-2xl font-bold text-green-400 mb-6">Make Your Prediction</h2>
+				<!-- Settle Market Button (Only for Active markets past end time) -->
+				{#if market.status === 'Active' && Date.now() * 1000 >= market.endTime && allPredictions.length > 0}
+					<button
+						onclick={settleMarket}
+						disabled={settling}
+						class="mb-4 w-full rounded-full bg-yellow-600 px-6 py-3 font-bold text-black transition-colors hover:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-50"
+					>
+						{settling ? 'Settling Market...' : 'Settle Market & Calculate Winners'}
+					</button>
+				{/if}
+			</div>
 
-				<div class="space-y-6">
-					<!-- Price Range -->
-					<div class="grid grid-cols-2 gap-4">
-						<div>
-							<label class="block text-sm font-semibold text-gray-400 mb-2">Min Price ($)</label>
-							<input
-								type="number"
-								bind:value={minPrice}
-								step="0.01"
-								placeholder="e.g., 42000"
-								class="w-full bg-black border border-green-500/30 rounded-lg px-4 py-3 text-green-400 focus:border-green-500 outline-none"
-							/>
-						</div>
+			<!-- Prediction Form (Only for Active markets before end time) -->
+			{#if market.status === 'Active' && Date.now() * 1000 < market.endTime}
+				<div class="rounded-lg border border-green-500/20 bg-gray-900 p-6">
+					<h2 class="mb-6 text-2xl font-bold text-green-400">Make Your Prediction</h2>
 
-						<div>
-							<label class="block text-sm font-semibold text-gray-400 mb-2">Max Price ($)</label>
-							<input
-								type="number"
-								bind:value={maxPrice}
-								step="0.01"
-								placeholder="e.g., 42100"
-								class="w-full bg-black border border-green-500/30 rounded-lg px-4 py-3 text-green-400 focus:border-green-500 outline-none"
-							/>
-						</div>
-					</div>
-
-					<!-- Range Display -->
-					{#if rangeWidth > 0}
-						<div class="bg-black/50 rounded-lg p-4 border border-green-500/20">
-							<div class="flex items-center justify-between">
-								<span class="text-gray-400">Range Width:</span>
-								<span class="text-xl font-bold {getDifficultyColor(rangeWidth)}">${rangeWidth.toFixed(2)}</span>
+					<div class="space-y-6">
+						<!-- Price Range -->
+						<div class="grid grid-cols-2 gap-4">
+							<div>
+								<label class="mb-2 block text-sm font-semibold text-gray-400">Min Price ($)</label>
+								<input
+									type="number"
+									bind:value={minPrice}
+									step="0.01"
+									placeholder="e.g., 42000"
+									class="w-full rounded-lg border border-green-500/30 bg-black px-4 py-3 text-green-400 outline-none focus:border-green-500"
+								/>
 							</div>
-							<div class="text-sm {getDifficultyColor(rangeWidth)} mt-1">
-								{getDifficultyLabel(rangeWidth)}
+
+							<div>
+								<label class="mb-2 block text-sm font-semibold text-gray-400">Max Price ($)</label>
+								<input
+									type="number"
+									bind:value={maxPrice}
+									step="0.01"
+									placeholder="e.g., 42100"
+									class="w-full rounded-lg border border-green-500/30 bg-black px-4 py-3 text-green-400 outline-none focus:border-green-500"
+								/>
 							</div>
 						</div>
-					{/if}
 
-					<!-- Confidence Slider -->
-					<div>
-						<div class="flex items-center justify-between mb-2">
-							<label class="text-sm font-semibold text-gray-400">Confidence Level</label>
-							<span class="text-green-400 font-bold">{confidence}%</span>
-						</div>
-						<input
-							type="range"
-							bind:value={confidence}
-							min="0"
-							max="100"
-							class="w-full"
-						/>
-						<div class="flex justify-between text-xs text-gray-500 mt-1">
-							<span>1.0x</span>
-							<span>1.25x</span>
-							<span>1.5x</span>
-						</div>
-					</div>
-
-					<!-- AI Assistance Toggle -->
-					<div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-						<div class="flex items-center gap-3 mb-3">
-							<Sparkles size={18} class="text-blue-400" />
-							<div class="flex-1 text-blue-400 font-semibold">AI Price Suggestions</div>
-							<button
-								onclick={getAISuggestion}
-								disabled={loadingAI}
-								class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								{loadingAI ? 'Analyzing...' : 'Get AI Suggestion'}
-							</button>
-						</div>
-						<div class="text-sm text-gray-400">
-							Get AI-powered range recommendations (0.8x multiplier penalty)
-						</div>
-						
-						{#if aiSuggestionText}
-							<div class="mt-3 p-3 bg-blue-900/20 border border-blue-500/30 rounded text-sm text-blue-300">
-								{aiSuggestionText}
+						<!-- Range Display -->
+						{#if rangeWidth > 0}
+							<div class="rounded-lg border border-green-500/20 bg-black/50 p-4">
+								<div class="flex items-center justify-between">
+									<span class="text-gray-400">Range Width:</span>
+									<span class="text-xl font-bold {getDifficultyColor(rangeWidth)}"
+										>${rangeWidth.toFixed(2)}</span
+									>
+								</div>
+								<div class="text-sm {getDifficultyColor(rangeWidth)} mt-1">
+									{getDifficultyLabel(rangeWidth)}
+								</div>
 							</div>
 						{/if}
-					</div>
 
-					<!-- Multiplier Display -->
-					<div class="bg-gradient-to-r from-green-900/30 to-green-600/30 rounded-lg p-6 border border-green-500/50">
-						<div class="text-center">
-							<div class="text-sm text-gray-400 mb-2">Estimated Multiplier</div>
-							<div class="text-5xl font-bold text-green-400 mb-4">{multiplier.toFixed(2)}x</div>
-							<div class="text-xl text-gray-300">
-								Potential Reward: <span class="text-green-400 font-bold">${potentialReward} USDC</span>
+						<!-- Confidence Slider -->
+						<div>
+							<div class="mb-2 flex items-center justify-between">
+								<label class="text-sm font-semibold text-gray-400">Confidence Level</label>
+								<span class="font-bold text-green-400">{confidence}%</span>
+							</div>
+							<input type="range" bind:value={confidence} min="0" max="100" class="w-full" />
+							<div class="mt-1 flex justify-between text-xs text-gray-500">
+								<span>1.0x</span>
+								<span>1.25x</span>
+								<span>1.5x</span>
 							</div>
 						</div>
-					</div>
 
-					<!-- Submit Button -->
-					<button
-						onclick={submitPrediction}
-						disabled={submitting || !market || rangeWidth <= 0}
-						class="w-full bg-green-600 hover:bg-green-700 text-black px-6 py-4 rounded-full font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						{submitting ? 'Submitting...' : 'Submit Prediction'}
-					</button>
+						<!-- AI Assistance Toggle -->
+						<div class="rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
+							<div class="mb-3 flex items-center gap-3">
+								<Sparkles size={18} class="text-blue-400" />
+								<div class="flex-1 font-semibold text-blue-400">AI Price Suggestions</div>
+								<button
+									onclick={getAISuggestion}
+									disabled={loadingAI}
+									class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+								>
+									{loadingAI ? 'Analyzing...' : 'Get AI Suggestion'}
+								</button>
+							</div>
+							<div class="text-sm text-gray-400">
+								Get AI-powered range recommendations (0.8x multiplier penalty)
+							</div>
+
+							{#if aiSuggestionText}
+								<div
+									class="mt-3 rounded border border-blue-500/30 bg-blue-900/20 p-3 text-sm text-blue-300"
+								>
+									{aiSuggestionText}
+								</div>
+							{/if}
+						</div>
+
+						<!-- Multiplier Display -->
+						<div
+							class="rounded-lg border border-green-500/50 bg-gradient-to-r from-green-900/30 to-green-600/30 p-6"
+						>
+							<div class="text-center">
+								<div class="mb-2 text-sm text-gray-400">Estimated Multiplier</div>
+								<div class="mb-4 text-5xl font-bold text-green-400">{multiplier.toFixed(2)}x</div>
+								<div class="text-xl text-gray-300">
+									Potential Reward: <span class="font-bold text-green-400"
+										>${potentialReward} USDC</span
+									>
+								</div>
+							</div>
+						</div>
+
+						<!-- Submit Button -->
+						<button
+							onclick={submitPrediction}
+							disabled={submitting || !market || rangeWidth <= 0}
+							class="w-full rounded-full bg-green-600 px-6 py-4 text-lg font-bold text-black transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							{submitting ? 'Submitting...' : 'Submit Prediction'}
+						</button>
+					</div>
 				</div>
-			</div>
+			{/if}
 
 			<!-- Results Section (Only for Completed Markets) -->
 			{#if market.status === 'Completed'}
-				<div class="bg-gray-900 rounded-lg p-6 border border-green-500/20 mt-6">
-					<h2 class="text-2xl font-bold text-green-400 mb-6">Final Results</h2>
+				<div class="mt-6 rounded-lg border border-green-500/20 bg-gray-900 p-6">
+					<h2 class="mb-6 text-2xl font-bold text-green-400">Final Results</h2>
 
 					<!-- Final Price -->
 					{#if market.finalPrice}
-						<div class="bg-green-500/10 border border-green-500/30 rounded-lg p-6 mb-6">
+						<div class="mb-6 rounded-lg border border-green-500/30 bg-green-500/10 p-6">
 							<div class="text-center">
-								<div class="text-sm text-gray-400 mb-2">Final Price</div>
-								<div class="text-4xl font-bold text-green-400">${(market.finalPrice / 1_000_000).toFixed(2)}</div>
+								<div class="mb-2 text-sm text-gray-400">Final Price</div>
+								<div class="text-4xl font-bold text-green-400">
+									${(market.finalPrice / 1_000_000).toFixed(2)}
+								</div>
 							</div>
 						</div>
 					{/if}
 
 					<!-- My Prediction Result -->
 					{#if myPrediction}
-						<div class="bg-black/50 rounded-lg p-6 border {myPrediction.reward ? 'border-green-500' : 'border-red-500/50'} mb-6">
-							<h3 class="text-xl font-bold mb-4 {myPrediction.reward ? 'text-green-400' : 'text-red-400'}">
+						<div
+							class="rounded-lg border bg-black/50 p-6 {myPrediction.reward
+								? 'border-green-500'
+								: 'border-red-500/50'} mb-6"
+						>
+							<h3
+								class="mb-4 text-xl font-bold {myPrediction.reward
+									? 'text-green-400'
+									: 'text-red-400'}"
+							>
 								{myPrediction.reward ? '✓ You Won!' : '✗ Prediction Missed'}
 							</h3>
-							
-							<div class="grid grid-cols-2 gap-4 mb-4">
+
+							<div class="mb-4 grid grid-cols-2 gap-4">
 								<div>
 									<div class="text-sm text-gray-400">Your Range</div>
 									<div class="text-lg font-bold text-green-400">
-										${(myPrediction.minPrice / 1_000_000).toFixed(2)} - ${(myPrediction.maxPrice / 1_000_000).toFixed(2)}
+										${(myPrediction.minPrice / 1_000_000).toFixed(2)} - ${(
+											myPrediction.maxPrice / 1_000_000
+										).toFixed(2)}
 									</div>
 								</div>
 								<div>
@@ -337,22 +419,26 @@
 							</div>
 
 							{#if myPrediction.reward}
-								<div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+								<div class="rounded-lg border border-green-500/30 bg-green-500/10 p-4">
 									<div class="flex items-center justify-between">
 										<div>
 											<div class="text-sm text-gray-400">Multiplier</div>
-											<div class="text-2xl font-bold text-green-400">{myPrediction.multiplier?.toFixed(2)}x</div>
+											<div class="text-2xl font-bold text-green-400">
+												{myPrediction.multiplier?.toFixed(2)}x
+											</div>
 										</div>
 										<div>
 											<div class="text-sm text-gray-400">Reward</div>
-											<div class="text-2xl font-bold text-green-400">${(myPrediction.reward / 1_000_000).toFixed(2)} USDC</div>
+											<div class="text-2xl font-bold text-green-400">
+												${(myPrediction.reward / 1_000_000).toFixed(2)} USDC
+											</div>
 										</div>
 									</div>
 								</div>
 							{/if}
 						</div>
 					{:else if $wallet.isConnected}
-						<div class="bg-gray-800/50 rounded-lg p-6 border border-gray-700 text-center">
+						<div class="rounded-lg border border-gray-700 bg-gray-800/50 p-6 text-center">
 							<div class="text-gray-400">You did not participate in this market</div>
 						</div>
 					{/if}
@@ -360,15 +446,19 @@
 					<!-- Leaderboard -->
 					{#if allPredictions.length > 0}
 						<div class="mt-6">
-							<h3 class="text-xl font-bold text-green-400 mb-4">Leaderboard</h3>
+							<h3 class="mb-4 text-xl font-bold text-green-400">Leaderboard</h3>
 							<div class="space-y-2">
-								{#each allPredictions.filter(p => p.reward).sort((a, b) => (b.reward || 0) - (a.reward || 0)) as prediction, index}
-									<div class="bg-black/50 rounded-lg p-4 border border-green-500/20 flex items-center justify-between">
+								{#each allPredictions
+									.filter((p) => p.reward)
+									.sort((a, b) => (b.reward || 0) - (a.reward || 0)) as prediction, index}
+									<div
+										class="flex items-center justify-between rounded-lg border border-green-500/20 bg-black/50 p-4"
+									>
 										<div class="flex items-center gap-4">
 											<div class="text-2xl font-bold text-gray-400">#{index + 1}</div>
 											<div>
 												<div class="text-sm text-gray-400">Player</div>
-												<div class="text-green-400 font-mono text-xs">
+												<div class="font-mono text-xs text-green-400">
 													{prediction.player.slice(0, 8)}...{prediction.player.slice(-6)}
 												</div>
 											</div>

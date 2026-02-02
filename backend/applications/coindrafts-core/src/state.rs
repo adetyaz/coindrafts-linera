@@ -5,7 +5,7 @@ Manages the persistent state for the CoinDrafts orchestration hub.
 Uses Linera views for efficient blockchain-native state management.
 */
 
-use coindrafts_core::{Game, PlayerProfile, Portfolio};
+use coindrafts_core::{Achievement, Game, GameResult, PlayerProfile, Portfolio};
 use linera_sdk::views::{linera_views, MapView, RegisterView, RootView, ViewStorageContext};
 
 /// The application state
@@ -20,4 +20,8 @@ pub struct CoinDraftsState {
     pub portfolios: MapView<String, Vec<Portfolio>>,
     /// Global game counter for generating unique IDs
     pub game_counter: RegisterView<u64>,
+    /// Player achievements indexed by (player_account, achievement_id)
+    pub achievements: MapView<(String, String), Achievement>,
+    /// Game history indexed by (player_account, game_id)
+    pub game_history: MapView<(String, String), GameResult>,
 }

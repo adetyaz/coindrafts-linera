@@ -409,7 +409,7 @@ impl TraditionalLeaguesContract {
         };
 
         // Get the tournament to know which round to check
-        let tournament = match self.state.tournaments.get(tournament_id).await {
+        let _tournament = match self.state.tournaments.get(tournament_id).await {
             Ok(Some(tournament)) => tournament,
             _ => return vec![], // Tournament not found
         };

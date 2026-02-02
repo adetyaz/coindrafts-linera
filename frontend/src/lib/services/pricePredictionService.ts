@@ -141,6 +141,12 @@ const SUBMIT_PREDICTION = gql`
 	}
 `;
 
+const SETTLE_MARKET = gql`
+	mutation SettleMarket($marketId: String!, $finalPrice: Float!, $players: [String!]!) {
+		settleMarket(marketId: $marketId, finalPrice: $finalPrice, players: $players)
+	}
+`;
+
 // Service
 class PricePredictionService {
 	async fetchActiveMarkets(): Promise<PredictionMarket[]> {
@@ -222,6 +228,19 @@ class PricePredictionService {
 			return true;
 		} catch (error) {
 			console.error('Failed to submit prediction:', error);
+			return false;
+		}
+	}
+
+	async settleMarket(marketId: string, finalPrice: number, players: string[]): Promise<boolean> {
+		try {
+			await pricePredictionClient.mutate({
+				mutation: SETTLE_MARKET,
+				variables: { marketId, finalPrice, players }
+			});
+			return true;
+		} catch (error) {
+			console.error('Failed to settle market:', error);
 			return false;
 		}
 	}

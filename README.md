@@ -17,6 +17,31 @@ CoinDrafts allows users to compete in cryptocurrency portfolio contests and tour
 - **Frontend**: SvelteKit application with GraphQL integration
 - **Deployment**: Docker-based with Linera local network
 
+### Data Flow (Backend → Frontend)
+
+**GraphQL Communication:**
+
+1. **Linera Service** exposes GraphQL endpoints on port 8081
+2. **Frontend Apollo Client** connects to chain-specific application endpoints
+3. **Admin Chain Usage** - Frontend uses admin chain ID for reliable blob access and GraphQL queries
+4. **Dual Application Setup**:
+   - `http://localhost:8081/chains/{ADMIN_CHAIN_ID}/applications/{CORE_APP_ID}` - Game data
+   - `http://localhost:8081/chains/{ADMIN_CHAIN_ID}/applications/{LEAGUES_APP_ID}` - Tournament data
+
+**Environment Configuration:**
+
+- Backend deployment generates unique application IDs and chain IDs
+- `run.bash` script writes these values to `frontend/.env`
+- Frontend reads environment variables to construct proper GraphQL endpoints
+- Admin chain ensures consistent data access without blob synchronization issues
+
+**Real-time Updates:**
+
+- Linera's reactive architecture automatically updates GraphQL subscriptions
+- Frontend polls for game/tournament state changes
+- Mutations happen on default chain (where wallet has permissions)
+- Queries happen on admin chain (for reliable data access)
+
 ## Quick Start (Docker)
 
 ```bash
@@ -63,6 +88,10 @@ docker compose up --build --force-recreate
 4. Admin starts game → Captures starting prices
 5. Admin ends game → Calculates winners, distributes prizes (50%/30%/20%)
 
+**📹 Video Demo:** [Quick Match Gameplay](https://www.loom.com/share/b0324c9718cf419bae58cc0801e093b3)
+
+**Note:** Quick Match gameplay is very similar to tournaments in how it plays out - users create, join, select portfolios, and compete for prizes.
+
 **Manual Controls:** Games are manually started/ended (MVP demo). Future: automated with Linera time triggers.
 
 ### Tournament Flow
@@ -76,7 +105,26 @@ docker compose up --build --force-recreate
 5. Admin ends tournament → Calculates returns with 100x amplification (<30min games)
 6. Prizes distributed → Top 3 get 50%/30%/20%
 
+**📹 Video Demo:** [Tournament Flow Walkthrough](https://www.loom.com/share/cdb1ecd83eb74240be9aed350aa6af76)
+
+**User Stories:**
+
+- User can create games
+- User can join already created games
+- User can consult AI for crypto selection suggestions
+- User can pick their preferred portfolio
+- Game auto-starts once the required number of players is complete
+- End game automatically ends when duration expires
+
 **Manual Controls:** Tournaments manually started/ended for demo. Future: automated scheduling.
+
+### Price Prediction Flow
+
+**Prediction-based gameplay:**
+
+Users predict what the price of a specific cryptocurrency will be after a set duration. Players compete to see who can most accurately forecast price movements.
+
+**📹 Video Demo:** [Price Prediction Gameplay](https://www.loom.com/share/2bba21d5ef1b46ea8221819e0812b746)
 
 ### Global Leaderboard
 
@@ -123,13 +171,11 @@ docker compose up --build --force-recreate
    **CRITICAL:** Without this file, the frontend **will not work**. These values are automatically generated during Docker deployment.
 
    **For fresh installations:**
-
    - Leave the file empty or skip this step
    - Run `docker compose up --force-recreate` (step 3)
    - The deployment script will automatically generate and populate `frontend/.env` with the correct values
 
    **For existing deployments:**
-
    - The file should already exist with your application IDs
    - Do not modify these values unless redeploying the backend
 
@@ -140,7 +186,6 @@ docker compose up --build --force-recreate
    ```
 
 4. **Wait for backend build and deployment** ⏱️
-
    - **Build phase**: Compiles Rust applications (~3-5 minutes)
    - **Deploy phase**: Deploys to Linera network, generates unique application IDs (~2-3 minutes)
    - **Startup phase**: Configures frontend with application IDs (~1 minute)

@@ -12,3 +12,4 @@ examples
 DEPLOYMENT_GUIDE.md
 misc
 .pnpm-store
+deployment.log

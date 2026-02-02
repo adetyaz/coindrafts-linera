@@ -232,6 +232,7 @@ impl QueryRoot {
 }
 
 #[derive(SimpleObject)]
+#[graphql(name = "PlayerProfileStats")]
 struct PlayerStats {
     account: String,
     name: String,

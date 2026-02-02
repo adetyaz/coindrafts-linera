@@ -3,14 +3,15 @@ import { HttpLink } from '@apollo/client/link/http';
 import {
 	PUBLIC_COINDRAFTS_CORE_APP_ID,
 	PUBLIC_TRADITIONAL_LEAGUES_APP_ID,
-	PUBLIC_DEFAULT_CHAIN_ID
+	PUBLIC_DEFAULT_CHAIN_ID,
+	PUBLIC_ADMIN_CHAIN_ID
 } from '$env/static/public';
 
 // CoinDrafts Core application endpoint - PORT 8081 for GraphQL!
-const COINDRAFTS_CORE_URI = `http://localhost:8081/chains/${PUBLIC_DEFAULT_CHAIN_ID}/applications/${PUBLIC_COINDRAFTS_CORE_APP_ID}`;
+const COINDRAFTS_CORE_URI = `http://localhost:8081/chains/${PUBLIC_ADMIN_CHAIN_ID}/applications/${PUBLIC_COINDRAFTS_CORE_APP_ID}`;
 
-// Traditional Leagues application endpoint
-const TRADITIONAL_LEAGUES_URI = `http://localhost:8081/chains/${PUBLIC_DEFAULT_CHAIN_ID}/applications/${PUBLIC_TRADITIONAL_LEAGUES_APP_ID}`;
+// Traditional Leagues application endpoint - Use admin chain for reliable GraphQL access
+const TRADITIONAL_LEAGUES_URI = `http://localhost:8081/chains/${PUBLIC_ADMIN_CHAIN_ID}/applications/${PUBLIC_TRADITIONAL_LEAGUES_APP_ID}`;
 
 // CoinDrafts Core client
 export const coinDraftsClient = new ApolloClient({

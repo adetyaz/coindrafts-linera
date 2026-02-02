@@ -3,7 +3,8 @@ import { HttpLink } from '@apollo/client/link/http';
 import {
 	PUBLIC_COINDRAFTS_CORE_APP_ID,
 	PUBLIC_TRADITIONAL_LEAGUES_APP_ID,
-	PUBLIC_DEFAULT_CHAIN_ID
+	PUBLIC_DEFAULT_CHAIN_ID,
+	PUBLIC_ADMIN_CHAIN_ID
 } from '$env/static/public';
 
 // Types
@@ -131,6 +132,7 @@ interface TournamentPortfolioQueryResult {
 // Configuration - SvelteKit environment variables
 const LINERA_GRAPHQL_BASE = 'http://localhost:8081';
 const DEFAULT_CHAIN_ID = PUBLIC_DEFAULT_CHAIN_ID;
+const ADMIN_CHAIN_ID = PUBLIC_ADMIN_CHAIN_ID; // Use admin chain for reliable GraphQL access
 
 // Application IDs - MUST be set via environment variables after deployment
 const COINDRAFTS_CORE_APP_ID = PUBLIC_COINDRAFTS_CORE_APP_ID;
@@ -149,7 +151,7 @@ if (!COINDRAFTS_CORE_APP_ID || !TRADITIONAL_LEAGUES_APP_ID) {
 // GraphQL Clients
 const coinDraftsClient = new ApolloClient({
 	link: new HttpLink({
-		uri: `${LINERA_GRAPHQL_BASE}/chains/${DEFAULT_CHAIN_ID}/applications/${COINDRAFTS_CORE_APP_ID}`
+		uri: `${LINERA_GRAPHQL_BASE}/chains/${ADMIN_CHAIN_ID}/applications/${COINDRAFTS_CORE_APP_ID}`
 	}),
 	cache: new InMemoryCache(),
 	defaultOptions: {
@@ -160,7 +162,7 @@ const coinDraftsClient = new ApolloClient({
 
 const tradLeaguesClient = new ApolloClient({
 	link: new HttpLink({
-		uri: `${LINERA_GRAPHQL_BASE}/chains/${DEFAULT_CHAIN_ID}/applications/${TRADITIONAL_LEAGUES_APP_ID}`
+		uri: `${LINERA_GRAPHQL_BASE}/chains/${ADMIN_CHAIN_ID}/applications/${TRADITIONAL_LEAGUES_APP_ID}`
 	}),
 	cache: new InMemoryCache(),
 	defaultOptions: {

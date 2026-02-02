@@ -26,6 +26,7 @@ function loadEnvConfig() {
 
   return {
     chainId: config.PUBLIC_DEFAULT_CHAIN_ID,
+    adminChainId: config.PUBLIC_ADMIN_CHAIN_ID,
     tradLeaguesAppId: config.PUBLIC_TRADITIONAL_LEAGUES_APP_ID,
     coreAppId: config.PUBLIC_COINDRAFTS_CORE_APP_ID,
     pricePredictionAppId: config.PUBLIC_PRICE_PREDICTION_APP_ID,
@@ -41,9 +42,15 @@ async function graphql(query, variables = {}, endpoint) {
     body: JSON.stringify({ query, variables }),
   });
 
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`HTTP ${response.status}: ${text.substring(0, 200)}`);
+  }
   const result = await response.json();
-  if (result.errors) throw new Error(JSON.stringify(result.errors));
+  if (result.errors) {
+    const errorMsg = JSON.stringify(result.errors[0]?.message || result.errors);
+    throw new Error(`GraphQL Error: ${errorMsg.substring(0, 300)}`);
+  }
   return result.data;
 }
 
@@ -212,7 +219,7 @@ async function createTournament(endpoint, tournament) {
         tournamentType: tournament.type,
         category: tournament.category,
       },
-      endpoint
+      endpoint,
     );
 
     // Query to get the tournament ID (like test-all-flows.js does)
@@ -226,7 +233,7 @@ async function createTournament(endpoint, tournament) {
         }
       `,
       {},
-      endpoint
+      endpoint,
     );
 
     const tournaments = tournamentsData.tournaments || [];
@@ -239,7 +246,7 @@ async function createTournament(endpoint, tournament) {
     }
 
     console.log(
-      `  ✅ Created: ${tournament.name} [${tournament.category}] - ID: ${tournamentId}`
+      `  ✅ Created: ${tournament.name} [${tournament.category}] - ID: ${tournamentId}`,
     );
 
     // Register players and submit portfolios
@@ -260,7 +267,7 @@ async function createTournament(endpoint, tournament) {
               }
             `,
             { tournamentId, playerAccount },
-            endpoint
+            endpoint,
           );
           console.log(`    ✅ Registered: ${playerAccount}`);
 
@@ -288,16 +295,16 @@ async function createTournament(endpoint, tournament) {
               cryptoPicks: randomCryptos,
               strategyNotes: `Auto-seeded portfolio for ${playerAccount}`,
             },
-            endpoint
+            endpoint,
           );
           console.log(
             `    ✅ Submitted portfolio for: ${playerAccount} [${randomCryptos.join(
-              ", "
-            )}]`
+              ", ",
+            )}]`,
           );
         } catch (err) {
           console.log(
-            `    ⚠️  Failed to register/submit for ${playerAccount}: ${err.message}`
+            `    ⚠️  Failed to register/submit for ${playerAccount}: ${err.message}`,
           );
         }
       }
@@ -338,7 +345,7 @@ async function createQuickMatchGame(endpoint, gameData) {
         entryFeeUsdc: gameData.entryFee * 1_000_000,
         durationHours: gameData.duration,
       },
-      endpoint
+      endpoint,
     );
 
     // Query to get the game ID (like test-all-flows.js does)
@@ -353,7 +360,7 @@ async function createQuickMatchGame(endpoint, gameData) {
         }
       `,
       {},
-      endpoint
+      endpoint,
     );
 
     const games = gamesData.games || [];
@@ -387,7 +394,7 @@ async function createQuickMatchGame(endpoint, gameData) {
               }
             `,
             { gameId, playerName: playerAccount, playerAccount },
-            endpoint
+            endpoint,
           );
           console.log(`    ✅ Registered: ${playerAccount}`);
 
@@ -408,16 +415,16 @@ async function createQuickMatchGame(endpoint, gameData) {
               }
             `,
             { gameId, playerAccount, cryptocurrencies: randomCryptos },
-            endpoint
+            endpoint,
           );
           console.log(
             `    ✅ Submitted portfolio for: ${playerAccount} [${randomCryptos.join(
-              ", "
-            )}]`
+              ", ",
+            )}]`,
           );
         } catch (error) {
           console.log(
-            `    ⚠️  Failed to register/submit for ${playerAccount}: ${error.message}`
+            `    ⚠️  Failed to register/submit for ${playerAccount}: ${error.message}`,
           );
         }
       }
@@ -451,7 +458,7 @@ async function createPricePredictionMarket(endpoint, marketData) {
         entryFee: marketData.entryFee * 1_000_000,
         durationDays: marketData.durationDays,
       },
-      endpoint
+      endpoint,
     );
 
     // Get the created market ID
@@ -466,11 +473,11 @@ async function createPricePredictionMarket(endpoint, marketData) {
         }
       `,
       {},
-      endpoint
+      endpoint,
     );
 
     const market = marketsData.activeMarkets.find(
-      (m) => m.cryptoId === marketData.cryptoId && m.status === "Active"
+      (m) => m.cryptoId === marketData.cryptoId && m.status === "Active",
     );
 
     if (!market) {
@@ -510,7 +517,7 @@ async function createPricePredictionMarket(endpoint, marketData) {
           confidence: prediction.confidence,
           aiAssisted: false,
         },
-        endpoint
+        endpoint,
       );
 
       console.log(`    → Player ${i + 1} prediction submitted`);
@@ -529,14 +536,14 @@ async function seedData() {
     // Load config from .env
     const config = loadEnvConfig();
 
-    if (!config.chainId || !config.tradLeaguesAppId || !config.coreAppId) {
+    if (!config.adminChainId || !config.tradLeaguesAppId || !config.coreAppId) {
       console.error("❌ Missing deployment IDs in frontend/.env");
       process.exit(1);
     }
 
-    const tradLeaguesEndpoint = `http://localhost:8081/chains/${config.chainId}/applications/${config.tradLeaguesAppId}`;
-    const coreEndpoint = `http://localhost:8081/chains/${config.chainId}/applications/${config.coreAppId}`;
-    const pricePredictionEndpoint = `http://localhost:8081/chains/${config.chainId}/applications/${config.pricePredictionAppId}`;
+    const tradLeaguesEndpoint = `http://localhost:8081/chains/${config.adminChainId}/applications/${config.tradLeaguesAppId}`;
+    const coreEndpoint = `http://localhost:8081/chains/${config.adminChainId}/applications/${config.coreAppId}`;
+    const pricePredictionEndpoint = `http://localhost:8081/chains/${config.adminChainId}/applications/${config.pricePredictionAppId}`;
 
     console.log(`📡 Traditional Leagues Endpoint: ${tradLeaguesEndpoint}`);
     console.log(`📡 Quick Match Endpoint: ${coreEndpoint}`);
@@ -546,7 +553,16 @@ async function seedData() {
     console.log("⏳ Waiting for GraphQL services...");
     let ready = false;
     let lastError = null;
-    for (let i = 0; i < 15; i++) {
+
+    // First check if port is even open
+    try {
+      const portCheck = await fetch("http://localhost:8081/");
+      console.log(`   ✓ Port 8081 responding (status: ${portCheck.status})`);
+    } catch (e) {
+      console.error(`   ✗ Port 8081 not reachable: ${e.message}`);
+    }
+
+    for (let i = 0; i < 60; i++) {
       try {
         await graphql("{ tournaments { id } }", {}, tradLeaguesEndpoint);
         await graphql("{ games { gameId } }", {}, coreEndpoint);
@@ -555,20 +571,58 @@ async function seedData() {
         break;
       } catch (e) {
         lastError = e.message;
-        process.stdout.write(".");
+        console.log(`   [${i * 2}s] ERROR: ${lastError}`);
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
     console.log("");
 
     if (!ready) {
-      console.error("❌ GraphQL services not ready after 30 seconds");
+      console.error("❌ GraphQL services not ready after 120 seconds");
       console.error("   Last error:", lastError);
-      console.log("   Tip: Check /tmp/graphql-service.log for details");
+      console.error("\n📋 Debug commands:");
+      console.error(
+        "   docker exec coindrafts-coindrafts-1 cat /tmp/graphql-service.log",
+      );
+      console.error(
+        "   docker exec coindrafts-coindrafts-1 ps aux | grep linera\n",
+      );
       process.exit(1);
     }
 
     console.log("✅ GraphQL services ready\n");
+
+    // Check if data already exists
+    console.log("🔍 Checking for existing data...");
+    const existingTournaments = await graphql(
+      "{ tournaments { id } }",
+      {},
+      tradLeaguesEndpoint,
+    );
+    const existingGames = await graphql(
+      "{ games { gameId } }",
+      {},
+      coreEndpoint,
+    );
+    const existingMarkets = await graphql(
+      "{ activeMarkets { id } }",
+      {},
+      pricePredictionEndpoint,
+    );
+
+    const hasTournaments = existingTournaments?.tournaments?.length > 0;
+    const hasGames = existingGames?.games?.length > 0;
+    const hasMarkets = existingMarkets?.activeMarkets?.length > 0;
+
+    if (hasTournaments && hasGames && hasMarkets) {
+      console.log("✅ Data already exists - skipping seed");
+      console.log(`   Tournaments: ${existingTournaments.tournaments.length}`);
+      console.log(`   Games: ${existingGames.games.length}`);
+      console.log(`   Markets: ${existingMarkets.activeMarkets.length}\n`);
+      process.exit(0);
+    }
+
+    console.log("📝 No data found - proceeding with seed\n");
 
     // Create tournaments
     console.log("🏆 Creating tournaments...");
@@ -598,7 +652,7 @@ async function seedData() {
     }
 
     console.log(
-      `\n✨ Seeding complete: ${tournamentsCreated}/${TOURNAMENTS.length} tournaments, ${gamesCreated}/${QUICK_MATCH_GAMES.length} games, ${marketsCreated}/${PRICE_PREDICTION_MARKETS.length} markets\n`
+      `\n✨ Seeding complete: ${tournamentsCreated}/${TOURNAMENTS.length} tournaments, ${gamesCreated}/${QUICK_MATCH_GAMES.length} games, ${marketsCreated}/${PRICE_PREDICTION_MARKETS.length} markets\n`,
     );
     process.exit(0);
   } catch (error) {
